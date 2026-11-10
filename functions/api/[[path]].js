@@ -4165,11 +4165,12 @@ async function handlePost(context) {
         return jsonResponse({ ok: true });
     }
 
-    // POST /api/seats/hold (15-Minute Temporary Seat Hold)
+    // POST /api/seats/hold (Enterprise Atomic Seat Lock via SQLite UNIQUE Constraint)
     if (path === '/api/seats/hold') {
         const body = await readJson(request);
-        const { busId, journeyDate, seats, sessionId, customerPhone } = body || {};
-        if (!busId || !journeyDate || !Array.isArray(seats) || !seats.length || !sessionId) {
+        const { busId, journeyDate, seats: rawSeats, sessionId, customerPhone } = body || {};
+        const seats = Array.isArray(rawSeats) ? [...new Set(rawSeats.map(s => String(s).trim()).filter(Boolean))] : [];
+        if (!busId || !journeyDate || !seats.length || !sessionId) {
             return jsonError(400, 'Missing busId, journeyDate, seats, or sessionId.');
         }
 
@@ -4182,7 +4183,7 @@ async function handlePost(context) {
         const now = new Date();
         const nowIso = now.toISOString();
 
-        // 1. Purge expired holds
+        // 1. Purge expired holds atomically
         await env.DB.prepare('DELETE FROM seat_holds WHERE expires_at <= ?').bind(nowIso).run();
 
         // 2. Check if already permanently booked in booking_seats
@@ -4204,7 +4205,7 @@ async function handlePost(context) {
             return jsonError(409, `সিট ${lockedSeats} সাময়িকভাবে অন্য যাত্রীর জন্য লক রয়েছে (১৫ মিনিট)। অনুগ্রহ করে অন্য সিট বাছুন। (Seat ${lockedSeats} is temporarily held.)`);
         }
 
-        // 4. Check if this session ALREADY has an active, unexpired hold for these seats on this bus & date
+        // 4. Check if this session ALREADY has an active, unexpired hold for these exact seats on this bus & date
         const existingHolds = await env.DB.prepare(
             `SELECT seat_number, expires_at FROM seat_holds WHERE bus_id = ? AND journey_date = ? AND session_id = ? AND expires_at > ?`
         ).bind(busId, journeyDate, sessionId, nowIso).all();
@@ -4225,25 +4226,33 @@ async function handlePost(context) {
         let expiresAt;
         const existingList = existingHolds.results || [];
         const existingSeatSet = new Set(existingList.map(r => r.seat_number));
-        const allSeatsAlreadyHeld = seats.length > 0 && seats.every(s => existingSeatSet.has(s));
+        const allSeatsAlreadyHeld = seats.length > 0 && seats.every(s => existingSeatSet.has(s)) && existingList.length === seats.length;
 
         if (allSeatsAlreadyHeld && existingList[0]?.expires_at) {
             // PRESERVE EXISTING EXPIRY! Do not reset timer when page is refreshed
             expiresAt = existingList[0].expires_at;
         } else {
-            // New hold or seats changed: clear old holds and assign fresh window
-            await env.DB.prepare(
-                'DELETE FROM seat_holds WHERE bus_id = ? AND journey_date = ? AND session_id = ?'
-            ).bind(busId, journeyDate, sessionId).run();
-
+            // Atomic batch: release this session's old holds on this trip and lock requested seats via idx_seat_holds_unique
             expiresAt = new Date(now.getTime() + holdMins * 60 * 1000).toISOString();
             const tripDir = busId.endsWith('_RETURN') ? 'DOWN' : 'UP';
-            const statements = seats.map(seat =>
+            const statements = [
                 env.DB.prepare(
-                    'INSERT INTO seat_holds (bus_id, journey_date, seat_number, session_id, customer_phone, expires_at, created_at, trip_direction) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-                ).bind(busId, journeyDate, seat, sessionId, customerPhone || null, expiresAt, nowIso, tripDir)
-            );
-            await env.DB.batch(statements);
+                    'DELETE FROM seat_holds WHERE bus_id = ? AND journey_date = ? AND session_id = ?'
+                ).bind(busId, journeyDate, sessionId),
+                ...seats.map(seat =>
+                    env.DB.prepare(
+                        'INSERT INTO seat_holds (bus_id, journey_date, seat_number, session_id, customer_phone, expires_at, created_at, trip_direction) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+                    ).bind(busId, journeyDate, seat, sessionId, customerPhone || null, expiresAt, nowIso, tripDir)
+                )
+            ];
+            try {
+                await env.DB.batch(statements);
+            } catch (err) {
+                if (/UNIQUE|constraint/i.test(err.message || '')) {
+                    return jsonError(409, `দুঃখিত! আপনার নির্বাচিত সিট (${seats.join(', ')}) এই মুহূর্তে অন্য একজন যাত্রী পেমেন্টের জন্য লক করে ফেলেছেন। অন্য সিট বাছুন। (Seat(s) ${seats.join(', ')} were just locked by another passenger.)`);
+                }
+                throw err;
+            }
         }
 
         const remainingSecs = Math.max(0, Math.floor((new Date(expiresAt).getTime() - now.getTime()) / 1000));
@@ -4296,8 +4305,47 @@ async function handlePost(context) {
             fare,
             paymentMode,
             utrNumber,
-            promoCode
+            promoCode,
+            sessionId,
+            idempotencyKey
         } = body;
+
+        const cleanSessionId = sessionId ? String(sessionId).trim() : '';
+        const cleanIdempotencyKey = idempotencyKey ? String(idempotencyKey).trim().slice(0, 128) : null;
+
+        // Idempotency replay protection (prevents duplicate bookings on network retries / double-taps)
+        if (cleanIdempotencyKey) {
+            const existingBk = await env.DB.prepare('SELECT * FROM bookings WHERE idempotency_key = ? LIMIT 1').bind(cleanIdempotencyKey).first();
+            if (existingBk) {
+                const existingBus = await env.DB.prepare('SELECT * FROM buses WHERE id = ?').bind(String(existingBk.bus_id).replace('_RETURN', '')).first();
+                return jsonResponse({
+                    idempotentReplay: true,
+                    booking: {
+                        id: existingBk.id,
+                        busId: existingBus ? existingBus.id : existingBk.bus_id,
+                        busName: existingBk.bus_name,
+                        busNumber: existingBk.bus_number,
+                        ownerName: existingBk.owner_name,
+                        companyName: existingBus ? (existingBus.company_name || `${existingBus.owner_name} Travels`) : `${existingBk.owner_name} Travels`,
+                        gstNumber: existingBus?.gst_number || '',
+                        ticketTerms: existingBus?.ticket_terms || '',
+                        emergencyPhone: existingBus?.emergency_phone || existingBus?.driver_phone || existingBus?.owner_phone || '',
+                        departureTime: existingBus?.time || '',
+                        passengerName: existingBk.passenger_name,
+                        passengerPhone: existingBk.passenger_phone,
+                        seats: parseJson(existingBk.seats, []),
+                        boarding: existingBk.boarding,
+                        dropping: existingBk.dropping,
+                        date: existingBk.journey_date,
+                        fare: existingBk.fare,
+                        paymentMode: existingBk.payment_mode,
+                        utrNumber: existingBk.utr_number || 'N/A',
+                        status: existingBk.status,
+                        createdAt: existingBk.created_at
+                    }
+                }, 200);
+            }
+        }
 
         if (!busId || !passengerName || !passengerPhone || !Array.isArray(seats) || !seats.length || !date || typeof fare !== 'number') {
             return jsonError(400, 'Missing required booking fields.');
@@ -4477,44 +4525,87 @@ async function handlePost(context) {
             }
         }
 
+        // Purge expired holds and verify no other passenger holds an active lock on these seats
+        const nowHoldIso = new Date().toISOString();
+        await env.DB.prepare('DELETE FROM seat_holds WHERE expires_at <= ?').bind(nowHoldIso).run();
+        if (flags.seatHoldTimer !== false) {
+            const seatPlaceholders = seats.map(() => '?').join(',');
+            const activeHoldSql = cleanSessionId
+                ? `SELECT seat_number FROM seat_holds WHERE bus_id = ? AND journey_date = ? AND expires_at > ? AND session_id != ? AND seat_number IN (${seatPlaceholders})`
+                : `SELECT seat_number FROM seat_holds WHERE bus_id = ? AND journey_date = ? AND expires_at > ? AND seat_number IN (${seatPlaceholders})`;
+            const activeHoldArgs = cleanSessionId
+                ? [busId, date, nowHoldIso, cleanSessionId, ...seats]
+                : [busId, date, nowHoldIso, ...seats];
+            const holdConflict = await env.DB.prepare(activeHoldSql).bind(...activeHoldArgs).all();
+            if (holdConflict.results && holdConflict.results.length > 0) {
+                const lockedList = holdConflict.results.map(r => r.seat_number).join(', ');
+                return jsonError(409, `সিট ${lockedList} সাময়িকভাবে অন্য যাত্রীর জন্য লক রয়েছে (১৫ মিনিট)। অনুগ্রহ করে অন্য সিট বাছুন। (Seat ${lockedList} is currently held by another passenger.)`);
+            }
+        }
+
         const bookingId = "BK_" + Math.random().toString(36).substring(2, 9).toUpperCase();
         const createdAt = new Date().toISOString();
         const status = 'Pending Approval';
         const tripDirection = isReturnTrip ? 'DOWN' : 'UP';
         const bookingBusName = isReturnTrip ? `${bus.name} (Return)` : bus.name;
 
-        // Insert booking and seat reservations
-        const statements = [env.DB.prepare(
-            `INSERT INTO bookings (
-                id, bus_id, bus_name, bus_number, owner_name, passenger_name, passenger_phone,
-                seats, boarding, dropping, journey_date, fare, payment_mode, utr_number, status, created_at, trip_direction, payment_screenshot
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        ).bind(
-            bookingId, busId, bookingBusName, bus.bus_number, bus.owner_name, passengerName.trim(), passengerPhone.trim(),
-            JSON.stringify(seats), boarding, dropping, date, finalBookingFare, cleanMode, cleanUtr, status, createdAt, tripDirection, paymentScreenshot
-        )];
-        for (const s of seats) {
-            statements.push(env.DB.prepare(
+        // Atomic batch: Insert booking + seat reservations + release temporary holds in ONE D1 transaction
+        const heldPlaceholders = seats.map(() => '?').join(',');
+        const statements = [
+            env.DB.prepare(
+                `INSERT INTO bookings (
+                    id, bus_id, bus_name, bus_number, owner_name, passenger_name, passenger_phone,
+                    seats, boarding, dropping, journey_date, fare, payment_mode, utr_number, status, created_at, trip_direction, payment_screenshot, idempotency_key
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ).bind(
+                bookingId, busId, bookingBusName, bus.bus_number, bus.owner_name, passengerName.trim(), passengerPhone.trim(),
+                JSON.stringify(seats), boarding, dropping, date, finalBookingFare, cleanMode, cleanUtr, status, createdAt, tripDirection, paymentScreenshot, cleanIdempotencyKey
+            ),
+            ...seats.map(s => env.DB.prepare(
                 'INSERT INTO booking_seats (bus_id, journey_date, seat_number, booking_id) VALUES (?, ?, ?, ?)'
-            ).bind(busId, date, s, bookingId));
-        }
+            ).bind(busId, date, s, bookingId)),
+            env.DB.prepare(
+                `DELETE FROM seat_holds WHERE bus_id = ? AND journey_date = ? AND seat_number IN (${heldPlaceholders})`
+            ).bind(busId, date, ...seats)
+        ];
         try {
             await env.DB.batch(statements);
         } catch (error) {
+            if (cleanIdempotencyKey && /idempotency_key/i.test(error.message || '')) {
+                const replayBk = await env.DB.prepare('SELECT * FROM bookings WHERE idempotency_key = ? LIMIT 1').bind(cleanIdempotencyKey).first();
+                if (replayBk) {
+                    return jsonResponse({
+                        idempotentReplay: true,
+                        booking: {
+                            id: replayBk.id,
+                            busId: bus.id,
+                            busName: bus.name,
+                            busNumber: bus.bus_number,
+                            ownerName: bus.owner_name,
+                            companyName: bus.company_name || `${bus.owner_name} Travels`,
+                            gstNumber: bus.gst_number || '',
+                            ticketTerms: bus.ticket_terms || '',
+                            emergencyPhone: bus.emergency_phone || bus.driver_phone || bus.owner_phone,
+                            departureTime: bus.time,
+                            passengerName: replayBk.passenger_name,
+                            passengerPhone: replayBk.passenger_phone,
+                            seats: parseJson(replayBk.seats, []),
+                            boarding: replayBk.boarding,
+                            dropping: replayBk.dropping,
+                            date: replayBk.journey_date,
+                            fare: replayBk.fare,
+                            paymentMode: replayBk.payment_mode,
+                            utrNumber: replayBk.utr_number || 'N/A',
+                            status: replayBk.status,
+                            createdAt: replayBk.created_at
+                        }
+                    }, 200);
+                }
+            }
             if (/UNIQUE|constraint/i.test(error.message || '')) {
-                return jsonError(409, 'One or more selected seats were just booked. Please choose other seats.');
+                return jsonError(409, 'দুঃখিত! আপনার নির্বাচিত আসনটি এইমাত্র অন্য যাত্রী বুক করে নিয়েছেন। অনুগ্রহ করে অন্য আসন বেছে নিন। (One or more selected seats were just booked. Please choose other seats.)');
             }
             throw error;
-        }
-
-        // Release from temporary holds
-        try {
-            const heldPlaceholders = seats.map(() => '?').join(',');
-            await env.DB.prepare(
-                `DELETE FROM seat_holds WHERE bus_id = ? AND journey_date = ? AND seat_number IN (${heldPlaceholders})`
-            ).bind(busId, date, ...seats).run();
-        } catch (holdErr) {
-            console.warn('Error clearing seat_holds:', holdErr);
         }
 
         // Record financials safely
@@ -4525,7 +4616,7 @@ async function handlePost(context) {
                 VALUES (?, ?, ?, ?, 'pending', ?, 'system')`
             ).bind(
                bookingId, bus.owner_phone, bus.company_name || `${bus.owner_name} Travels`,
-               fare, createdAt
+               finalBookingFare, createdAt
             ).run();
         } catch (finError) {
             console.warn('Could not record booking_financials entry:', finError);

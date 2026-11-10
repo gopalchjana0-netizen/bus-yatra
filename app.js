@@ -2073,7 +2073,36 @@ function openSeatSelection(busId, busTitle, fare, farePerStop, totalSeats, winEx
     }
 }
 
-async function loadBookedSeats(bus) {
+let seatAvailabilityPollTimer = null;
+let seatPollBusRef = null;
+let isProceedingToPayment = false;
+let isConfirmingBooking = false;
+let currentBookingIdempotencyKey = null;
+
+function stopSeatAvailabilityPolling() {
+    if (seatAvailabilityPollTimer) {
+        clearInterval(seatAvailabilityPollTimer);
+        seatAvailabilityPollTimer = null;
+    }
+    seatPollBusRef = null;
+}
+
+function startSeatAvailabilityPolling(bus) {
+    stopSeatAvailabilityPolling();
+    if (!bus) return;
+    seatPollBusRef = bus;
+    seatAvailabilityPollTimer = setInterval(() => {
+        const seatSec = document.getElementById('seatSelectionSection');
+        if (!seatSec || seatSec.classList.contains('hidden') || document.visibilityState !== 'visible') {
+            return;
+        }
+        if (seatPollBusRef && seatPollBusRef.id === selectedBusId) {
+            loadBookedSeats(seatPollBusRef, true);
+        }
+    }, 8000);
+}
+
+async function loadBookedSeats(bus, isSilentPoll = false) {
     try {
         const query = new URLSearchParams({
             busId: bus.id,
@@ -2084,8 +2113,37 @@ async function loadBookedSeats(bus) {
         bookedSeatsForSelection = new Set(result.seats || []);
         heldSeatsForSelection = new Set(result.heldSeats || []);
         myHeldSeatsForSelection = new Set(result.myHeldSeats || []);
+
+        // Real-time conflict detection: deselect seats taken/locked by others while user was viewing
+        if (selectedSeatsSet.size > 0) {
+            const snatchedSeats = [];
+            for (const s of Array.from(selectedSeatsSet)) {
+                if (bookedSeatsForSelection.has(s) || heldSeatsForSelection.has(s)) {
+                    selectedSeatsSet.delete(s);
+                    snatchedSeats.push(s);
+                }
+            }
+            if (snatchedSeats.length > 0) {
+                updateFareDisplay();
+                saveCustomerFlowState({ selectedSeats: Array.from(selectedSeatsSet) });
+                showDropDownToast(
+                    currentLang === 'bn'
+                        ? `⚠️ সিট ${snatchedSeats.join(', ')} এইমাত্র অন্য যাত্রী লক/বুক করে নিয়েছেন! অন্য সিট বেছে নিন।`
+                        : `⚠️ Seat(s) ${snatchedSeats.join(', ')} were just locked or booked by another passenger!`,
+                    'warning'
+                );
+            }
+        }
+
         render65SeatsGrid(bus);
+        if (!isSilentPoll) {
+            startSeatAvailabilityPolling(bus);
+        }
     } catch (error) {
+        if (isSilentPoll) {
+            console.warn('Silent seat availability poll warning:', error.message);
+            return;
+        }
         console.error('Failed to load booked seats:', error);
         document.getElementById('seatsGrid').innerHTML = `<div class="col-span-full text-center text-red-600 text-xs p-4">${escapeHtml(error.message)}. Please retry.</div>`;
         showDropDownToast(currentLang === 'bn' ? 'আসনের তথ্য পাওয়া যায়নি। আবার চেষ্টা করুন।' : 'Could not load seat availability. Please retry.', 'error');
@@ -2291,8 +2349,10 @@ function recalculateDynamicFare() {
     updateFareDisplay();
 }
 
-// --- Step 2: Transition from Seats to Payment Page (with 15-Minute Seat Hold) ---
+// --- Step 2: Transition from Seats to Payment Page (Enterprise Atomic Lock) ---
 async function goToPaymentPage(isRestore = false) {
+    if (isProceedingToPayment) return;
+    isProceedingToPayment = true;
     try {
         const customer = getLoggedInCustomer();
         if (!customer) {
@@ -2394,7 +2454,7 @@ async function goToPaymentPage(isRestore = false) {
             payDroppingSelect.value = dropping;
         }
 
-        // Lock seats for 15 minutes in database
+        // Lock seats atomically for 15 minutes in database BEFORE allowing payment
         let holdRes = null;
         try {
             holdRes = await apiRequest('/api/seats/hold', {
@@ -2411,11 +2471,17 @@ async function goToPaymentPage(isRestore = false) {
                 throw new Error(holdRes?.error || 'Could not hold seats.');
             }
         } catch (holdErr) {
-            showDropDownToast(holdErr.message || 'সিট সাময়িকভাবে লক করা সম্ভব হয়নি। অনুগ্রহ করে পুনরায় চেষ্টা করুন।', 'error');
+            showDropDownToast(holdErr.message || 'সিট সাময়িকভাবে লক করা সম্ভব হয়নি। অনুগ্রহ করে অন্য সিট বাছুন।', 'error');
             alert(holdErr.message);
+            selectedSeatsSet.clear();
+            updateFareDisplay();
             if (bus) await loadBookedSeats(bus);
             return;
         }
+
+        // Stop seat polling once exclusive seat hold is acquired, and assign fresh Idempotency Key for checkout
+        stopSeatAvailabilityPolling();
+        currentBookingIdempotencyKey = `IDEMP_${getClientSessionId()}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
         // Start Seat Hold Countdown Timer (Persistent across page reloads & background tabs)
         if (holdRes && holdRes.holdDisabled) {
@@ -2464,17 +2530,14 @@ async function goToPaymentPage(isRestore = false) {
         });
     } catch (err) {
         console.error("Error transitioning to payment page:", err);
-        const seatSec = document.getElementById('seatSelectionSection');
-        const paySec = document.getElementById('paymentSection');
-        if (seatSec) seatSec.classList.add('hidden');
-        if (paySec) {
-            paySec.classList.remove('hidden');
-            paySec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+        showDropDownToast(currentLang === 'bn' ? 'দয়া করে আবার চেষ্টা করুন।' : 'Something went wrong. Please retry.', 'error');
+    } finally {
+        isProceedingToPayment = false;
     }
 }
 
-async function backToSeatSelection() {
+async function backToSeatSelection(silentReleaseMsg = false) {
+    currentBookingIdempotencyKey = null;
     await releaseSeatHold();
     selectedSeatsSet.clear();
     myHeldSeatsForSelection.clear();
@@ -2482,14 +2545,17 @@ async function backToSeatSelection() {
     document.getElementById('seatSelectionSection').classList.remove('hidden');
     const bus = (getAppData().buses || []).find(b => b.id === selectedBusId);
     if (bus) await loadBookedSeats(bus);
+    updateFareDisplay();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    showDropDownToast(
-        currentLang === 'bn'
-            ? '🔄 পূর্ববর্তী আসন উন্মুক্ত করা হয়েছে। নতুন আসন নির্বাচন করুন।'
-            : '🔄 Previous seat hold released. Please select your new seats.',
-        'info'
-    );
+    if (!silentReleaseMsg) {
+        showDropDownToast(
+            currentLang === 'bn'
+                ? '🔄 পূর্ববর্তী আসন উন্মুক্ত করা হয়েছে। নতুন আসন নির্বাচন করুন।'
+                : '🔄 Previous seat hold released. Please select your new seats.',
+            'info'
+        );
+    }
 
     saveCustomerFlowState({
         step: 'seat_selection',
@@ -2760,8 +2826,10 @@ function compressImageToDataUrl(file, maxWidth = 1000, maxHeight = 1000, quality
     });
 }
 
-// --- Step 3: Confirm Booking & Submit to Cloudflare D1 ---
+// --- Step 3: Confirm Booking & Submit to Cloudflare D1 (Idempotent & Double-Tap Safe) ---
 async function confirmBooking() {
+    if (isConfirmingBooking) return;
+
     const boarding = document.getElementById('boardingPointSelect').value;
     const dropping = document.getElementById('droppingPointSelect').value;
 
@@ -2817,6 +2885,19 @@ async function confirmBooking() {
     const totalBase = seatsArr.length * perSeat;
     const totalFare = Math.max(0, totalBase - currentDiscount);
 
+    if (!currentBookingIdempotencyKey) {
+        currentBookingIdempotencyKey = `IDEMP_${getClientSessionId()}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    }
+
+    isConfirmingBooking = true;
+    const confirmBtn = document.getElementById('btnConfirmBooking');
+    const origBtnHtml = confirmBtn ? confirmBtn.innerHTML : '';
+    if (confirmBtn) {
+        confirmBtn.disabled = true;
+        confirmBtn.classList.add('opacity-70', 'cursor-not-allowed');
+        confirmBtn.innerHTML = `<span class="animate-spin">⏳</span> <span>${currentLang === 'bn' ? 'বুকিং নিশ্চিত হচ্ছে...' : 'Confirming Booking...'}</span>`;
+    }
+
     let result;
     try {
         const customerSession = JSON.parse(localStorage.getItem('customer_session') || sessionStorage.getItem('customer_session') || 'null');
@@ -2840,7 +2921,9 @@ async function confirmBooking() {
                 utrNumber: (pendingPaymentMode === 'UPI') ? (upiTransactionId || 'N/A') : '',
                 paymentScreenshot: (pendingPaymentMode === 'UPI') ? uploadedPaymentScreenshot : '',
                 promoCode: appliedPromoName,
-                fare: totalFare
+                fare: totalFare,
+                sessionId: getClientSessionId(),
+                idempotencyKey: currentBookingIdempotencyKey
             })
         });
     } catch (error) {
@@ -2859,14 +2942,23 @@ async function confirmBooking() {
             return;
         }
         alert(error.message);
-        if (error.message.includes('just booked')) {
-            backToSeatSelection();
-            await loadBookedSeats(bus);
+        const msg = String(error.message || '');
+        if (error.status === 409 && (msg.includes('just booked') || msg.includes('temporarily held') || msg.includes('লক রয়েছে') || msg.includes('বুক করে নিয়েছেন'))) {
+            await backToSeatSelection(true);
         }
         return;
+    } finally {
+        isConfirmingBooking = false;
+        if (confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+            confirmBtn.innerHTML = origBtnHtml;
+        }
     }
 
+    currentBookingIdempotencyKey = null;
     stopSeatHoldTimer();
+    stopSeatAvailabilityPolling();
     removePaymentScreenshot();
     activeBooking = result.booking;
     const bookingId = activeBooking.id;
@@ -3096,6 +3188,8 @@ function shareTicketWhatsApp() {
 }
 
 function backToBuses() {
+    currentBookingIdempotencyKey = null;
+    stopSeatAvailabilityPolling();
     releaseSeatHold();
     selectedSeatsSet.clear();
     myHeldSeatsForSelection.clear();
@@ -3107,6 +3201,8 @@ function backToBuses() {
 }
 
 function resetApp() {
+    currentBookingIdempotencyKey = null;
+    stopSeatAvailabilityPolling();
     clearCustomerFlowState();
     releaseSeatHold();
     stopSeatHoldTimer();
