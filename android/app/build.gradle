@@ -9,8 +9,8 @@ android {
     defaultConfig {
         minSdk 23
         targetSdk 34
-        versionCode 2
-        versionName "1.0.1"
+        versionCode 3
+        versionName "1.0.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -24,32 +24,32 @@ android {
         customer {
             dimension "app"
             applicationId "com.busyatra.customer"
-            versionCode 2
-            versionName "1.0.1"
+            versionCode 3
+            versionName "1.0.2"
             resValue "string", "app_name", "Bus Yatra"
             buildConfigField "String", "PORTAL_URL", "\"https://busyatra.pages.dev/?source=customer_apk\""
         }
         owner {
             dimension "app"
             applicationId "com.busyatra.owner"
-            versionCode 2
-            versionName "1.0.1"
+            versionCode 3
+            versionName "1.0.2"
             resValue "string", "app_name", "Bus Yatra Owner"
             buildConfigField "String", "PORTAL_URL", "\"https://busyatra.pages.dev/owner?source=owner_apk\""
         }
         captain {
             dimension "app"
             applicationId "com.busyatra.captain"
-            versionCode 2
-            versionName "1.0.1"
+            versionCode 3
+            versionName "1.0.2"
             resValue "string", "app_name", "Bus Yatra Captain"
             buildConfigField "String", "PORTAL_URL", "\"https://busyatra.pages.dev/captain?source=captain_apk\""
         }
         admin {
             dimension "app"
             applicationId "com.busyatra.admin"
-            versionCode 2
-            versionName "1.0.1"
+            versionCode 3
+            versionName "1.0.2"
             resValue "string", "app_name", "Bus Yatra Admin"
             buildConfigField "String", "PORTAL_URL", "\"https://busyatra.pages.dev/admin?source=admin_apk\""
         }

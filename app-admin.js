@@ -4204,6 +4204,11 @@ window.copySingleApkLink = copySingleApkLink;
 
 async function downloadActiveAdminPortalQr() {
     const cfg = ADMIN_PORTAL_QR_CONFIG[currentAdminQrPortal] || ADMIN_PORTAL_QR_CONFIG.customer;
+    if (navigator.userAgent.includes('BusYatraAndroidApp')) {
+        const dlUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&format=png&download=1&data=${encodeURIComponent(cfg.apkUrl)}`;
+        window.location.href = dlUrl;
+        return;
+    }
     try {
         if (typeof showDropDownToast === 'function') {
             showDropDownToast(`⏳ ${cfg.appName} QR কোড ডাউনলোড হচ্ছে...`, 'info');

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bus-yatra-v10.39';
+const CACHE_NAME = 'bus-yatra-v10.40';
 const urlsToCache = [
   '/style.css',
   '/tailwind.js',

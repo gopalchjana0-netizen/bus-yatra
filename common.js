@@ -2563,16 +2563,16 @@ async function shareCustomerAppNative() {
 window.shareCustomerAppNative = shareCustomerAppNative;
 
 function shareOwnerAppWhatsApp() {
-    const text = encodeURIComponent('👑 Bus Yatra - Bus Owner মোবাইল অ্যাপ!\n\nআপনার বাসের সমস্ত রুট, টিকিট অনুমোদন, লাভ-খরচের দৈনিক খতিয়ান ও ফ্লিট নিয়ন্ত্রণ করুন এক ক্লিকে।\n👉 ইনস্টল ও ওনার পোর্টাল লিঙ্ক: https://busyatra.pages.dev/owner?install=1');
+    const text = encodeURIComponent('👑 Bus Yatra - Bus Owner অফিশিয়াল Android অ্যাপ!\n\nআপনার বাসের সমস্ত রুট, টিকিট অনুমোদন, লাভ-খরচের দৈনিক খতিয়ান ও ফ্লিট নিয়ন্ত্রণ করুন এক ক্লিকে।\n👉 সরাসরি APK ডাউনলোড লিংক: https://github.com/gopalchjana0-netizen/bus-yatra/releases/download/v1.0.0/BusYatra-Owner.apk');
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
 }
 window.shareOwnerAppWhatsApp = shareOwnerAppWhatsApp;
 
 function copyOwnerAppLink() {
-    const url = 'https://busyatra.pages.dev/owner?install=1';
+    const url = 'https://github.com/gopalchjana0-netizen/bus-yatra/releases/download/v1.0.0/BusYatra-Owner.apk';
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(url).then(() => {
-            showBusYatraAlert('✅ Bus Owner অ্যাপের লিঙ্ক কপি করা হয়েছে:\n\n' + url, { title: 'লিংক কপি সম্পন্ন', theme: 'success' });
+            showBusYatraAlert('✅ Bus Owner APK ডাউনলোড লিংক কপি করা হয়েছে:\n\n' + url, { title: 'লিংক কপি সম্পন্ন', theme: 'success' });
         }).catch(() => {
             prompt('Copy App Link:', url);
         });
@@ -2583,16 +2583,16 @@ function copyOwnerAppLink() {
 window.copyOwnerAppLink = copyOwnerAppLink;
 
 function shareCaptainAppWhatsApp() {
-    const text = encodeURIComponent('👨‍✈️ Bus Yatra - Bus Captain মোবাইল অ্যাপ!\n\nবাসের টিকিট কিউআর স্ক্যান, বোর্ডিং কনফার্মেশন ও লাইভ জিপিএস ব্রডকাস্ট করুন সরাসরি মোবাইল থেকে।\n👉 ইনস্টল ও ক্যাপ্টেন পোর্টাল লিঙ্ক: https://busyatra.pages.dev/captain?install=1');
+    const text = encodeURIComponent('👨‍✈️ Bus Yatra - Bus Captain (ক্যাপ্টেন) অফিশিয়াল Android অ্যাপ!\n\nবাসের টিকিট QR স্ক্যান, বোর্ডিং কনফার্মেশন ও লাইভ জিপিএস ব্রডকাস্ট করুন সরাসরি মোবাইল থেকে।\n👉 সরাসরি APK ডাউনলোড লিংক: https://github.com/gopalchjana0-netizen/bus-yatra/releases/download/v1.0.0/BusYatra-Captain.apk');
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
 }
 window.shareCaptainAppWhatsApp = shareCaptainAppWhatsApp;
 
 function copyCaptainAppLink() {
-    const url = 'https://busyatra.pages.dev/captain?install=1';
+    const url = 'https://github.com/gopalchjana0-netizen/bus-yatra/releases/download/v1.0.0/BusYatra-Captain.apk';
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(url).then(() => {
-            showBusYatraAlert('✅ Bus Captain অ্যাপের লিঙ্ক কপি করা হয়েছে:\n\n' + url, { title: 'লিংক কপি সম্পন্ন', theme: 'success' });
+            showBusYatraAlert('✅ Bus Captain APK ডাউনলোড লিংক কপি করা হয়েছে:\n\n' + url, { title: 'লিংক কপি সম্পন্ন', theme: 'success' });
         }).catch(() => {
             prompt('Copy App Link:', url);
         });

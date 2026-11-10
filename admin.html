@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preload" href="common.js?v=10.37" as="script">
-    <link rel="preload" href="app-admin.js?v=10.39" as="script">
+    <link rel="preload" href="common.js?v=10.40" as="script">
+    <link rel="preload" href="app-admin.js?v=10.40" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
     <script src="tailwind.js?v=10.37" defer></script>
@@ -36,7 +36,7 @@
             .show-on-desktop-flex { display: flex !important; }
         }
         img { max-width: 100%; height: auto; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f3f4f6; margin: 0; }
+        html, body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f3f4f6; margin: 0; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
         .w-9 { width: 2.25rem !important; height: 2.25rem !important; }
         .w-8 { width: 2rem !important; height: 2rem !important; }
         .rounded-full { border-radius: 9999px !important; }
@@ -395,9 +395,9 @@
                         <button onclick="toggleAdminSidebar(); openAdminAppQrModal();" class="w-full text-left p-3 rounded-xl bg-gradient-to-r from-amber-50 to-yellow-50 hover:from-amber-100 hover:to-yellow-100 text-amber-950 font-black text-xs flex items-center gap-3 transition border-2 border-amber-300 shadow-xs">
                             <span class="text-base">📲</span> <span data-bn="৪টি অ্যাপ শেয়ার ও QR হাব" data-en="4 Apps Share & QR Hub">৪টি অ্যাপ শেয়ার ও QR হাব</span>
                         </button>
-                        <!-- Install Admin App -->
-                        <button onclick="toggleAdminSidebar(); triggerPwaInstall('Bus Yatra - Super Admin');" class="w-full text-left p-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-950 font-bold text-xs flex items-center gap-3 transition border border-purple-200">
-                            <span>📲</span> <span data-bn="Super Admin অ্যাপ ইনস্টল" data-en="Install Super Admin App">Super Admin অ্যাপ ইনস্টল</span>
+                        <!-- Install Admin GitHub APK -->
+                        <button onclick="toggleAdminSidebar(); openAdminAppQrModal(); switchAdminPortalQr('admin');" class="w-full text-left p-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-950 font-bold text-xs flex items-center gap-3 transition border border-purple-200">
+                            <span>📲</span> <span data-bn="Super Admin GitHub APK ইনস্টল" data-en="Install Super Admin GitHub APK">Super Admin GitHub APK ইনস্টল</span>
                         </button>
                         <button onclick="toggleAdminSidebar(); switchAdminTab('buses');" class="w-full text-left p-2.5 rounded-xl hover:bg-gray-100 font-semibold text-xs flex items-center gap-3 transition">
                             <span>🚌</span> <span data-bn="বাস ফ্লিট ও রুট" data-en="Bus &amp; Route Fleet">বাস ফ্লিট ও রুট</span>
@@ -460,8 +460,11 @@
                             </span>
                             <span id="badgeSidebarSos" class="hidden bg-red-600 text-white text-[9px] px-2 py-0.5 rounded-full font-black animate-pulse">0</span>
                         </button>
-                        <button type="button" onclick="toggleAdminSidebar(); triggerPwaInstall('Bus Yatra - Super Admin');" class="w-full text-left p-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 font-bold text-xs flex items-center gap-3 transition text-purple-900 border border-purple-200">
-                            <span>📲</span> <span data-bn="অ্যাডমিন অ্যাপ মোবাইলে ইনস্টল করুন" data-en="Install Admin App on Device">অ্যাডমিন অ্যাপ মোবাইলে ইনস্টল করুন</span>
+                        <button type="button" onclick="toggleAdminSidebar(); loadAdminDashboard();" class="w-full text-left p-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 font-bold text-xs flex items-center gap-3 transition text-gray-800 border border-gray-200">
+                            <span>🔄</span> <span data-bn="ড্যাশবোর্ড ডাটা রিফ্রেশ করুন" data-en="Refresh Dashboard Data">ড্যাশবোর্ড ডাটা রিফ্রেশ করুন</span>
+                        </button>
+                        <button type="button" onclick="toggleAdminSidebar(); openAdminAppQrModal(); switchAdminPortalQr('admin');" class="w-full text-left p-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 font-bold text-xs flex items-center gap-3 transition text-purple-900 border border-purple-200">
+                            <span>📲</span> <span data-bn="অ্যাডমিন GitHub APK ইনস্টল ও ডাউনলোড" data-en="Install Admin GitHub APK">অ্যাডমিন GitHub APK ইনস্টল ও ডাউনলোড</span>
                         </button>
                     </nav>
                 </div>
@@ -603,14 +606,17 @@
         </div>
 
         <!-- Mobile Top Back Bar (Shown on Mobile when a tab is opened) -->
-        <div id="adminMobileTopBackBar" class="hidden hide-on-desktop sticky top-[52px] z-30 bg-white/95 backdrop-blur-md -mx-3 px-3.5 py-2.5 border-b border-gray-200 flex items-center justify-between shadow-xs mb-3">
-            <button type="button" onclick="returnToAdminMobileHome()" class="flex items-center gap-1.5 text-xs font-black text-gray-900 bg-gray-100 hover:bg-gray-200 active:scale-95 px-3 py-1.5 rounded-xl border border-gray-300 transition cursor-pointer">
+        <div id="adminMobileTopBackBar" class="hidden hide-on-desktop sticky top-[52px] z-30 bg-white -mx-3 px-3.5 py-2.5 border-b border-gray-200 flex items-center justify-between gap-2 shadow-xs mb-3">
+            <button type="button" onclick="returnToAdminMobileHome()" class="flex items-center gap-1.5 text-xs font-black text-gray-900 bg-gray-100 hover:bg-gray-200 active:scale-95 px-3 py-1.5 rounded-xl border border-gray-300 transition cursor-pointer shrink-0">
                 <span>⬅️</span>
-                <span data-bn="হোম ড্যাশবোর্ড" data-en="Home Hub">হোম ড্যাশবোর্ড</span>
+                <span data-bn="হোম" data-en="Home">হোম</span>
             </button>
-            <span id="adminMobileActiveTabTitle" class="text-xs font-black text-gray-800 truncate max-w-[190px]">
+            <span id="adminMobileActiveTabTitle" class="text-xs font-black text-gray-800 truncate flex-1 text-center">
                 🚌 বাস ফ্লিট ও রুট
             </span>
+            <button type="button" onclick="loadAdminDashboard()" class="flex items-center gap-1 text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 active:scale-95 px-2.5 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer shrink-0" title="Refresh Dashboard">
+                <span>🔄</span>
+            </button>
         </div>
 
         <!-- Mobile App Hub 2-Column Pastel Cards Grid (Matching reference sample: media_1794321492063_17f52c26.jpg) -->
@@ -3034,7 +3040,7 @@
     </footer>
 
     <!-- Mobile Bottom Navigation Bar (Fixed bottom navigation matching app standards) -->
-    <nav id="adminMobileBottomNav" class="hide-on-desktop fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200 px-3 py-1.5 flex justify-around items-center shadow-2xl select-none" style="padding-bottom: max(0.5rem, env(safe-area-inset-bottom));">
+    <nav id="adminMobileBottomNav" class="hide-on-desktop fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 px-3 py-1.5 flex justify-around items-center shadow-2xl select-none" style="padding-bottom: max(0.5rem, env(safe-area-inset-bottom));">
         <button type="button" onclick="returnToAdminMobileHome()" id="adminNavBtnHome" class="flex flex-col items-center text-red-600 active:scale-90 transition-all cursor-pointer py-1 px-2 rounded-xl">
             <span class="text-xl leading-none">🏠</span>
             <span class="text-[10px] font-black mt-1" data-bn="হোম" data-en="Home">হোম</span>
@@ -3923,8 +3929,8 @@
     <!-- Firebase App & Firestore Compat SDKs for Real-Time Live Bus Tracking -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="common.js?v=10.37"></script>
-    <script src="app-admin.js?v=10.39"></script>
+    <script src="common.js?v=10.40"></script>
+    <script src="app-admin.js?v=10.40"></script>
     <script>
         function toggleAdminSidebar() {
             const sb = document.getElementById('adminSidebar');

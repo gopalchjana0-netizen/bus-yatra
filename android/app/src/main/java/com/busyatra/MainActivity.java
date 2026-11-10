@@ -2,15 +2,21 @@ package com.busyatra;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.DownloadManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.View;
+import android.webkit.CookieManager;
+import android.webkit.DownloadListener;
 import android.webkit.GeolocationPermissions;
 import android.webkit.PermissionRequest;
+import android.webkit.URLUtil;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
@@ -26,7 +32,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -34,7 +39,6 @@ public class MainActivity extends AppCompatActivity {
     private static final int FILE_CHOOSER_REQUEST_CODE = 2001;
 
     private WebView webView;
-    private SwipeRefreshLayout swipeRefresh;
     private ProgressBar progressBar;
     private ValueCallback<Uri[]> fileUploadCallback;
 
@@ -45,10 +49,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         webView = findViewById(R.id.webView);
-        swipeRefresh = findViewById(R.id.swipeRefresh);
         progressBar = findViewById(R.id.progressBar);
 
-        setupSwipeRefresh();
         setupWebView();
         requestRequiredPermissions();
 
@@ -57,11 +59,6 @@ public class MainActivity extends AppCompatActivity {
             targetUrl = "https://busyatra.pages.dev/";
         }
         webView.loadUrl(targetUrl);
-    }
-
-    private void setupSwipeRefresh() {
-        swipeRefresh.setColorSchemeResources(R.color.primary, R.color.accent);
-        swipeRefresh.setOnRefreshListener(() -> webView.reload());
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -81,9 +78,54 @@ public class MainActivity extends AppCompatActivity {
         settings.setDisplayZoomControls(false);
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
 
+        // Smooth native hardware-accelerated scrolling (no SwipeRefreshLayout interception)
+        webView.setVerticalScrollBarEnabled(true);
+        webView.setHorizontalScrollBarEnabled(false);
+        webView.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
+        webView.setOverScrollMode(View.OVER_SCROLL_ALWAYS);
+        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+
         // Append custom identification to UserAgent
         String defaultUa = settings.getUserAgentString();
-        settings.setUserAgentString(defaultUa + " BusYatraAndroidApp/1.0.0 (" + BuildConfig.APPLICATION_ID + ")");
+        settings.setUserAgentString(defaultUa + " BusYatraAndroidApp/1.0.2 (" + BuildConfig.APPLICATION_ID + ")");
+
+        // Handle APK, QR PNG, CSV and PDF file downloads cleanly
+        webView.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> {
+            if (url == null) return;
+            try {
+                if (url.startsWith("http://") || url.startsWith("https://")) {
+                    // For .apk links or GitHub releases, open via system browser/DownloadManager for smooth install
+                    if (url.endsWith(".apk") || url.contains("/releases/download/")) {
+                        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        startActivity(browserIntent);
+                        return;
+                    }
+                    DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+                    request.setMimeType(mimeType);
+                    String cookies = CookieManager.getInstance().getCookie(url);
+                    request.addRequestHeader("cookie", cookies);
+                    request.addRequestHeader("User-Agent", userAgent);
+                    request.setDescription("Downloading file...");
+                    String fileName = URLUtil.guessFileName(url, contentDisposition, mimeType);
+                    request.setTitle(fileName);
+                    request.allowScanningByMediaScanner();
+                    request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                    request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
+                    DownloadManager dm = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+                    if (dm != null) {
+                        dm.enqueue(request);
+                        Toast.makeText(MainActivity.this, "⬇️ ডাউনলোড শুরু হয়েছে: " + fileName, Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Intent viewIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                    startActivity(viewIntent);
+                }
+            } catch (Exception e) {
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+                } catch (Exception ignored) {}
+            }
+        });
 
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
@@ -93,7 +135,6 @@ public class MainActivity extends AppCompatActivity {
                     progressBar.setProgress(newProgress);
                 } else {
                     progressBar.setVisibility(View.GONE);
-                    swipeRefresh.setRefreshing(false);
                 }
             }
 
@@ -140,9 +181,12 @@ public class MainActivity extends AppCompatActivity {
             }
 
             private boolean handleCustomUrlSchemes(String url) {
+                if (url == null) return false;
                 if (url.startsWith("tel:") || url.startsWith("mailto:") || 
                     url.startsWith("whatsapp:") || url.startsWith("intent:") || 
-                    url.startsWith("upi:") || url.startsWith("sms:")) {
+                    url.startsWith("upi:") || url.startsWith("sms:") ||
+                    url.contains("api.whatsapp.com") || url.contains("wa.me") ||
+                    url.endsWith(".apk") || url.contains("/releases/download/")) {
                     try {
                         Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                         startActivity(intent);
@@ -162,16 +206,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                swipeRefresh.setRefreshing(false);
                 progressBar.setVisibility(View.GONE);
             }
 
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 super.onReceivedError(view, request, error);
-                if (request.isForMainFrame()) {
-                    swipeRefresh.setRefreshing(false);
-                }
             }
         });
     }

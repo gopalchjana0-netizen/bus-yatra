@@ -1796,14 +1796,145 @@ async function saveBusConfiguration() {
     }
 }
 
-function openOwnerAppQrModal() {
+const OWNER_PORTAL_APK_BASE = 'https://github.com/gopalchjana0-netizen/bus-yatra/releases/download/v1.0.0';
+const OWNER_MODAL_APKS = {
+    captain: {
+        id: 'captain',
+        title: 'Bus Yatra — Captain (ক্যাপ্টেন)',
+        badge: 'Conductor APK',
+        desc: 'বাসের কন্ডাক্টরদের জন্য সরাসরি টিকিট চেকিং ও লাইভ জিপিএস অ্যাপ।',
+        hint: '📷 ক্যাপ্টেনের ফোন দিয়ে QR কোড স্ক্যান করলেই সরাসরি APK ডাউনলোড হবে!',
+        apkName: 'BusYatra-Captain.apk',
+        apkUrl: `${OWNER_PORTAL_APK_BASE}/BusYatra-Captain.apk`,
+        icon: '/icons/captain-192.png',
+        qrUrl: `https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(`${OWNER_PORTAL_APK_BASE}/BusYatra-Captain.apk`)}`,
+        shareText: `👨‍✈️ Bus Yatra - Bus Captain (Conductor) অফিশিয়াল Android অ্যাপ!\n\nবাসের টিকিট QR স্ক্যান, যাত্রী বোর্ডিং কনফার্মেশন ও লাইভ জিপিএস চালাতে নিচের লিংকে ক্লিক করে সরাসরি অ্যাপটি ইনস্টল করুন:\n👉 সরাসরি APK ডাউনলোড লিংক: ${OWNER_PORTAL_APK_BASE}/BusYatra-Captain.apk`
+    },
+    owner: {
+        id: 'owner',
+        title: 'Bus Yatra — Bus Owner (বাস মালিক)',
+        badge: 'Owner APK',
+        desc: 'আপনার বাসের বুকিং, ভাড়া, খতিয়ান ও ফ্লিট নিয়ন্ত্রণের অফিশিয়াল অ্যাপ।',
+        hint: '📷 QR কোড স্ক্যান করলেই সরাসরি বাস মালিক (Owner) APK ইনস্টল হবে!',
+        apkName: 'BusYatra-Owner.apk',
+        apkUrl: `${OWNER_PORTAL_APK_BASE}/BusYatra-Owner.apk`,
+        icon: '/icons/owner-192.png',
+        qrUrl: `https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(`${OWNER_PORTAL_APK_BASE}/BusYatra-Owner.apk`)}`,
+        shareText: `👑 Bus Yatra - Bus Owner অফিশিয়াল Android অ্যাপ!\n\nবাসের রুট, টিকিট অনুমোদন, লাভ-খরচের খতিয়ান ও ফ্লিট পরিচালনা করুন।\n👉 সরাসরি APK ডাউনলোড লিংক: ${OWNER_PORTAL_APK_BASE}/BusYatra-Owner.apk`
+    }
+};
+let activeOwnerModalApkKey = 'captain';
+
+function switchOwnerModalApkTab(tabKey) {
+    if (!OWNER_MODAL_APKS[tabKey]) tabKey = 'captain';
+    activeOwnerModalApkKey = tabKey;
+    const cfg = OWNER_MODAL_APKS[tabKey];
+
+    ['captain', 'owner'].forEach(k => {
+        const btn = document.getElementById(`btnOwnerApkTab_${k}`);
+        if (!btn) return;
+        if (k === tabKey) {
+            btn.className = "py-2 px-3 rounded-xl text-xs font-black bg-white text-gray-900 shadow-sm border border-gray-200 transition text-center flex items-center justify-center gap-1.5";
+        } else {
+            btn.className = "py-2 px-3 rounded-xl text-xs font-bold text-gray-500 hover:text-gray-900 transition text-center flex items-center justify-center gap-1.5";
+        }
+    });
+
+    const iconEl = document.getElementById('ownerApkModalIcon');
+    const titleEl = document.getElementById('ownerApkModalTitle');
+    const badgeEl = document.getElementById('ownerApkModalBadge');
+    const descEl = document.getElementById('ownerApkModalDesc');
+    const qrImgEl = document.getElementById('ownerApkModalQrImg');
+    const hintEl = document.getElementById('ownerApkModalHint');
+    const btnTextEl = document.getElementById('ownerApkModalBtnText');
+    const linkTextEl = document.getElementById('ownerApkModalLinkText');
+
+    if (iconEl) iconEl.src = cfg.icon;
+    if (titleEl) titleEl.innerText = cfg.title;
+    if (badgeEl) badgeEl.innerText = cfg.badge;
+    if (descEl) descEl.innerText = cfg.desc;
+    if (qrImgEl) qrImgEl.src = cfg.qrUrl;
+    if (hintEl) hintEl.innerText = cfg.hint;
+    if (btnTextEl) btnTextEl.innerText = `ডাউনলোড ${cfg.apkName} (ইনস্টল করুন)`;
+    if (linkTextEl) {
+        linkTextEl.href = cfg.apkUrl;
+        linkTextEl.innerText = cfg.apkUrl;
+    }
+}
+window.switchOwnerModalApkTab = switchOwnerModalApkTab;
+
+function openOwnerAppQrModal(defaultTab = 'captain') {
     document.getElementById('ownerAppQrModal')?.classList.remove('hidden');
+    switchOwnerModalApkTab(defaultTab === 'owner' ? 'owner' : 'captain');
 }
 function closeOwnerAppQrModal() {
     document.getElementById('ownerAppQrModal')?.classList.add('hidden');
 }
 window.openOwnerAppQrModal = openOwnerAppQrModal;
 window.closeOwnerAppQrModal = closeOwnerAppQrModal;
+
+function downloadActiveOwnerModalApk() {
+    const cfg = OWNER_MODAL_APKS[activeOwnerModalApkKey] || OWNER_MODAL_APKS.captain;
+    if (typeof showBusYatraAlert === 'function') {
+        showBusYatraAlert(`⬇️ ${cfg.apkName} ডাউনলোড শুরু হচ্ছে... ডাউনলোড শেষে ফাইলটি ওপেন করে ইনস্টল করুন।`, { title: 'APK ডাউনলোড', theme: 'info' });
+    }
+    const a = document.createElement('a');
+    a.href = cfg.apkUrl;
+    a.download = cfg.apkName;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+window.downloadActiveOwnerModalApk = downloadActiveOwnerModalApk;
+
+async function downloadActiveOwnerModalQr() {
+    const cfg = OWNER_MODAL_APKS[activeOwnerModalApkKey] || OWNER_MODAL_APKS.captain;
+    if (navigator.userAgent.includes('BusYatraAndroidApp')) {
+        // Direct PNG download handled natively by Android DownloadManager
+        const dlUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&format=png&download=1&data=${encodeURIComponent(cfg.apkUrl)}`;
+        window.location.href = dlUrl;
+        return;
+    }
+    try {
+        const res = await fetch(cfg.qrUrl);
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `BusYatra_${cfg.id.toUpperCase()}_APK_QR.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+    } catch (_) {
+        window.open(cfg.qrUrl, '_blank');
+    }
+}
+window.downloadActiveOwnerModalQr = downloadActiveOwnerModalQr;
+
+function shareActiveOwnerModalWhatsApp() {
+    const cfg = OWNER_MODAL_APKS[activeOwnerModalApkKey] || OWNER_MODAL_APKS.captain;
+    const text = encodeURIComponent(cfg.shareText);
+    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+}
+window.shareActiveOwnerModalWhatsApp = shareActiveOwnerModalWhatsApp;
+
+function copyActiveOwnerModalApkLink() {
+    const cfg = OWNER_MODAL_APKS[activeOwnerModalApkKey] || OWNER_MODAL_APKS.captain;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(cfg.apkUrl).then(() => {
+            if (typeof showBusYatraAlert === 'function') {
+                showBusYatraAlert(`✅ ${cfg.apkName} ডাউনলোড লিংক কপি করা হয়েছে:\n\n${cfg.apkUrl}`, { title: 'লিংক কপি সম্পন্ন', theme: 'success' });
+            } else {
+                alert(`✅ লিংক কপি হয়েছে:\n\n${cfg.apkUrl}`);
+            }
+        }).catch(() => prompt('Copy APK Link:', cfg.apkUrl));
+    } else {
+        prompt('Copy APK Link:', cfg.apkUrl);
+    }
+}
+window.copyActiveOwnerModalApkLink = copyActiveOwnerModalApkLink;
 
 // --- Tab 3: Passenger Manifest ---
 function initManifestDate() {
