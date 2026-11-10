@@ -2586,7 +2586,10 @@ function syncPaymentStoppages(changedField) {
 
     const seatsArr = Array.from(selectedSeatsSet);
     const perSeat = calculatePerSeatFare();
-    const totalBase = seatsArr.length * perSeat;
+    const totalBase = seatsArr.reduce((sum, seatNum) => {
+        const extra = isWindowSeat(seatNum) ? windowSeatExtra : 0;
+        return sum + perSeat + extra;
+    }, 0);
     const totalFare = Math.max(0, totalBase - currentDiscount);
 
     const payRoute = document.getElementById('paySummaryRoute');
@@ -2882,7 +2885,10 @@ async function confirmBooking() {
 
     const seatsArr = Array.from(selectedSeatsSet);
     const perSeat = calculatePerSeatFare();
-    const totalBase = seatsArr.length * perSeat;
+    const totalBase = seatsArr.reduce((sum, seatNum) => {
+        const extra = isWindowSeat(seatNum) ? windowSeatExtra : 0;
+        return sum + perSeat + extra;
+    }, 0);
     const totalFare = Math.max(0, totalBase - currentDiscount);
 
     if (!currentBookingIdempotencyKey) {
@@ -4576,15 +4582,27 @@ async function syncCustomerTicketFromServer(isSilent = false) {
     if (!customerSupportActiveTicket || !customerSupportActiveTicket.ticket_number) return;
     try {
         const customer = typeof getLoggedInCustomer === 'function' ? getLoggedInCustomer() : null;
+        const custSession = JSON.parse(localStorage.getItem('customer_session') || sessionStorage.getItem('customer_session') || 'null');
+        const tktToken = customerSupportActiveTicket.ticketToken || '';
         let url = `/api/support/tickets?ticketNumber=${encodeURIComponent(customerSupportActiveTicket.ticket_number)}`;
         if (customer && customer.phone) {
             url += `&phone=${encodeURIComponent(customer.phone)}`;
         }
-        const res = await fetch(url);
+        if (tktToken) {
+            url += `&ticketToken=${encodeURIComponent(tktToken)}`;
+        }
+        const headers = {};
+        if (custSession && custSession.token) headers['Authorization'] = `Bearer ${custSession.token}`;
+        if (tktToken) headers['x-ticket-token'] = tktToken;
+        const res = await fetch(url, { headers });
         const data = await res.json();
         if (data && data.ok) {
             if (data.ticket) {
-                customerSupportActiveTicket = data.ticket;
+                customerSupportActiveTicket = {
+                    ...customerSupportActiveTicket,
+                    ...data.ticket,
+                    ticketToken: tktToken || customerSupportActiveTicket.ticketToken
+                };
                 try {
                     localStorage.setItem('busyatra_active_ticket', JSON.stringify(customerSupportActiveTicket));
                 } catch (_) {}
@@ -5038,11 +5056,16 @@ async function submitCustomerAiMessage(event, isVoice = false) {
 
     // Send customer message AND AI response to backend
     try {
+        const custSession = JSON.parse(localStorage.getItem('customer_session') || sessionStorage.getItem('customer_session') || 'null');
+        const headers = { 'Content-Type': 'application/json' };
+        if (custSession && custSession.token) headers['Authorization'] = `Bearer ${custSession.token}`;
+        if (customerSupportActiveTicket.ticketToken) headers['x-ticket-token'] = customerSupportActiveTicket.ticketToken;
         const res = await fetch('/api/support/tickets', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({
                 ticketNumber: customerSupportActiveTicket.ticket_number,
+                ticketToken: customerSupportActiveTicket.ticketToken || '',
                 customerPhone,
                 customerName,
                 subject: userText.slice(0, 50) || 'Attachment Upload',
@@ -5057,7 +5080,8 @@ async function submitCustomerAiMessage(event, isVoice = false) {
         if (data && data.ok && data.ticket) {
             customerSupportActiveTicket = {
                 ...customerSupportActiveTicket,
-                ...data.ticket
+                ...data.ticket,
+                ticketToken: data.ticketToken || customerSupportActiveTicket.ticketToken
             };
             try {
                 localStorage.setItem('busyatra_active_ticket', JSON.stringify(customerSupportActiveTicket));

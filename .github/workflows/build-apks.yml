@@ -24,11 +24,19 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Generate Official Release Keystore & Build APKs
+      - name: Restore or Generate Official Release Keystore & Build APKs
         working-directory: ./android
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASS: ${{ secrets.ANDROID_KEY_PASS }}
         run: |
-          if [ ! -f busyatra-release.jks ]; then
-            echo "Generating production release keystore..."
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "Restoring persistent official release keystore from GitHub Secrets..."
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > busyatra-release.jks
+          elif [ ! -f busyatra-release.jks ]; then
+            echo "Generating temporary release keystore (add ANDROID_KEYSTORE_BASE64 secret for seamless APK upgrades)..."
             keytool -genkeypair -v -keystore busyatra-release.jks -alias busyatra -keyalg RSA -keysize 2048 -validity 10000 -storepass busyatra2026 -keypass busyatra2026 -dname "CN=Bus Yatra, OU=Production, O=Bus Yatra, L=Kolkata, ST=West Bengal, C=IN"
           fi
           gradle wrapper --gradle-version 8.5

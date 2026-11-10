@@ -143,9 +143,24 @@ public class MainActivity extends AppCompatActivity {
                 callback.invoke(origin, true, false);
             }
 
+            private boolean isTrustedOrigin(Uri uri) {
+                if (uri == null || uri.getHost() == null) return false;
+                String host = uri.getHost().toLowerCase();
+                return host.equals("busyatra.pages.dev")
+                        || host.endsWith(".busyatra.pages.dev")
+                        || host.equals("bus-yatra-a8f8a.web.app")
+                        || host.equals("bus-yatra-a8f8a.firebaseapp.com");
+            }
+
             @Override
             public void onPermissionRequest(final PermissionRequest request) {
-                MainActivity.this.runOnUiThread(() -> request.grant(request.getResources()));
+                MainActivity.this.runOnUiThread(() -> {
+                    if (isTrustedOrigin(request.getOrigin())) {
+                        request.grant(request.getResources());
+                    } else {
+                        request.deny();
+                    }
+                });
             }
 
             @Override
@@ -194,6 +209,23 @@ public class MainActivity extends AppCompatActivity {
                     } catch (Exception e) {
                         return true;
                     }
+                }
+                if (url.startsWith("http://") || url.startsWith("https://")) {
+                    try {
+                        String host = Uri.parse(url).getHost();
+                        if (host != null) {
+                            String h = host.toLowerCase();
+                            boolean isFirstParty = h.equals("busyatra.pages.dev")
+                                    || h.endsWith(".busyatra.pages.dev")
+                                    || h.equals("bus-yatra-a8f8a.web.app")
+                                    || h.equals("bus-yatra-a8f8a.firebaseapp.com");
+                            if (!isFirstParty) {
+                                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                                startActivity(intent);
+                                return true;
+                            }
+                        }
+                    } catch (Exception ignored) {}
                 }
                 return false;
             }

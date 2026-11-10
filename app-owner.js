@@ -2314,7 +2314,7 @@ function populateOwnerTrackingBusSelect(selectedBusId = null) {
         return;
     }
     sel.innerHTML = ownerBuses.map(b => `
-        <option value="${b.id}" ${b.id === selectedBusId ? 'selected' : ''}>
+        <option value="${escapeHtml(b.id)}" ${b.id === selectedBusId ? 'selected' : ''}>
             ${escapeHtml(b.name)} (${escapeHtml(b.busNumber)}) - ${escapeHtml(b.fromCity)} ➔ ${escapeHtml(b.toCity)}
         </option>
     `).join('');
@@ -2767,7 +2767,7 @@ async function loadOwnerCaptains() {
     // Populate bus select
     const buses = (ownerBuses && ownerBuses.length > 0) ? ownerBuses : ((typeof getAppData === 'function' ? getAppData()?.buses : []) || []);
     if (busSelect && buses.length > 0) {
-        busSelect.innerHTML = buses.map(b => `<option value="${b.id}">${b.name} (${b.busNumber || b.bus_number || ''})</option>`).join('');
+        busSelect.innerHTML = buses.map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name)} (${escapeHtml(b.busNumber || b.bus_number || '')})</option>`).join('');
     }
 
     try {
@@ -2792,20 +2792,20 @@ async function loadOwnerCaptains() {
                         </span>
                     </div>
                     <div class="text-xs text-gray-600">
-                        📱 Mobile: <span class="font-mono font-bold">${c.phone}</span> | 🚌 Bus: <span class="font-medium">${c.bus_name || c.bus_id} (${c.bus_number || ''})</span>
+                        📱 Mobile: <span class="font-mono font-bold">${escapeHtml(c.phone)}</span> | 🚌 Bus: <span class="font-medium">${escapeHtml(c.bus_name || c.bus_id)} (${escapeHtml(c.bus_number || '')})</span>
                     </div>
                 </div>
                 <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                    <a href="https://wa.me/91${c.phone}?text=${waMsg}" target="_blank" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1">
+                    <a href="https://wa.me/91${escapeHtml(c.phone)}?text=${waMsg}" target="_blank" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1">
                         💬 WhatsApp
                     </a>
-                    <button type="button" onclick="resetOwnerCaptainPin('${c.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl font-bold text-xs shadow-sm transition">
+                    <button type="button" onclick="resetOwnerCaptainPin('${escapeHtml(c.id)}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl font-bold text-xs shadow-sm transition">
                         🔑 Set/Reset PIN
                     </button>
-                    <button type="button" onclick="toggleOwnerCaptain('${c.id}', ${c.active ? 0 : 1})" class="${c.active ? 'bg-amber-100 hover:bg-amber-200 text-amber-800' : 'bg-green-100 hover:bg-green-200 text-green-800'} px-3 py-1.5 rounded-xl font-bold text-xs transition">
+                    <button type="button" onclick="toggleOwnerCaptain('${escapeHtml(c.id)}', ${c.active ? 0 : 1})" class="${c.active ? 'bg-amber-100 hover:bg-amber-200 text-amber-800' : 'bg-green-100 hover:bg-green-200 text-green-800'} px-3 py-1.5 rounded-xl font-bold text-xs transition">
                         ${c.active ? '⏸ Disable' : '▶ Enable'}
                     </button>
-                    <button type="button" onclick="deleteOwnerCaptain('${c.id}')" class="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-xl font-bold text-xs transition">
+                    <button type="button" onclick="deleteOwnerCaptain('${escapeHtml(c.id)}')" class="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-xl font-bold text-xs transition">
                         🗑 Delete
                     </button>
                 </div>
@@ -2813,7 +2813,7 @@ async function loadOwnerCaptains() {
         `;
         }).join('');
     } catch (err) {
-        listEl.innerHTML = `<div class="text-center text-red-500 py-6 text-xs">Failed to load captains: ${err.message}</div>`;
+        listEl.innerHTML = `<div class="text-center text-red-500 py-6 text-xs">Failed to load captains: ${escapeHtml(err.message)}</div>`;
     }
 }
 

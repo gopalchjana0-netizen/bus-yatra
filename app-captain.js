@@ -1413,35 +1413,18 @@ async function sendCaptainLocation(lat, lng, speed = 0, accuracy = 10, heading =
         }
     }
 
-    // 1. Ultra-Fast Real-Time Firebase Firestore Broadcast (<100ms sync for passengers & owner)
-    try {
-        const db = getBusYatraFirestore();
-        if (db && loggedInCaptain.busId) {
-            db.collection('bus_locations').doc(String(loggedInCaptain.busId)).set({
-                busId: loggedInCaptain.busId,
-                busName: loggedInCaptain.busName || 'Bus Yatra Express',
-                busNumber: loggedInCaptain.busNumber || '',
-                lat: Number(lat),
-                lng: Number(lng),
-                speed: Number(speed),
-                accuracy: Number(accuracy || 10),
-                heading: heading !== null ? Number(heading) : null,
-                stopName: stopName || null,
-                updated_at: new Date().toISOString()
-            }, { merge: true }).catch(fbErr => console.warn('Firestore live tracking update notice:', fbErr));
-        }
-    } catch (fbInitErr) {
-        console.warn('Firestore live broadcast skipped:', fbInitErr);
-    }
-
-    // 2. Cloudflare API location sync for backend persistence & owner history
+    // Sync live GPS coordinates & telemetry via authenticated Cloudflare API (which also updates Firestore securely)
     try {
         await apiRequest('/api/captain/location', {
             method: 'POST',
             body: JSON.stringify({
                 busId: loggedInCaptain.busId,
-                lat,
-                lng
+                lat: Number(lat),
+                lng: Number(lng),
+                speed: Number(speed || 0),
+                accuracy: Number(accuracy || 10),
+                heading: heading !== null && heading !== undefined ? Number(heading) : null,
+                stopName: stopName || null
             })
         });
         const badge = document.getElementById('gpsStatusBadge');

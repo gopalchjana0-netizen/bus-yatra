@@ -58,9 +58,9 @@ android {
     signingConfigs {
         release {
             storeFile file("${rootDir}/busyatra-release.jks")
-            storePassword "busyatra2026"
-            keyAlias "busyatra"
-            keyPassword "busyatra2026"
+            storePassword System.getenv("ANDROID_KEYSTORE_PASS") ?: "busyatra2026"
+            keyAlias System.getenv("ANDROID_KEY_ALIAS") ?: "busyatra"
+            keyPassword System.getenv("ANDROID_KEY_PASS") ?: "busyatra2026"
             v1SigningEnabled true
             v2SigningEnabled true
         }

@@ -1,17 +1,66 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Real-Time Bus Live Tracking (Ultra-Fast <100ms WebSocket updates with zero server load)
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Architecture Note:
+    //   Client portals (customer, owner, captain, admin) do NOT use
+    //   Firebase Auth and are strictly read-only against Firestore for
+    //   public real-time listeners. All Firestore writes are routed
+    //   server-side through the authenticated Cloudflare Worker using
+    //   the Firebase Service Account REST API (which bypasses client
+    //   security rules). Accordingly, ALL client-side writes (create,
+    //   update, delete) are completely locked down (`allow write: if false;`).
+    //
+    // Collection: bus_locations
+    // Document ID: {busId} (string bus identifier)
+    // Access: Public real-time read (`allow read: if true;`), client writes denied (`allow write: if false;`)
+    // Expected Fields (written server-side by Cloudflare Worker):
+    //   - busId: string or int (required) - Public bus identifier matching {busId}
+    //   - busName: string (optional, <= 120 chars) - Public bus display name
+    //   - busNumber: string (optional, <= 40 chars) - Public registration number
+    //   - lat: number (required, 6.0 <= lat <= 38.0) - GPS latitude within India bounds
+    //   - lng: number (required, 68.0 <= lng <= 98.0) - GPS longitude within India bounds
+    //   - speed: number (optional, 0 <= speed <= 200) - Current speed in km/h
+    //   - accuracy: number (optional, 0 <= accuracy <= 50000) - GPS accuracy in meters
+    //   - heading: number or null (optional, 0 <= heading <= 360) - Bearing in degrees
+    //   - stopName: string or null (optional, <= 120 chars) - Current/nearest stoppage name
+    //   - updated_at: string (required, ISO 8601 <= 64 chars) - Last GPS update timestamp
+    //
+    // Collection: public_cache
+    // Document ID: {docId} (string cache document key)
+    // Access: Public read-only (`allow read: if true;`), client writes denied (`allow write: if false;`)
+    // Expected Fields: Non-sensitive public cached configuration and fallback payloads only (zero PII).
+    //
+    // Collection: system_config
+    // Document ID: festivalTheme (singleton configuration document)
+    // Access: Public real-time read (`allow read: if true;`), client writes denied (`allow write: if false;`)
+    // Expected Fields (public UI config only; never store admin PII such as updated_by):
+    //   - enabled: bool (required) - Whether festival theme overlay is active
+    //   - festival: string (required, 1..50 chars) - Active festival key (e.g., 'none', 'diwali')
+    //   - targets: map (optional, keys in ['customer', 'owner', 'captain', 'all'] of bool) - Target portals
+    //   - greeting: string (optional, <= 500 chars) - Public localized greeting banner text
+    //   - updated_at: string (optional, ISO 8601 <= 64 chars) - Last update timestamp
+    //
+    // Collection: busyatra_replica
+    // Document ID: {document=**} (nested path: {collection}/records/{recordId})
+    // Access: Completely locked down (`allow read, write: if false;`)
+    // Expected Fields:
+    //   - payload: string - JSON-serialized D1 row containing passenger PII and PIN/recovery hashes
+    //   - source: string - Replication source identifier ('cloudflare-d1')
+    //   - outboxId: int - Monotonic D1 outbox event ID
+    //   - updatedAt: timestamp - Outbox event creation timestamp
+    //
+    // ===============================================================
+
+    // Real-Time Bus Live Tracking (Public WebSocket listeners; writes routed via Cloudflare Worker Service Account)
     match /bus_locations/{busId} {
       allow read: if true;
-      // Write allowed only with valid GPS coordinates & schema validation
-      allow create, update: if request.resource.data.lat is number
-                            && request.resource.data.lng is number
-                            && request.resource.data.lat >= 6.0 && request.resource.data.lat <= 38.0
-                            && request.resource.data.lng >= 68.0 && request.resource.data.lng <= 98.0
-                            && request.resource.data.keys().hasOnly(['busId', 'busName', 'busNumber', 'lat', 'lng', 'speed', 'accuracy', 'heading', 'stopName', 'updated_at']);
-      // Prevent unauthorized deletion of real-time tracking data
-      allow delete: if false;
+      allow write: if false;
     }
 
     // Public cached configuration and fallback data (read-only)
@@ -20,20 +69,18 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Public Festival Theme and Real-Time System Config (Read-only for all portals, secure write with schema validation)
+    // Public Festival Theme and Real-Time System Config (Public listeners; writes routed via Cloudflare Worker Service Account)
     match /system_config/festivalTheme {
       allow read: if true;
-      allow write: if request.resource.data.keys().hasOnly(['enabled', 'festival', 'targets', 'greeting', 'updated_at'])
-                   && request.resource.data.enabled is bool
-                   && request.resource.data.festival is string;
+      allow write: if false;
     }
 
-    // Internal Cloudflare D1 outbox replica (fully protected)
+    // Internal Cloudflare D1 outbox replica (fully protected — contains passenger PII & PIN hashes)
     match /busyatra_replica/{document=**} {
       allow read, write: if false;
     }
 
-    // Default deny all other paths
+    // Default deny all other paths and subcollections
     match /{document=**} {
       allow read, write: if false;
     }

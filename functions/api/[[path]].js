@@ -1,4 +1,33 @@
-import { drainFirebaseReplica, enqueueFirebaseBackfillBatch } from '../firebase-replica.js';
+import { drainFirebaseReplica, enqueueFirebaseBackfillBatch, writeFirestoreDocument } from '../firebase-replica.js';
+
+const ALLOWED_CORS_ORIGINS = new Set([
+    'https://busyatra.pages.dev',
+    'https://bus-yatra-a8f8a.web.app',
+    'https://bus-yatra-a8f8a.firebaseapp.com'
+]);
+
+function resolveAllowedCorsOrigin(request) {
+    const origin = request?.headers?.get('Origin') || '';
+    if (!origin) return 'https://busyatra.pages.dev';
+    if (ALLOWED_CORS_ORIGINS.has(origin)) return origin;
+    if (/^https:\/\/[a-z0-9-]+\.busyatra\.pages\.dev$/i.test(origin)) return origin;
+    if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) return origin;
+    return 'https://busyatra.pages.dev';
+}
+
+function applyCorsHeaders(response, request) {
+    if (!response) return response;
+    const headers = new Headers(response.headers);
+    headers.set('Access-Control-Allow-Origin', resolveAllowedCorsOrigin(request));
+    headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-device-telemetry, x-customer-phone, x-ticket-token');
+    headers.set('Vary', 'Origin');
+    return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers
+    });
+}
 
 function jsonResponse(data, status = 200, customHeaders = {}) {
     return Response.json(data, {
@@ -6,9 +35,9 @@ function jsonResponse(data, status = 200, customHeaders = {}) {
         headers: {
             'Content-Type': 'application/json',
             'Cache-Control': 'no-store, no-cache, must-revalidate',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-device-telemetry',
+            'Access-Control-Allow-Origin': 'https://busyatra.pages.dev',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-device-telemetry, x-customer-phone, x-ticket-token',
             ...customHeaders
         }
     });
@@ -337,7 +366,7 @@ function isTripTimePassedIST(journeyDate, timeStr) {
     const departureMins = h * 60 + m;
 
     const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: 'numeric', hour12: false }).formatToParts(now);
-    const curHour = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
+    const curHour = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10) % 24;
     const curMin = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
     const currentMins = curHour * 60 + curMin;
 
@@ -387,9 +416,10 @@ function constantTimeEqual(left, right) {
     return difference === 0;
 }
 
-function requiredRole(path) {
+function requiredRole(path, method = 'GET') {
     if (path === '/api/owner/register' || path === '/api/owner/login' || path === '/api/owner/forgot-pin' || path === '/api/owner/security-question' || path === '/api/owner/send-reset-otp' || path === '/api/owner/reset-by-otp') return null;
     if (path === '/api/captain/login') return null;
+    if (method !== 'GET' && (path === '/api/coupons' || path.startsWith('/api/coupons/'))) return 'admin';
     if (/^\/api\/admin(?:\/|$)/.test(path)) return 'admin';
     if (/^\/api\/owner(?:\/|$)/.test(path)) return 'owner';
     if (/^\/api\/captain(?:\/|$)/.test(path)) return 'captain';
@@ -409,7 +439,7 @@ function adminPermissionFor(path) {
     if (/^\/api\/admin\/(?:finance|operator-finance)(?:\/|$)/.test(path)) return 'finance';
     if (/^\/api\/admin\/replica-(?:status|backfill)$/.test(path)) return 'finance';
     if (/^\/api\/admin\/reports(?:\/|$)/.test(path)) return 'reports';
-    if (/^\/api\/admin\/(?:coupons|feature-flags|festival-theme|promotions|broadcast-email|email-recipients)(?:\/|$)/.test(path)) return 'settings';
+    if (/^\/api\/(?:admin\/)?(?:coupons|feature-flags|festival-theme|promotions|broadcast-email|email-recipients)(?:\/|$)/.test(path)) return 'settings';
     if (/^\/api\/admin\/(?:users|audit)(?:\/|$)/.test(path)) return 'team';
     return null;
 }
@@ -900,7 +930,7 @@ export async function onRequest(context) {
             await replication;
         }
     }
-    return response;
+    return applyCorsHeaders(response, request);
 }
 
 async function handleRequest(context) {
@@ -909,16 +939,17 @@ async function handleRequest(context) {
         return new Response(null, {
             status: 204,
             headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-device-telemetry'
+                'Access-Control-Allow-Origin': resolveAllowedCorsOrigin(request),
+                'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-device-telemetry, x-customer-phone, x-ticket-token',
+                'Vary': 'Origin'
             }
         });
     }
 
     try {
         const path = new URL(request.url).pathname;
-        const role = requiredRole(path);
+        const role = requiredRole(path, request.method);
         if (role && role !== 'owner-recovery') {
             let identity = await getRequestIdentity(request, context.env.DB);
             if (!identity) return jsonError(401, 'Please sign in to access this portal.');
@@ -1253,8 +1284,9 @@ async function handleGet(context) {
             const { results } = await env.DB.prepare(
                 `SELECT b.*, bs.company_name, bs.gst_number, bs.ticket_terms, bs.emergency_phone, bs.time, bs.stoppage_timings
                  FROM bookings b
-                 LEFT JOIN buses bs ON b.bus_id = bs.id
-                 WHERE b.passenger_phone = ? ORDER BY b.created_at DESC`
+                 LEFT JOIN buses bs ON (b.bus_id = bs.id OR b.bus_id = (bs.id || '_RETURN'))
+                 WHERE b.passenger_phone = ? AND COALESCE(b.hidden_for_customer, 0) = 0
+                 ORDER BY b.created_at DESC`
             ).bind(phone.trim()).all();
             return jsonResponse({ bookings: results.map(r => mapBooking(r, r)) });
         }
@@ -1264,14 +1296,14 @@ async function handleGet(context) {
                 row = await env.DB.prepare(
                     `SELECT b.*, bs.company_name, bs.gst_number, bs.ticket_terms, bs.emergency_phone, bs.time, bs.stoppage_timings
                      FROM bookings b
-                     LEFT JOIN buses bs ON b.bus_id = bs.id
+                     LEFT JOIN buses bs ON (b.bus_id = bs.id OR b.bus_id = (bs.id || '_RETURN'))
                      WHERE b.id = ? AND b.passenger_phone = ?`
                 ).bind(bookingId.trim(), phone.trim()).first();
             } else {
                 row = await env.DB.prepare(
                     `SELECT b.*, bs.company_name, bs.gst_number, bs.ticket_terms, bs.emergency_phone, bs.time, bs.stoppage_timings
                      FROM bookings b
-                     LEFT JOIN buses bs ON b.bus_id = bs.id
+                     LEFT JOIN buses bs ON (b.bus_id = bs.id OR b.bus_id = (bs.id || '_RETURN'))
                      WHERE b.id = ?`
                 ).bind(bookingId.trim()).first();
             }
@@ -1283,8 +1315,25 @@ async function handleGet(context) {
 
     // GET /api/coupons
     if (path === '/api/coupons') {
-        const { results } = await env.DB.prepare('SELECT * FROM coupons WHERE active = 1').all();
-        return jsonResponse({ coupons: results.map(r => ({ code: r.code, discount: r.discount, active: Boolean(r.active) })) });
+        const nowIso = new Date().toISOString();
+        const { results } = await env.DB.prepare(
+            `SELECT code, discount, active, min_fare, max_uses, used_count, expires_at
+             FROM coupons
+             WHERE active = 1
+               AND (expires_at IS NULL OR expires_at = '' OR expires_at > ?)
+               AND (max_uses IS NULL OR used_count < max_uses)`
+        ).bind(nowIso).all();
+        return jsonResponse({
+            coupons: (results || []).map(r => ({
+                code: r.code,
+                discount: r.discount,
+                active: Boolean(r.active),
+                minFare: Number(r.min_fare || 0),
+                maxUses: r.max_uses !== null && r.max_uses !== undefined ? Number(r.max_uses) : null,
+                usedCount: Number(r.used_count || 0),
+                expiresAt: r.expires_at || null
+            }))
+        });
     }
 
     // GET /api/promotions/active?target=customer|owner
@@ -1385,7 +1434,7 @@ async function handleGet(context) {
                 `SELECT b.*, bs.company_name, bs.gst_number, bs.ticket_terms, bs.emergency_phone, bs.time, bs.stoppage_timings
                  FROM bookings b
                  LEFT JOIN buses bs ON (b.bus_id = bs.id OR b.bus_id = (bs.id || '_RETURN'))
-                 WHERE bs.owner_phone = ?
+                 WHERE bs.owner_phone = ? AND COALESCE(b.hidden_for_owner, 0) = 0
                  ORDER BY b.created_at DESC LIMIT 300`
             ).bind(ownerPhone).all();
             bookingRows = bkRes.results || [];
@@ -1639,7 +1688,7 @@ async function handleGet(context) {
             `SELECT b.*, bs.company_name, bs.gst_number, bs.ticket_terms, bs.emergency_phone, bs.time
              FROM bookings b
              LEFT JOIN buses bs ON (b.bus_id = bs.id OR b.bus_id = (bs.id || '_RETURN'))
-             WHERE b.bus_id = ? OR b.bus_id = ?
+             WHERE (b.bus_id = ? OR b.bus_id = ?) AND COALESCE(b.hidden_for_captain, 0) = 0
              ORDER BY b.created_at DESC LIMIT 300`
         ).bind(bus.id, bus.id + '_RETURN').all();
         const defaultCaptainFeatures = {
@@ -2163,32 +2212,47 @@ async function handleGet(context) {
         });
     }
 
-    // GET /api/support/tickets (Customer support ticket lookup)
+    // GET /api/support/tickets (Authenticated/token-protected customer support ticket lookup)
     if (path === '/api/support/tickets') {
         const ticketNumber = (url.searchParams.get('ticketNumber') || '').trim();
         const phone = (url.searchParams.get('phone') || '').trim();
+        const ticketToken = (url.searchParams.get('ticketToken') || request.headers.get('x-ticket-token') || '').trim();
+        const isAdminViewer = auth?.role === 'admin';
+        const authCustPhone = auth?.role === 'customer' ? auth.identifier : '';
+
+        const sanitizeTicketOut = (t) => {
+            if (!t) return null;
+            const { ticket_secret, ...safe } = t;
+            return {
+                ...safe,
+                messages: parseJson(t.messages, [])
+            };
+        };
 
         if (ticketNumber) {
             const ticket = await env.DB.prepare('SELECT * FROM support_tickets WHERE ticket_number = ?').bind(ticketNumber).first();
             if (ticket) {
+                const ownerMatch = Boolean(ticket.customer_phone && authCustPhone && authCustPhone === ticket.customer_phone);
+                const tokenMatch = Boolean(ticket.ticket_secret && ticketToken && constantTimeEqual(ticketToken, ticket.ticket_secret));
+                const legacyAnonymous = Boolean(!ticket.ticket_secret && !ticket.customer_phone);
+                if (!isAdminViewer && !ownerMatch && !tokenMatch && !legacyAnonymous) {
+                    return jsonError(403, 'Unauthorized to access this support ticket.');
+                }
                 return jsonResponse({
                     ok: true,
-                    ticket: {
-                        ...ticket,
-                        messages: parseJson(ticket.messages, [])
-                    }
+                    ticket: sanitizeTicketOut(ticket)
                 });
             }
         }
-        if (phone) {
+        if (phone && !ticketNumber) {
+            if (!isAdminViewer && authCustPhone !== phone) {
+                return jsonError(401, 'সাপোর্ট হিস্ট্রি দেখতে অনুগ্রহ করে লগইন করুন। (Please sign in to view support tickets.)');
+            }
             const ticket = await env.DB.prepare('SELECT * FROM support_tickets WHERE customer_phone = ? ORDER BY updated_at DESC LIMIT 1').bind(phone).first();
             if (ticket) {
                 return jsonResponse({
                     ok: true,
-                    ticket: {
-                        ...ticket,
-                        messages: parseJson(ticket.messages, [])
-                    }
+                    ticket: sanitizeTicketOut(ticket)
                 });
             }
         }
@@ -2476,7 +2540,10 @@ async function handlePost(context) {
             return jsonError(400, 'Set a 4-digit PIN, a recovery question, and an answer.');
         }
 
-        if (email && otp) {
+        if (email) {
+            if (!otp) {
+                return jsonError(400, 'ইমেইল ভেরিফিকেশনের জন্য ৬-সংখ্যার ওটিপি কোড আবশ্যক। (Email OTP is required.)');
+            }
             try {
                 await verifyEmailOtp(env, { email, otp, purpose: 'owner_register_' + email });
             } catch (err) {
@@ -3498,12 +3565,30 @@ async function handlePost(context) {
             if (owner.status !== 'active') {
                 return jsonError(403, 'আপনার ওনার অ্যাকাউন্টটি নিষ্ক্রিয় করা হয়েছে। অ্যাডমিনের সাথে যোগাযোগ করুন।');
             }
-            if (owner.pin !== pin) {
-                const fallbackResult = await authenticateWithPin(env.DB, 'owner', identifier, pin);
-                if (fallbackResult.error) {
-                    return jsonError(401, 'ভুল পিন (Invalid PIN)। সঠিক ৪-ডিজিটের পিন দিন।');
-                }
+            const ownerLock = await env.DB.prepare(
+                "SELECT locked_until FROM portal_login_attempts WHERE role = 'owner' AND identifier = ?"
+            ).bind(identifier).first();
+            if (ownerLock && ownerLock.locked_until && ownerLock.locked_until > new Date().toISOString()) {
+                return jsonError(429, 'অনেকবার ভুল পিন দেওয়া হয়েছে। ১৫ মিনিট পর আবার চেষ্টা করুন। (Too many failed attempts. Try again in 15 minutes.)');
             }
+            const ownerCred = await env.DB.prepare(
+                "SELECT * FROM portal_credentials WHERE role = 'owner' AND identifier = ?"
+            ).bind(identifier).first();
+            let ownerPinOk = false;
+            if (ownerCred && ownerCred.pin_salt && ownerCred.pin_hash) {
+                const ownerHash = await deriveSecretHash(pin, ownerCred.pin_salt);
+                ownerPinOk = constantTimeEqual(ownerHash, ownerCred.pin_hash);
+            } else if (owner.pin && owner.pin === pin) {
+                ownerPinOk = true;
+                await saveCredential(env.DB, { role: 'owner', identifier, pin });
+            }
+            if (!ownerPinOk) {
+                if (await recordFailedLogin(env.DB, 'owner', identifier)) {
+                    return jsonError(429, 'অনেকবার ভুল পিন দেওয়া হয়েছে। ১৫ মিনিট পর আবার চেষ্টা করুন। (Too many failed attempts. Try again in 15 minutes.)');
+                }
+                return jsonError(401, 'ভুল পিন (Invalid PIN)। সঠিক ৪-ডিজিটের পিন দিন।');
+            }
+            await env.DB.prepare("DELETE FROM portal_login_attempts WHERE role = 'owner' AND identifier = ?").bind(identifier).run();
             const token = secureRandomHex(32);
             const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
             const tokenHash = bytesToHex(new Uint8Array(digest));
@@ -3544,6 +3629,12 @@ async function handlePost(context) {
                 }
             } catch (ce) {}
 
+            const captainLock = await env.DB.prepare(
+                "SELECT locked_until FROM portal_login_attempts WHERE role = 'captain' AND identifier = ?"
+            ).bind(identifier).first();
+            if (captainLock && captainLock.locked_until && captainLock.locked_until > new Date().toISOString()) {
+                return jsonError(429, 'অনেকবার ভুল পিন দেওয়া হয়েছে। ১৫ মিনিট পর আবার চেষ্টা করুন। (Too many failed attempts. Try again in 15 minutes.)');
+            }
             const captainRow = await env.DB.prepare(
                 'SELECT * FROM captains WHERE phone = ?'
             ).bind(identifier).first();
@@ -3552,23 +3643,37 @@ async function handlePost(context) {
                 if (!captainRow.active) {
                     return jsonError(403, 'আপনার ক্যাপ্টেন অ্যাকাউন্টটি বাস ওনার দ্বারা নিষ্ক্রিয় করা হয়েছে।');
                 }
-                if (captainRow.pin !== pin) {
-                    const fallbackResult = await authenticateWithPin(env.DB, 'captain', identifier, pin);
-                    if (fallbackResult.error) return jsonError(401, 'ভুল পিন (Invalid PIN)। সঠিক ৪-ডিজিটের পিন দিন।');
+                const captCred = await env.DB.prepare(
+                    "SELECT * FROM portal_credentials WHERE role = 'captain' AND identifier = ?"
+                ).bind(identifier).first();
+                let captPinOk = false;
+                if (captCred && captCred.pin_salt && captCred.pin_hash) {
+                    const captHash = await deriveSecretHash(pin, captCred.pin_salt);
+                    captPinOk = constantTimeEqual(captHash, captCred.pin_hash);
+                } else if (captainRow.pin && captainRow.pin === pin) {
+                    captPinOk = true;
+                    await saveCredential(env.DB, { role: 'captain', identifier, busId: captainRow.bus_id, pin });
                 }
+                if (!captPinOk) {
+                    if (await recordFailedLogin(env.DB, 'captain', identifier)) {
+                        return jsonError(429, 'অনেকবার ভুল পিন দেওয়া হয়েছে। ১৫ মিনিট পর আবার চেষ্টা করুন। (Too many failed attempts. Try again in 15 minutes.)');
+                    }
+                    return jsonError(401, 'ভুল পিন (Invalid PIN)। সঠিক ৪-ডিজিটের পিন দিন।');
+                }
+                await env.DB.prepare("DELETE FROM portal_login_attempts WHERE role = 'captain' AND identifier = ?").bind(identifier).run();
                 bus = await env.DB.prepare(
-                    'SELECT id, name, bus_number, company_name, driver_name FROM buses WHERE id = ?'
+                    'SELECT id, name, bus_number, company_name, driver_name, owner_phone FROM buses WHERE id = ?'
                 ).bind(captainRow.bus_id).first();
             } else {
                 const result = await authenticateWithPin(env.DB, role, identifier, pin);
                 if (result.error) return result.error;
                 bus = await env.DB.prepare(
-                    'SELECT id, name, bus_number, company_name, driver_name FROM buses WHERE id = ? AND driver_phone = ?'
+                    'SELECT id, name, bus_number, company_name, driver_name, owner_phone FROM buses WHERE id = ? AND driver_phone = ?'
                 ).bind(result.identity.busId, identifier).first();
             }
             if (!bus) {
                 bus = await env.DB.prepare(
-                    'SELECT id, name, bus_number, company_name, driver_name FROM buses WHERE driver_phone = ?'
+                    'SELECT id, name, bus_number, company_name, driver_name, owner_phone FROM buses WHERE driver_phone = ?'
                 ).bind(identifier).first();
             }
             if (!bus) return jsonError(403, 'This captain account has no assigned bus.');
@@ -3846,7 +3951,10 @@ async function handlePost(context) {
             "SELECT * FROM portal_credentials WHERE role = 'admin' AND identifier = ?"
         ).bind(auth.identifier).first();
 
-        if (cred && cred.pin_salt && cred.pin_hash && currentPassword) {
+        if (cred && cred.pin_salt && cred.pin_hash) {
+            if (!currentPassword) {
+                return jsonError(400, 'বর্তমান পাসওয়ার্ড প্রদান করুন (Current password is required).');
+            }
             const currentHash = await deriveSecretHash(currentPassword, cred.pin_salt);
             if (!constantTimeEqual(currentHash, cred.pin_hash)) {
                 return jsonError(401, 'বর্তমান পাসওয়ার্ডটি ভুল (Current password is incorrect).');
@@ -4174,9 +4282,10 @@ async function handlePost(context) {
             return jsonError(400, 'Missing busId, journeyDate, seats, or sessionId.');
         }
 
-        // Check if bus departure time has already passed today
-        const checkBus = await env.DB.prepare('SELECT time FROM buses WHERE id = ?').bind(String(busId).replace('_RETURN', '')).first();
-        if (checkBus && isTripTimePassedIST(journeyDate, checkBus.time || '07:00 AM')) {
+        // Check if bus departure time has already passed today (handle outbound & _RETURN trips)
+        const checkBus = await env.DB.prepare('SELECT time, return_time FROM buses WHERE id = ?').bind(String(busId).replace('_RETURN', '')).first();
+        const effectiveDepTime = checkBus ? (String(busId).endsWith('_RETURN') ? (checkBus.return_time || checkBus.time) : checkBus.time) : null;
+        if (checkBus && isTripTimePassedIST(journeyDate, effectiveDepTime || '07:00 AM')) {
             return jsonError(400, 'দুঃখিত! এই বাসের ছাড়ার সময় ইতিমধ্যে পার হয়ে গেছে। অন্য বাস বা ভবিষ্যতের তারিখ নির্বাচন করুন। (Bus has already departed.)');
         }
 
@@ -4385,6 +4494,7 @@ async function handlePost(context) {
         let customer = await getCustomerIdentity(request, env.DB);
         let customerSessionToken = null;
         let customerSessionExpiresAt = null;
+        let wasNewlyRegistered = false;
 
         if (!customer && bookerPhone) {
             let registeredCustomer = await env.DB.prepare(
@@ -4420,12 +4530,15 @@ async function handlePost(context) {
                         now
                     ).run();
                     registeredCustomer = { phone: bookerPhone, name: passengerName.trim(), status: 'active' };
+                    wasNewlyRegistered = true;
                 } catch (regErr) {
                     console.warn('Auto customer registration notice:', regErr);
                 }
             }
 
-            if (registeredCustomer) {
+            // Security: ONLY auto-issue a session token for a newly created account;
+            // NEVER mint a session for an existing PIN-protected account without login.
+            if (registeredCustomer && wasNewlyRegistered) {
                 customer = { role: 'customer', identifier: registeredCustomer.phone };
                 try {
                     const session = await createCustomerSession(env.DB, registeredCustomer.phone);
@@ -4473,9 +4586,10 @@ async function handlePost(context) {
         }
 
         // Check if boarding departure time has already passed for today
+        const activeTimingsRaw = isReturnTrip ? (bus.return_stoppage_timings || bus.stoppage_timings) : bus.stoppage_timings;
         let boardingTime = (isReturnTrip ? (bus.return_time || bus.time) : bus.time) || '07:00 AM';
-        if (bus.stoppage_timings && boarding) {
-            const stpTimings = parseJson(bus.stoppage_timings, {});
+        if (activeTimingsRaw && boarding) {
+            const stpTimings = parseJson(activeTimingsRaw, {});
             if (stpTimings && stpTimings[boarding]) boardingTime = stpTimings[boarding];
         }
         if (isTripTimePassedIST(date, boardingTime)) {
@@ -4488,6 +4602,14 @@ async function handlePost(context) {
             return jsonError(400, 'The selected payment method is currently unavailable.');
         }
         const paymentScreenshot = String(body.paymentScreenshot || body.payment_screenshot || '').trim();
+        if (paymentScreenshot) {
+            if (!paymentScreenshot.startsWith('data:image/') && !/^https?:\/\//i.test(paymentScreenshot)) {
+                return jsonError(400, 'Invalid payment screenshot image format.');
+            }
+            if (paymentScreenshot.length > 750000) {
+                return jsonError(413, 'পেমেন্ট স্ক্রিনশট ছবির সাইজ অনেক বড়। অনুগ্রহ করে ছোট/কম্প্রেসড ছবি আপলোড করুন।');
+            }
+        }
         const busRequiresScreenshot = bus.require_payment_screenshot !== 0;
         const busRequiresUtr = Boolean(bus.enable_utr);
         if (cleanMode === 'UPI' && busRequiresScreenshot && !paymentScreenshot) {
@@ -4498,19 +4620,42 @@ async function handlePost(context) {
         }
         const cleanUtr = cleanMode === 'UPI' ? (utrNumber ? String(utrNumber).trim() : 'N/A') : null;
 
+        const baseBusFare = isReturnTrip ? (Number(bus.return_fare) || bus.fare || 150) : (bus.fare || 150);
+        const seatLayoutParsed = parseJson(bus.seat_layout, null);
+        const winExtra = flags.windowSeatPricing ? Number(bus.window_seat_extra || 0) : 0;
+        const isSeatWindowServer = (seatNum) => {
+            if (seatLayoutParsed && Array.isArray(seatLayoutParsed.seats)) {
+                const found = seatLayoutParsed.seats.find(s => String(s.number) === String(seatNum) || String(s.id) === String(seatNum));
+                if (found) return Boolean(found.isWindow || found.type === 'window');
+            }
+            const num = parseInt(String(seatNum).replace(/\D/g, ''), 10) || 0;
+            const mod = num % 5;
+            return mod === 1 || mod === 2 || mod === 0;
+        };
+        const seatsBaseTotal = seats.reduce((sum, s) => sum + baseBusFare + (winExtra > 0 && isSeatWindowServer(s) ? winExtra : 0), 0);
+
         let discount = 0;
+        let appliedCouponCode = null;
         if (promoCode) {
             if (!flags.promoCodes) return jsonError(400, 'Promo codes are currently disabled.');
+            const cleanCode = String(promoCode).trim().toUpperCase();
             const coupon = await env.DB.prepare(
-                'SELECT discount FROM coupons WHERE code = ? AND active = 1'
-            ).bind(String(promoCode).trim().toUpperCase()).first();
+                'SELECT code, discount, active, min_fare, max_uses, used_count, expires_at FROM coupons WHERE code = ? AND active = 1'
+            ).bind(cleanCode).first();
             if (!coupon) return jsonError(400, 'The promo code is invalid or inactive.');
-            discount = coupon.discount;
+            if (coupon.expires_at && coupon.expires_at < new Date().toISOString()) {
+                return jsonError(400, 'এই প্রোমো কোডের মেয়াদ শেষ হয়ে গেছে (Promo code has expired).');
+            }
+            if (coupon.max_uses !== null && coupon.max_uses !== undefined && Number(coupon.used_count || 0) >= Number(coupon.max_uses)) {
+                return jsonError(400, 'এই প্রোমো কোডের ব্যবহারের সীমা শেষ হয়ে গেছে (Promo code usage limit reached).');
+            }
+            if (seatsBaseTotal < Number(coupon.min_fare || 0)) {
+                return jsonError(400, `এই কুপন ব্যবহারের জন্য ন্যূনতম ভাড়া ₹${coupon.min_fare} হতে হবে।`);
+            }
+            discount = Number(coupon.discount) || 0;
+            appliedCouponCode = coupon.code;
         }
-        const baseBusFare = isReturnTrip ? (Number(bus.return_fare) || bus.fare || 150) : (bus.fare || 150);
-        // Owner/Admin fixed authoritative price per seat: all seats have uniform price
-        const perSeatFare = baseBusFare;
-        const expectedFare = Math.max(0, (seats.length * perSeatFare) - discount);
+        const expectedFare = Math.max(0, seatsBaseTotal - discount);
 
         // Enterprise-grade smooth booking: authoritative owner fare is booked without blocking the passenger
         const finalBookingFare = expectedFare;
@@ -4570,6 +4715,11 @@ async function handlePost(context) {
         ];
         try {
             await env.DB.batch(statements);
+            if (appliedCouponCode) {
+                await env.DB.prepare(
+                    'UPDATE coupons SET used_count = COALESCE(used_count, 0) + 1 WHERE code = ?'
+                ).bind(appliedCouponCode).run().catch(() => {});
+            }
         } catch (error) {
             if (cleanIdempotencyKey && /idempotency_key/i.test(error.message || '')) {
                 const replayBk = await env.DB.prepare('SELECT * FROM bookings WHERE idempotency_key = ? LIMIT 1').bind(cleanIdempotencyKey).first();
@@ -4639,7 +4789,7 @@ async function handlePost(context) {
             boarding,
             dropping,
             date,
-            fare,
+            fare: finalBookingFare,
             paymentMode: cleanMode,
             utrNumber: cleanUtr || 'N/A',
             status,
@@ -4672,13 +4822,32 @@ async function handlePost(context) {
             return jsonError(401, 'Passenger mobile number is required to request cancellation.');
         }
 
-        const existing = await env.DB.prepare('SELECT id, status, passenger_phone FROM bookings WHERE id = ?').bind(bId).first();
+        const existing = await env.DB.prepare(
+            `SELECT b.id, b.status, b.passenger_phone, b.boarded, b.bus_id, b.journey_date, b.boarding,
+                    bs.time, bs.return_time, bs.stoppage_timings, bs.return_stoppage_timings
+             FROM bookings b
+             LEFT JOIN buses bs ON (b.bus_id = bs.id OR b.bus_id = (bs.id || '_RETURN'))
+             WHERE b.id = ?`
+        ).bind(bId).first();
         if (!existing) return jsonError(404, 'Booking not found.');
         if (existing.status === 'Cancelled' || existing.status === 'Rejected') {
             return jsonError(400, 'This booking has already been cancelled or rejected.');
         }
         if (existing.passenger_phone !== customerPhone) {
             return jsonError(403, 'You are not authorized to cancel this booking.');
+        }
+        if (existing.boarded) {
+            return jsonError(409, 'যাত্রী ইতিমধ্যেই বাসে উঠে পড়েছেন। বোর্ডিং-এর পর অনলাইন ক্যানসেলেশন সম্ভব নয়। (Cannot cancel after boarding.)');
+        }
+        const isRet = String(existing.bus_id || '').endsWith('_RETURN');
+        let depTime = (isRet ? (existing.return_time || existing.time) : existing.time) || '07:00 AM';
+        const timingsRaw = isRet ? (existing.return_stoppage_timings || existing.stoppage_timings) : existing.stoppage_timings;
+        if (timingsRaw && existing.boarding) {
+            const tObj = parseJson(timingsRaw, {});
+            if (tObj && tObj[existing.boarding]) depTime = tObj[existing.boarding];
+        }
+        if (isTripTimePassedIST(existing.journey_date, depTime)) {
+            return jsonError(400, 'বাস ছেড়ে দেওয়ার সময় পেরিয়ে গেছে। এখন আর অনলাইনে টিকিট বাতিল করা সম্ভব নয়। (Cannot cancel after bus departure.)');
         }
 
         const update = await env.DB.prepare(
@@ -4704,7 +4873,7 @@ async function handlePost(context) {
             return jsonError(400, 'Valid status is required.');
         }
 
-        const existingBooking = await env.DB.prepare('SELECT id, status, fare FROM bookings WHERE id = ?').bind(bookingId).first();
+        const existingBooking = await env.DB.prepare('SELECT id, status, fare, bus_id, journey_date, seats FROM bookings WHERE id = ?').bind(bookingId).first();
         if (!existingBooking) return jsonError(404, 'Booking not found.');
         if (auth && auth.role === 'owner') {
             const ownedBooking = await env.DB.prepare(
@@ -4729,6 +4898,9 @@ async function handlePost(context) {
         }
 
         const nowIso = new Date().toISOString();
+        const wasInactive = ['Cancelled', 'Rejected'].includes(existingBooking.status);
+        const becomingActive = ['Approved', 'Pending Approval'].includes(newStatus);
+
         if (newStatus === 'Cancelled') {
             await env.DB.prepare(
                 `UPDATE bookings SET status = 'Cancelled', rejection_remarks = ?, refund_amount = ?, refund_status = ?, cancelled_at = ? WHERE id = ?`
@@ -4737,6 +4909,35 @@ async function handlePost(context) {
         } else if (newStatus === 'Rejected') {
             await env.DB.prepare('UPDATE bookings SET status = ?, rejection_remarks = ? WHERE id = ?').bind(newStatus, remarks, bookingId).run();
             await env.DB.prepare('DELETE FROM booking_seats WHERE booking_id = ?').bind(bookingId).run();
+        } else if (wasInactive && becomingActive) {
+            const seatList = parseJson(existingBooking.seats, []);
+            if (Array.isArray(seatList) && seatList.length > 0) {
+                await env.DB.prepare('DELETE FROM seat_holds WHERE expires_at <= ?').bind(nowIso).run();
+                const placeholders = seatList.map(() => '?').join(',');
+                const held = await env.DB.prepare(
+                    `SELECT seat_number FROM seat_holds WHERE bus_id = ? AND journey_date = ? AND expires_at > ? AND seat_number IN (${placeholders})`
+                ).bind(existingBooking.bus_id, existingBooking.journey_date, nowIso, ...seatList).all();
+                if (held.results && held.results.length > 0) {
+                    const taken = held.results.map(r => r.seat_number).join(', ');
+                    return jsonError(409, `সিট ${taken} বর্তমানে অন্য যাত্রী পেমেন্টের জন্য হোল্ড করে রেখেছেন। তাই পুনরায় Approve করা যাবে না। (Seats ${taken} currently held.)`);
+                }
+            }
+            const statusStmt = newStatus === 'Approved'
+                ? env.DB.prepare("UPDATE bookings SET status = 'Approved', refund_status = 'none' WHERE id = ?").bind(bookingId)
+                : env.DB.prepare('UPDATE bookings SET status = ? WHERE id = ?').bind(newStatus, bookingId);
+            const seatStmts = Array.isArray(seatList)
+                ? seatList.map(seat => env.DB.prepare(
+                    'INSERT INTO booking_seats (bus_id, journey_date, seat_number, booking_id) VALUES (?, ?, ?, ?)'
+                ).bind(existingBooking.bus_id, existingBooking.journey_date, seat, bookingId))
+                : [];
+            try {
+                await env.DB.batch([statusStmt, ...seatStmts]);
+            } catch (reactivateErr) {
+                if (/UNIQUE|constraint/i.test(reactivateErr.message || '')) {
+                    return jsonError(409, 'এই বুকিংয়ের আসনগুলো ইতিমধ্যেই অন্য যাত্রী বুক করে নিয়েছেন। পুনরায় Approve করা সম্ভব নয়। (One or more seats are already booked by another passenger.)');
+                }
+                throw reactivateErr;
+            }
         } else if (newStatus === 'Approved') {
             await env.DB.prepare("UPDATE bookings SET status = 'Approved', refund_status = 'none' WHERE id = ?").bind(bookingId).run();
         } else {
@@ -4750,9 +4951,27 @@ async function handlePost(context) {
     const refundMatch = path.match(/^\/api\/(owner|admin)\/bookings\/([^/]+)\/refund$/);
     if (refundMatch) {
         const bookingId = decodeURIComponent(refundMatch[2]);
+        const targetBooking = await env.DB.prepare(
+            `SELECT b.id, b.fare, bs.owner_phone
+             FROM bookings b
+             LEFT JOIN buses bs ON (b.bus_id = bs.id OR b.bus_id = (bs.id || '_RETURN'))
+             WHERE b.id = ?`
+        ).bind(bookingId).first();
+        if (!targetBooking) return jsonError(404, 'Booking not found.');
+        if (auth?.role === 'owner' && targetBooking.owner_phone !== auth.identifier) {
+            return jsonError(403, 'You can only update refunds for bookings on your own buses.');
+        }
+
         const body = await readJson(request);
         const refundStatus = String(body?.refundStatus || 'completed').trim();
-        const refundAmount = body?.refundAmount !== undefined ? Number(body.refundAmount) : null;
+        let refundAmount = null;
+        if (body?.refundAmount !== undefined && body?.refundAmount !== null && body?.refundAmount !== '') {
+            const parsedRefund = Number(body.refundAmount);
+            if (!Number.isFinite(parsedRefund) || parsedRefund < 0 || parsedRefund > Number(targetBooking.fare || 0)) {
+                return jsonError(400, `রিফান্ড অ্যামাউন্ট ০ থেকে ₹${targetBooking.fare} এর মধ্যে হতে হবে।`);
+            }
+            refundAmount = parsedRefund;
+        }
         const nowIso = new Date().toISOString();
 
         if (refundAmount !== null) {
@@ -4864,6 +5083,14 @@ async function handlePost(context) {
              ON CONFLICT (feature_key) DO UPDATE SET enabled = excluded.enabled, config = excluded.config`
         ).bind(enabled ? 1 : 0, JSON.stringify(themeConfig)).run();
 
+        await writeFirestoreDocument(env, 'system_config/festivalTheme', {
+            enabled,
+            festival,
+            targets,
+            greeting,
+            updated_at: themeConfig.updated_at
+        });
+
         const updatedFlags = await getFeatureFlags(env.DB);
         return jsonResponse({ ok: true, featureFlags: updatedFlags, festivalTheme: themeConfig });
     }
@@ -4890,7 +5117,14 @@ async function handlePost(context) {
         let photoApprovalStatusVal = null;
 
         if (Array.isArray(body.images)) {
-            const cleanImages = body.images.filter(Boolean);
+            const cleanImages = body.images.filter(img =>
+                typeof img === 'string' &&
+                img.length <= 600000 &&
+                (img.startsWith('data:image/') || /^https?:\/\//i.test(img))
+            ).slice(0, 8);
+            if (body.images.some(img => typeof img === 'string' && img.length > 600000)) {
+                return jsonError(413, 'বাসের প্রতিটি ছবির সাইজ ৫০০ KB এর কম হতে হবে। অনুগ্রহ করে ছোট ছবি আপলোড করুন।');
+            }
             if (cleanImages.length <= 3) {
                 finalImage = cleanImages.length > 0 ? JSON.stringify(cleanImages) : null;
                 pendingImagesVal = '[]';
@@ -4903,8 +5137,37 @@ async function handlePost(context) {
                 photoApprovalStatusVal = 'pending';
             }
         } else if (body.image) {
+            if (typeof body.image === 'string' && body.image.length > 600000) {
+                return jsonError(413, 'বাসের ছবির সাইজ ৫০০ KB এর কম হতে হবে।');
+            }
             finalImage = body.image;
         }
+
+        let totalSeatsVal = null;
+        if (body.totalSeats !== undefined && body.totalSeats !== null && body.totalSeats !== '') {
+            const parsedSeats = Number(body.totalSeats);
+            if (!Number.isInteger(parsedSeats) || parsedSeats < 10 || parsedSeats > 100) {
+                return jsonError(400, 'মোট সিট ১০ থেকে ১০০ এর মধ্যে হতে হবে।');
+            }
+            totalSeatsVal = parsedSeats;
+        }
+        let fareVal = null;
+        if (body.fare !== undefined && body.fare !== null && body.fare !== '') {
+            const parsedFare = Number(body.fare);
+            if (!Number.isFinite(parsedFare) || parsedFare <= 0 || parsedFare > 50000) {
+                return jsonError(400, 'বৈধ ভাড়া (₹1 - ₹50,000) দিন।');
+            }
+            fareVal = parsedFare;
+        }
+        const farePerStopVal = (body.farePerStop !== undefined && body.farePerStop !== null && Number.isFinite(Number(body.farePerStop))) ? Number(body.farePerStop) : null;
+        const farePerKmVal = (body.farePerKm !== undefined && body.farePerKm !== null && Number.isFinite(Number(body.farePerKm))) ? Number(body.farePerKm) : null;
+        const allowOnlineVal = body.allowOnlinePayment !== undefined ? (body.allowOnlinePayment ? 1 : 0) : null;
+        const allowCashVal = body.allowCashPayment !== undefined ? (body.allowCashPayment ? 1 : 0) : null;
+        const upiIdVal = body.upiId !== undefined ? String(body.upiId).trim() : null;
+        const companyNameVal = body.companyName !== undefined ? String(body.companyName).trim() : null;
+        const gstNumberVal = body.gstNumber !== undefined ? String(body.gstNumber).trim() : null;
+        const ticketTermsVal = body.ticketTerms !== undefined ? String(body.ticketTerms).trim() : null;
+        const emergencyPhoneVal = body.emergencyPhone !== undefined ? String(body.emergencyPhone).trim() : null;
 
         const stoppagesPayload = Array.isArray(body.stoppages) ? JSON.stringify(body.stoppages) : null;
         const stoppageTimingsPayload = (body.stoppageTimings || body.stoppage_timings)
@@ -4918,7 +5181,14 @@ async function handlePost(context) {
         const returnStoppageTimingsPayload = (body.returnStoppageTimings !== undefined || body.return_stoppage_timings !== undefined)
             ? JSON.stringify(body.returnStoppageTimings || body.return_stoppage_timings || {})
             : null;
-        const returnFareVal = body.returnFare !== undefined ? Number(body.returnFare) : null;
+        let returnFareVal = null;
+        if (body.returnFare !== undefined && body.returnFare !== null && body.returnFare !== '') {
+            const parsedRetFare = Number(body.returnFare);
+            if (!Number.isFinite(parsedRetFare) || parsedRetFare <= 0 || parsedRetFare > 50000) {
+                return jsonError(400, 'বৈধ রিটার্ন ভাড়া দিন।');
+            }
+            returnFareVal = parsedRetFare;
+        }
         const returnRouteEnabledVal = body.returnRouteEnabled !== undefined ? (body.returnRouteEnabled ? 1 : 0) : null;
 
         const resubmit = body.resubmitApproval === true;
@@ -4931,12 +5201,12 @@ async function handlePost(context) {
                 fare = COALESCE(?, fare),
                 fare_per_stop = COALESCE(?, fare_per_stop),
                 fare_per_km = COALESCE(?, fare_per_km),
-                allow_online_payment = ?,
-                allow_cash_payment = ?,
-                company_name = ?,
-                gst_number = ?,
-                ticket_terms = ?,
-                emergency_phone = ?,
+                allow_online_payment = COALESCE(?, allow_online_payment),
+                allow_cash_payment = COALESCE(?, allow_cash_payment),
+                company_name = COALESCE(?, company_name),
+                gst_number = COALESCE(?, gst_number),
+                ticket_terms = COALESCE(?, ticket_terms),
+                emergency_phone = COALESCE(?, emergency_phone),
                 driver_phone = COALESCE(?, driver_phone),
                 image = COALESCE(?, image),
                 pending_images = COALESCE(?, pending_images),
@@ -4956,17 +5226,17 @@ async function handlePost(context) {
                 ${approvalClause}
              WHERE id = ?`
         ).bind(
-            body.totalSeats || 65,
-            body.upiId || 'busyatra@oksbi',
-            body.fare !== undefined ? body.fare : 399,
-            body.farePerStop !== undefined ? body.farePerStop : 45,
-            body.farePerKm !== undefined ? body.farePerKm : 3.5,
-            body.allowOnlinePayment ? 1 : 0,
-            body.allowCashPayment ? 1 : 0,
-            body.companyName || '',
-            body.gstNumber || '',
-            body.ticketTerms || '',
-            body.emergencyPhone || '',
+            totalSeatsVal,
+            upiIdVal || null,
+            fareVal,
+            farePerStopVal,
+            farePerKmVal,
+            allowOnlineVal,
+            allowCashVal,
+            companyNameVal,
+            gstNumberVal,
+            ticketTermsVal,
+            emergencyPhoneVal,
             captainPhone || null,
             finalImage,
             pendingImagesVal,
@@ -5344,28 +5614,33 @@ async function handlePost(context) {
             body.lat < -90 || body.lat > 90 || body.lng < -180 || body.lng > 180) {
             return jsonError(400, 'Valid lat and lng required.');
         }
-        let targetBusId = body.busId || auth.busId;
+        let targetBusId = auth.busId ? String(auth.busId).replace('_RETURN', '') : '';
         if (!targetBusId && auth.identifier) {
             const captainRow = await env.DB.prepare("SELECT bus_id FROM captains WHERE phone = ?").bind(auth.identifier).first();
-            if (captainRow) targetBusId = captainRow.bus_id;
+            if (captainRow && captainRow.bus_id) targetBusId = String(captainRow.bus_id).replace('_RETURN', '');
+            if (!targetBusId) {
+                const bRow = await env.DB.prepare("SELECT id FROM buses WHERE driver_phone = ?").bind(auth.identifier).first();
+                if (bRow && bRow.id) targetBusId = bRow.id;
+            }
         }
         if (!targetBusId) {
             return jsonError(403, 'No assigned bus found for this captain account.');
+        }
+        if (body.busId && String(body.busId).replace('_RETURN', '') !== targetBusId) {
+            return jsonError(403, 'You can only update GPS location for your own assigned bus.');
         }
         const flags = await getFeatureFlags(env.DB);
         if (flags.captainPortal === false || flags.liveTracking === false) {
             return jsonError(403, 'Captain GPS sharing is currently disabled.');
         }
 
-        // Check if captain or bus owner is suspended
-        if (targetBusId) {
+        const busRecord = await env.DB.prepare('SELECT id, name, bus_number, owner_phone FROM buses WHERE id = ?').bind(targetBusId).first();
+        if (!busRecord) return jsonError(404, 'Bus not found.');
+        if (busRecord.owner_phone) {
             try {
-                const busRecord = await env.DB.prepare('SELECT owner_phone FROM buses WHERE id = ?').bind(targetBusId).first();
-                if (busRecord && busRecord.owner_phone) {
-                    const ownerAcl = await env.DB.prepare('SELECT status FROM access_control_list WHERE phone = ?').bind(busRecord.owner_phone).first();
-                    if (ownerAcl && (ownerAcl.status === 'suspended' || ownerAcl.status === 'blocked' || ownerAcl.status === 'permanently_banned')) {
-                        return jsonError(403, 'Bus owner account is suspended. GPS broadcast halted.');
-                    }
+                const ownerAcl = await env.DB.prepare('SELECT status FROM access_control_list WHERE phone = ?').bind(busRecord.owner_phone).first();
+                if (ownerAcl && (ownerAcl.status === 'suspended' || ownerAcl.status === 'blocked' || ownerAcl.status === 'permanently_banned')) {
+                    return jsonError(403, 'Bus owner account is suspended. GPS broadcast halted.');
                 }
             } catch (oe) {}
         }
@@ -5374,24 +5649,53 @@ async function handlePost(context) {
             'UPDATE buses SET lat = ?, lng = ?, location_updated_at = ? WHERE id = ?'
         ).bind(body.lat, body.lng, nowIso, targetBusId).run();
         if (!result.meta?.changes) return jsonError(404, 'Bus not found.');
+
+        await writeFirestoreDocument(env, `bus_locations/${targetBusId}`, {
+            busId: targetBusId,
+            busName: busRecord.name || 'Bus Yatra Express',
+            busNumber: busRecord.bus_number || '',
+            lat: Number(body.lat),
+            lng: Number(body.lng),
+            speed: Number.isFinite(Number(body.speed)) ? Number(body.speed) : 0,
+            accuracy: Number.isFinite(Number(body.accuracy)) ? Number(body.accuracy) : 10,
+            heading: body.heading !== null && body.heading !== undefined && Number.isFinite(Number(body.heading)) ? Number(body.heading) : null,
+            stopName: typeof body.stopName === 'string' && body.stopName.trim() ? body.stopName.trim().slice(0, 80) : null,
+            updated_at: nowIso
+        });
+
         return jsonResponse({ ok: true, busId: targetBusId, lat: body.lat, lng: body.lng, updatedAt: nowIso });
     }
 
     // POST or PUT /api/owner/buses/:id/location
     const locMatch = path.match(/^\/api\/owner\/buses\/([^/]+)\/location$/);
     if (locMatch) {
-        const busId = decodeURIComponent(locMatch[1]);
+        const busId = decodeURIComponent(locMatch[1]).replace('_RETURN', '');
         const body = await readJson(request);
         if (!body || !Number.isFinite(body.lat) || !Number.isFinite(body.lng) ||
             body.lat < -90 || body.lat > 90 || body.lng < -180 || body.lng > 180) {
             return jsonError(400, 'lat and lng required.');
         }
-        const ownedBus = await env.DB.prepare('SELECT id FROM buses WHERE id = ? AND owner_phone = ?')
+        const ownedBus = await env.DB.prepare('SELECT id, name, bus_number FROM buses WHERE id = ? AND owner_phone = ?')
             .bind(busId, auth.identifier).first();
         if (!ownedBus) return jsonError(404, 'Bus not found.');
+        const nowIso = new Date().toISOString();
         await env.DB.prepare(
             'UPDATE buses SET lat = ?, lng = ?, location_updated_at = ? WHERE id = ?'
-        ).bind(body.lat, body.lng, new Date().toISOString(), busId).run();
+        ).bind(body.lat, body.lng, nowIso, busId).run();
+
+        await writeFirestoreDocument(env, `bus_locations/${busId}`, {
+            busId,
+            busName: ownedBus.name || 'Bus Yatra Express',
+            busNumber: ownedBus.bus_number || '',
+            lat: Number(body.lat),
+            lng: Number(body.lng),
+            speed: Number.isFinite(Number(body.speed)) ? Number(body.speed) : 0,
+            accuracy: Number.isFinite(Number(body.accuracy)) ? Number(body.accuracy) : 10,
+            heading: null,
+            stopName: typeof body.stopName === 'string' && body.stopName.trim() ? body.stopName.trim().slice(0, 80) : null,
+            updated_at: nowIso
+        });
+
         return jsonResponse({ ok: true });
     }
 
@@ -5529,20 +5833,59 @@ async function handlePost(context) {
         const enableUtr = body.enableUtr !== undefined ? (body.enableUtr ? 1 : 0) : (existingBus?.enable_utr !== undefined ? existingBus.enable_utr : 0);
 
         await env.DB.prepare(
-            `INSERT OR REPLACE INTO buses (
+            `INSERT INTO buses (
                 id, name, bus_number, owner_name, owner_phone, owner_email, route, active_routes,
-                stoppages, stoppage_timings, fare_per_stop, fare_per_km, time, fare, total_seats, image, upi_id,
+                stoppages, stoppage_timings, fare_per_stop, fare_per_km, window_seat_extra, time, fare, total_seats, image, upi_id,
                 qr_image, allow_online_payment, allow_cash_payment, driver_phone, company_name,
                 gst_number, ticket_terms, emergency_phone, rating, booking_mode, seat_layout,
                 approval_status, rejection_reason, return_route_enabled, return_time, return_route, return_stoppages, return_stoppage_timings, return_fare,
                 require_payment_screenshot, enable_utr,
                 pending_images, photo_approval_status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', 'approved')`
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', 'approved')
+            ON CONFLICT (id) DO UPDATE SET
+                name = excluded.name,
+                bus_number = excluded.bus_number,
+                owner_name = excluded.owner_name,
+                owner_phone = excluded.owner_phone,
+                owner_email = excluded.owner_email,
+                route = excluded.route,
+                active_routes = excluded.active_routes,
+                stoppages = excluded.stoppages,
+                stoppage_timings = excluded.stoppage_timings,
+                fare_per_stop = excluded.fare_per_stop,
+                fare_per_km = excluded.fare_per_km,
+                window_seat_extra = excluded.window_seat_extra,
+                time = excluded.time,
+                fare = excluded.fare,
+                total_seats = excluded.total_seats,
+                image = excluded.image,
+                upi_id = excluded.upi_id,
+                qr_image = excluded.qr_image,
+                allow_online_payment = excluded.allow_online_payment,
+                allow_cash_payment = excluded.allow_cash_payment,
+                driver_phone = excluded.driver_phone,
+                company_name = excluded.company_name,
+                gst_number = excluded.gst_number,
+                ticket_terms = excluded.ticket_terms,
+                emergency_phone = excluded.emergency_phone,
+                rating = excluded.rating,
+                booking_mode = excluded.booking_mode,
+                seat_layout = excluded.seat_layout,
+                approval_status = excluded.approval_status,
+                rejection_reason = excluded.rejection_reason,
+                return_route_enabled = excluded.return_route_enabled,
+                return_time = excluded.return_time,
+                return_route = excluded.return_route,
+                return_stoppages = excluded.return_stoppages,
+                return_stoppage_timings = excluded.return_stoppage_timings,
+                return_fare = excluded.return_fare,
+                require_payment_screenshot = excluded.require_payment_screenshot,
+                enable_utr = excluded.enable_utr`
         ).bind(
             id, body.name, body.busNumber, body.ownerName, body.ownerPhone || '', body.ownerEmail || '',
             body.route || 'Pingla to Kolkata', JSON.stringify(body.activeRoutes || [body.route]),
             JSON.stringify(body.stoppages || ['Pingla', 'Kolkata']), stoppageTimings, body.farePerStop || 45,
-            body.farePerKm || 3.5, body.time || '08:00 AM', body.fare || 399, body.totalSeats || 65,
+            body.farePerKm || 3.5, body.windowSeatExtra !== undefined ? Number(body.windowSeatExtra) || 0 : 30, body.time || '08:00 AM', body.fare || 399, body.totalSeats || 65,
             imagePayload, body.upiId || 'busyatra@oksbi', body.qrImage || '',
             body.allowOnlinePayment !== false ? 1 : 0, body.allowCashPayment !== false ? 1 : 0,
             body.driverPhone || body.ownerPhone || '', body.companyName || `${body.ownerName} Travels`,
@@ -5556,11 +5899,29 @@ async function handlePost(context) {
 
     // POST /api/coupons or /api/admin/coupons
     if (path === '/api/coupons' || path === '/api/admin/coupons') {
+        if (auth?.role !== 'admin') return jsonError(403, 'Administrator access required.');
         const body = await readJson(request);
-        if (!body || !body.code || !body.discount) return jsonError(400, 'code and discount required.');
+        if (!body || !body.code || body.discount === undefined) return jsonError(400, 'code and discount required.');
+        const cleanCode = String(body.code).trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+        const discountVal = Number(body.discount);
+        if (!cleanCode || cleanCode.length > 32 || !Number.isFinite(discountVal) || discountVal <= 0 || discountVal > 10000) {
+            return jsonError(400, 'Valid coupon code and discount (₹1 - ₹10,000) required.');
+        }
+        const minFareVal = (body.minFare !== undefined && Number.isFinite(Number(body.minFare))) ? Math.max(0, Number(body.minFare)) : 0;
+        const maxUsesVal = (body.maxUses !== undefined && body.maxUses !== null && body.maxUses !== '' && Number.isInteger(Number(body.maxUses)) && Number(body.maxUses) > 0)
+            ? Number(body.maxUses)
+            : null;
+        const expiresAtVal = (typeof body.expiresAt === 'string' && body.expiresAt.trim()) ? body.expiresAt.trim() : null;
         await env.DB.prepare(
-            'INSERT OR REPLACE INTO coupons (code, discount, active) VALUES (?, ?, ?)'
-        ).bind(body.code.trim().toUpperCase(), body.discount, body.active !== false ? 1 : 0).run();
+            `INSERT INTO coupons (code, discount, active, min_fare, max_uses, used_count, expires_at)
+             VALUES (?, ?, ?, ?, ?, 0, ?)
+             ON CONFLICT (code) DO UPDATE SET
+                discount = excluded.discount,
+                active = excluded.active,
+                min_fare = excluded.min_fare,
+                max_uses = excluded.max_uses,
+                expires_at = excluded.expires_at`
+        ).bind(cleanCode, discountVal, body.active !== false ? 1 : 0, minFareVal, maxUsesVal, expiresAtVal).run();
         return jsonResponse({ ok: true }, 201);
     }
 
@@ -5782,60 +6143,79 @@ async function handlePost(context) {
         return jsonResponse({ ok: true, deleted: deletedCount, message: `${deletedCount} booking(s) deleted successfully.` });
     }
 
-    // POST /api/owner/bookings/bulk-delete
+    // POST /api/owner/bookings/bulk-delete (Soft-hide in Owner view; preserves Admin ledger & blocks upcoming active bookings)
     if (path === '/api/owner/bookings/bulk-delete') {
         if (auth?.role !== 'owner') return jsonError(403, 'Unauthorized.');
         const body = await readJson(request) || {};
+        const todayIST = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
         let ids = Array.isArray(body.bookingIds) ? body.bookingIds.filter(Boolean) : [];
+        let rows = [];
         if (!ids.length && body.date) {
-            const rows = await env.DB.prepare(
-                `SELECT b.id FROM bookings b JOIN buses bus ON b.bus_id = bus.id WHERE bus.owner_phone = ? AND b.journey_date = ?`
+            const res = await env.DB.prepare(
+                `SELECT b.id, b.status, b.journey_date FROM bookings b
+                 JOIN buses bus ON (b.bus_id = bus.id OR b.bus_id = (bus.id || '_RETURN'))
+                 WHERE bus.owner_phone = ? AND b.journey_date = ? AND COALESCE(b.hidden_for_owner, 0) = 0`
             ).bind(auth.identifier, body.date).all();
-            ids = (rows.results || []).map(r => r.id);
+            rows = res.results || [];
         } else if (ids.length) {
             const placeholders = ids.map(() => '?').join(',');
-            const rows = await env.DB.prepare(
-                `SELECT b.id FROM bookings b JOIN buses bus ON b.bus_id = bus.id WHERE bus.owner_phone = ? AND b.id IN (${placeholders})`
+            const res = await env.DB.prepare(
+                `SELECT b.id, b.status, b.journey_date FROM bookings b
+                 JOIN buses bus ON (b.bus_id = bus.id OR b.bus_id = (bus.id || '_RETURN'))
+                 WHERE bus.owner_phone = ? AND b.id IN (${placeholders})`
             ).bind(auth.identifier, ...ids).all();
-            ids = (rows.results || []).map(r => r.id);
+            rows = res.results || [];
         }
-        if (!ids.length) return jsonError(400, 'No matching bookings found to delete.');
-        const deletedCount = await deleteBookingsHelper(env.DB, ids);
+        const safeIds = rows
+            .filter(r => !['Approved', 'Pending Approval', 'Cancellation Requested'].includes(r.status) || r.journey_date < todayIST)
+            .map(r => r.id);
+        if (!safeIds.length) {
+            return jsonError(409, rows.length
+                ? 'সক্রিয় বা আসন্ন বুকিং ডিলিট করা যাবে না। অনুগ্রহ করে প্রথমে বুকিংগুলো Cancel বা Reject করুন।'
+                : 'No matching bookings found to delete.');
+        }
+        const placeholders = safeIds.map(() => '?').join(',');
+        const upd = await env.DB.prepare(`UPDATE bookings SET hidden_for_owner = 1 WHERE id IN (${placeholders})`).bind(...safeIds).run();
+        const deletedCount = upd.meta?.changes || safeIds.length;
         return jsonResponse({ ok: true, deleted: deletedCount, message: `${deletedCount} booking(s) deleted.` });
     }
 
-    // POST /api/captain/bookings/bulk-delete
+    // POST /api/captain/bookings/bulk-delete (Soft-hide for Captain UI; strict bus ownership & _RETURN match)
     if (path === '/api/captain/bookings/bulk-delete') {
         if (auth?.role !== 'captain') return jsonError(403, 'Unauthorized.');
         const body = await readJson(request) || {};
-        let targetBusId = auth.busId;
+        let targetBusId = auth.busId ? String(auth.busId).replace('_RETURN', '') : '';
         if (!targetBusId && auth.identifier) {
             const captainRow = await env.DB.prepare("SELECT bus_id FROM captains WHERE phone = ?").bind(auth.identifier).first();
-            if (captainRow) targetBusId = captainRow.bus_id;
+            if (captainRow && captainRow.bus_id) targetBusId = String(captainRow.bus_id).replace('_RETURN', '');
             if (!targetBusId) {
                 const bRow = await env.DB.prepare("SELECT id FROM buses WHERE driver_phone = ?").bind(auth.identifier).first();
-                if (bRow) targetBusId = bRow.id;
+                if (bRow && bRow.id) targetBusId = bRow.id;
             }
         }
+        if (!targetBusId) return jsonError(403, 'No bus assigned to this captain account.');
+        const returnBusId = targetBusId + '_RETURN';
         let ids = Array.isArray(body.bookingIds) ? body.bookingIds.filter(Boolean) : [];
         if (!ids.length && body.date) {
             const rows = await env.DB.prepare(
-                `SELECT id FROM bookings WHERE (? IS NULL OR bus_id = ?) AND journey_date = ?`
-            ).bind(targetBusId || null, targetBusId || '', body.date).all();
+                `SELECT id FROM bookings WHERE (bus_id = ? OR bus_id = ?) AND journey_date = ? AND COALESCE(hidden_for_captain, 0) = 0`
+            ).bind(targetBusId, returnBusId, body.date).all();
             ids = (rows.results || []).map(r => r.id);
         } else if (ids.length) {
             const placeholders = ids.map(() => '?').join(',');
             const rows = await env.DB.prepare(
-                `SELECT id FROM bookings WHERE (? IS NULL OR bus_id = ?) AND id IN (${placeholders})`
-            ).bind(targetBusId || null, targetBusId || '', ...ids).all();
+                `SELECT id FROM bookings WHERE (bus_id = ? OR bus_id = ?) AND id IN (${placeholders})`
+            ).bind(targetBusId, returnBusId, ...ids).all();
             ids = (rows.results || []).map(r => r.id);
         }
         if (!ids.length) return jsonError(400, 'No matching bookings found for your bus.');
-        const deletedCount = await deleteBookingsHelper(env.DB, ids);
+        const placeholders = ids.map(() => '?').join(',');
+        const upd = await env.DB.prepare(`UPDATE bookings SET hidden_for_captain = 1 WHERE id IN (${placeholders})`).bind(...ids).run();
+        const deletedCount = upd.meta?.changes || ids.length;
         return jsonResponse({ ok: true, deleted: deletedCount, message: `${deletedCount} booking(s) deleted.` });
     }
 
-    // POST /api/customer/bookings/bulk-delete
+    // POST /api/customer/bookings/bulk-delete (Soft-hide from customer history; preserves financials & active seats)
     if (path === '/api/customer/bookings/bulk-delete') {
         if (auth?.role !== 'customer') return jsonError(403, 'Unauthorized.');
         const body = await readJson(request) || {};
@@ -5853,7 +6233,9 @@ async function handlePost(context) {
             ids = (rows.results || []).map(r => r.id);
         }
         if (!ids.length) return jsonError(400, 'No bookings found to delete.');
-        const deletedCount = await deleteBookingsHelper(env.DB, ids);
+        const placeholders = ids.map(() => '?').join(',');
+        const upd = await env.DB.prepare(`UPDATE bookings SET hidden_for_customer = 1 WHERE passenger_phone = ? AND id IN (${placeholders})`).bind(auth.identifier, ...ids).run();
+        const deletedCount = upd.meta?.changes || ids.length;
         return jsonResponse({ ok: true, deleted: deletedCount, message: `${deletedCount} booking(s) deleted from history.` });
     }
 
@@ -6248,34 +6630,48 @@ async function handlePost(context) {
         });
     }
 
-    // POST /api/support/tickets (Customer create or append support message)
+    // POST /api/support/tickets (Customer create or append support message - token/session protected)
     if (path === '/api/support/tickets') {
         const body = await readJson(request);
-        let { ticketNumber, customerPhone, customerName, subject, message, isVoice, attachmentUrl, category, aiResponse } = body || {};
+        let { ticketNumber, ticketToken, customerPhone, customerName, subject, message, isVoice, attachmentUrl, category, aiResponse } = body || {};
 
         customerPhone = String(customerPhone || '').trim();
-        customerName = String(customerName || 'Passenger').trim();
-        subject = String(subject || 'General Inquiry').trim();
-        message = String(message || '').trim();
-        category = String(category || 'general').trim();
+        customerName = String(customerName || 'Passenger').trim().slice(0, 80);
+        subject = String(subject || 'General Inquiry').trim().slice(0, 120);
+        message = String(message || '').trim().slice(0, 2000);
+        category = String(category || 'general').trim().slice(0, 50);
+        ticketToken = String(ticketToken || request.headers.get('x-ticket-token') || '').trim();
 
         if (!message && !attachmentUrl) {
             return jsonError(400, 'Message text or attachment is required.');
         }
+        if (attachmentUrl && (typeof attachmentUrl !== 'string' || attachmentUrl.length > 750000)) {
+            return jsonError(413, 'সংযুক্ত ছবির সাইজ অনেক বড়। অনুগ্রহ করে ছোট ছবি আপলোড করুন।');
+        }
 
         const now = new Date().toISOString();
         let ticket = null;
+        const isAdminSender = auth?.role === 'admin';
+        const authCustPhone = auth?.role === 'customer' ? auth.identifier : '';
 
         // 1. Check if client provided a ticket number and it exists in database
         if (ticketNumber) {
             ticket = await env.DB.prepare('SELECT * FROM support_tickets WHERE ticket_number = ?').bind(ticketNumber).first();
+            if (ticket) {
+                const ownerMatch = Boolean(ticket.customer_phone && authCustPhone && authCustPhone === ticket.customer_phone);
+                const tokenMatch = Boolean(ticket.ticket_secret && ticketToken && constantTimeEqual(ticketToken, ticket.ticket_secret));
+                const legacyAnonymous = Boolean(!ticket.ticket_secret && !ticket.customer_phone);
+                if (!isAdminSender && !ownerMatch && !tokenMatch && !legacyAnonymous) {
+                    return jsonError(403, 'আপনি এই সাপোর্ট টিকিটে মেসেজ পাঠানোর অনুমতিপ্রাপ্ত নন।');
+                }
+            }
         }
 
-        // 2. If not found by ticketNumber, check if customer has an ongoing active ticket (Open or In Progress)
-        if (!ticket && customerPhone) {
+        // 2. If not found by ticketNumber, only resume an active ticket for authenticated customer or matching phone session
+        if (!ticket && authCustPhone) {
             ticket = await env.DB.prepare(
                 "SELECT * FROM support_tickets WHERE customer_phone = ? AND status IN ('Open', 'In Progress') ORDER BY updated_at DESC LIMIT 1"
-            ).bind(customerPhone).first();
+            ).bind(authCustPhone).first();
         }
 
         // 3. User rule: If the ticket is already Resolved by admin, customer's new inquiry must start a fresh new ticket
@@ -6299,7 +6695,7 @@ async function handlePost(context) {
                 msgs.push({
                     id: 'msg_ai_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
                     sender: 'ai',
-                    text: String(aiResponse).trim(),
+                    text: String(aiResponse).trim().slice(0, 2000),
                     timestamp: new Date().toISOString()
                 });
             }
@@ -6312,10 +6708,12 @@ async function handlePost(context) {
                 WHERE id = ?
             `).bind(JSON.stringify(msgs), message || (attachmentUrl ? '[Photo Attached]' : ''), currentStatus, now, ticket.id).run();
 
+            const { ticket_secret: secretVal, ...safeTicket } = ticket;
             return jsonResponse({
                 ok: true,
+                ticketToken: secretVal || undefined,
                 ticket: {
-                    ...ticket,
+                    ...safeTicket,
                     status: currentStatus,
                     last_message: message || (attachmentUrl ? '[Photo Attached]' : ''),
                     last_sender: 'customer',
@@ -6324,6 +6722,17 @@ async function handlePost(context) {
                 }
             });
         } else {
+            // Rate limit: max 5 new tickets in 10 minutes per customerPhone
+            if (customerPhone) {
+                const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+                const recent = await env.DB.prepare(
+                    'SELECT COUNT(*) AS cnt FROM support_tickets WHERE customer_phone = ? AND created_at > ?'
+                ).bind(customerPhone, tenMinsAgo).first();
+                if (recent && Number(recent.cnt) >= 5) {
+                    return jsonError(429, 'অল্প সময়ে অনেকগুলো সাপোর্ট টিকিট তৈরি করা হয়েছে। অনুগ্রহ করে কিছুক্ষণ পর চেষ্টা করুন।');
+                }
+            }
+
             // Create new ticket token: preserve client's ticketNumber if available and unique
             let genTicketNumber = (ticketNumber && /^#BY-TKT-\d{4,6}$/.test(ticketNumber)) ? ticketNumber : null;
             if (genTicketNumber) {
@@ -6336,12 +6745,13 @@ async function handlePost(context) {
             }
 
             const ticketId = 'tkt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+            const ticketSecret = secureRandomHex(16);
             const msgs = [newMsg];
             if (aiResponse) {
                 msgs.push({
                     id: 'msg_ai_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
                     sender: 'ai',
-                    text: String(aiResponse).trim(),
+                    text: String(aiResponse).trim().slice(0, 2000),
                     timestamp: new Date().toISOString()
                 });
             }
@@ -6349,19 +6759,20 @@ async function handlePost(context) {
             await env.DB.prepare(`
                 INSERT INTO support_tickets (
                     id, ticket_number, customer_phone, customer_name, subject, category,
-                    status, priority, messages, last_message, last_sender, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, 'Open', 'Medium', ?, ?, 'customer', ?, ?)
+                    status, priority, messages, last_message, last_sender, ticket_secret, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, 'Open', 'Medium', ?, ?, 'customer', ?, ?, ?)
             `).bind(
-                ticketId, genTicketNumber, customerPhone || null, customerName, subject, category,
-                JSON.stringify(msgs), message || (attachmentUrl ? '[Photo Attached]' : ''), now, now
+                ticketId, genTicketNumber, (authCustPhone || customerPhone) || null, customerName, subject, category,
+                JSON.stringify(msgs), message || (attachmentUrl ? '[Photo Attached]' : ''), ticketSecret, now, now
             ).run();
 
             return jsonResponse({
                 ok: true,
+                ticketToken: ticketSecret,
                 ticket: {
                     id: ticketId,
                     ticket_number: genTicketNumber,
-                    customer_phone: customerPhone,
+                    customer_phone: authCustPhone || customerPhone,
                     customer_name: customerName,
                     subject,
                     category,
@@ -6458,7 +6869,17 @@ async function handlePost(context) {
         if (!body || typeof body !== 'object') return jsonError(400, 'Invalid request payload.');
 
         const customerName = String(body.customer_name || 'Passenger').trim().slice(0, 100);
-        const customerPhone = String(body.customer_phone || '').trim().replace(/[^\d+]/g, '').slice(0, 20);
+        const customerPhone = String(auth?.role === 'customer' ? auth.identifier : (body.customer_phone || '')).trim().replace(/[^\d+]/g, '').slice(0, 20);
+
+        if (customerPhone) {
+            const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+            const recentSos = await env.DB.prepare(
+                'SELECT COUNT(*) AS cnt FROM emergency_sos_alerts WHERE customer_phone = ? AND created_at > ?'
+            ).bind(customerPhone, fiveMinsAgo).first();
+            if (recentSos && Number(recentSos.cnt) >= 3) {
+                return jsonError(429, 'আপনার জরুরি এসওএস সতর্কতা ইতিমধ্যেই পাঠানো হয়েছে। অনুগ্রহ করে শান্ত থাকুন। (SOS alert already received.)');
+            }
+        }
         const emergencyType = String(body.emergency_type || '🚑 চিকিৎসা জরুরি (Medical)').trim().slice(0, 100);
         const description = String(body.description || '').trim().slice(0, 1000);
         const locationText = String(body.current_location_text || '').trim().slice(0, 300);
@@ -6542,9 +6963,9 @@ async function deleteBookingsHelper(db, bookingIds) {
         console.warn('Booking financials cleanup notice:', e);
     }
     try {
-        await db.prepare(`DELETE FROM booked_seats WHERE booking_id IN (${placeholders})`).bind(...safeIds).run();
+        await db.prepare(`DELETE FROM booking_seats WHERE booking_id IN (${placeholders})`).bind(...safeIds).run();
     } catch (e) {
-        console.warn('Booked seats cleanup notice:', e);
+        console.warn('Booking seats cleanup notice:', e);
     }
     const result = await db.prepare(`DELETE FROM bookings WHERE id IN (${placeholders})`).bind(...safeIds).run();
     return result.meta?.changes || 0;
@@ -6683,42 +7104,49 @@ async function handleDelete(context) {
         return jsonResponse({ ok: true, deleted: deletedCount, message: `Booking transaction #${bookingId} deleted successfully.` });
     }
 
-    // DELETE /api/owner/bookings/:id
+    // DELETE /api/owner/bookings/:id (Soft-hide in Owner view; preserves Admin ledger & protects upcoming live bookings)
     const ownerBookingMatch = path.match(/^\/api\/owner\/bookings\/([^/]+)$/);
     if (ownerBookingMatch) {
         if (auth?.role !== 'owner') return jsonError(403, 'Unauthorized.');
         const bookingId = decodeURIComponent(ownerBookingMatch[1]);
         const valid = await env.DB.prepare(
-            `SELECT b.id FROM bookings b JOIN buses bus ON b.bus_id = bus.id WHERE b.id = ? AND bus.owner_phone = ?`
+            `SELECT b.id, b.status, b.journey_date FROM bookings b
+             JOIN buses bus ON (b.bus_id = bus.id OR b.bus_id = (bus.id || '_RETURN'))
+             WHERE b.id = ? AND bus.owner_phone = ?`
         ).bind(bookingId, auth.identifier).first();
         if (!valid) return jsonError(404, 'Booking not found or not owned by your company.');
-        const deletedCount = await deleteBookingsHelper(env.DB, [bookingId]);
-        return jsonResponse({ ok: true, deleted: deletedCount, message: `Booking #${bookingId} deleted.` });
+        const todayIST = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        if (['Approved', 'Pending Approval', 'Cancellation Requested'].includes(valid.status) && valid.journey_date >= todayIST) {
+            return jsonError(409, 'সক্রিয় বা আসন্ন বুকিং ডিলিট করা যাবে না। অনুগ্রহ করে প্রথমে বুকিংটি Cancel বা Reject করুন।');
+        }
+        await env.DB.prepare('UPDATE bookings SET hidden_for_owner = 1 WHERE id = ?').bind(bookingId).run();
+        return jsonResponse({ ok: true, deleted: 1, message: `Booking #${bookingId} deleted.` });
     }
 
-    // DELETE /api/captain/bookings/:id
+    // DELETE /api/captain/bookings/:id (Soft-hide for Captain UI; strict bus ownership & _RETURN match)
     const cptBookingMatch = path.match(/^\/api\/captain\/bookings\/([^/]+)$/);
     if (cptBookingMatch) {
         if (auth?.role !== 'captain') return jsonError(403, 'Unauthorized.');
         const bookingId = decodeURIComponent(cptBookingMatch[1]);
-        let targetBusId = auth.busId;
+        let targetBusId = auth.busId ? String(auth.busId).replace('_RETURN', '') : '';
         if (!targetBusId && auth.identifier) {
             const captainRow = await env.DB.prepare("SELECT bus_id FROM captains WHERE phone = ?").bind(auth.identifier).first();
-            if (captainRow) targetBusId = captainRow.bus_id;
+            if (captainRow && captainRow.bus_id) targetBusId = String(captainRow.bus_id).replace('_RETURN', '');
             if (!targetBusId) {
                 const bRow = await env.DB.prepare("SELECT id FROM buses WHERE driver_phone = ?").bind(auth.identifier).first();
-                if (bRow) targetBusId = bRow.id;
+                if (bRow && bRow.id) targetBusId = bRow.id;
             }
         }
+        if (!targetBusId) return jsonError(403, 'No bus assigned to this captain account.');
         const valid = await env.DB.prepare(
-            `SELECT id FROM bookings WHERE id = ? AND (? IS NULL OR bus_id = ?)`
-        ).bind(bookingId, targetBusId || null, targetBusId || '').first();
+            `SELECT id FROM bookings WHERE id = ? AND (bus_id = ? OR bus_id = ?)`
+        ).bind(bookingId, targetBusId, targetBusId + '_RETURN').first();
         if (!valid) return jsonError(404, 'Booking not found for your assigned bus.');
-        const deletedCount = await deleteBookingsHelper(env.DB, [bookingId]);
-        return jsonResponse({ ok: true, deleted: deletedCount, message: `Booking #${bookingId} deleted.` });
+        await env.DB.prepare('UPDATE bookings SET hidden_for_captain = 1 WHERE id = ?').bind(bookingId).run();
+        return jsonResponse({ ok: true, deleted: 1, message: `Booking #${bookingId} deleted.` });
     }
 
-    // DELETE /api/customer/bookings/:id
+    // DELETE /api/customer/bookings/:id (Soft-hide in customer history; preserves financials & seats)
     const custBookingMatch = path.match(/^\/api\/customer\/bookings\/([^/]+)$/);
     if (custBookingMatch) {
         if (auth?.role !== 'customer') return jsonError(403, 'Unauthorized.');
@@ -6727,8 +7155,9 @@ async function handleDelete(context) {
             `SELECT id FROM bookings WHERE id = ? AND passenger_phone = ?`
         ).bind(bookingId, auth.identifier).first();
         if (!valid) return jsonError(404, 'Booking not found for your account.');
-        const deletedCount = await deleteBookingsHelper(env.DB, [bookingId]);
-        return jsonResponse({ ok: true, deleted: deletedCount, message: `Booking #${bookingId} deleted from history.` });
+        await env.DB.prepare('UPDATE bookings SET hidden_for_customer = 1 WHERE id = ? AND passenger_phone = ?')
+            .bind(bookingId, auth.identifier).run();
+        return jsonResponse({ ok: true, deleted: 1, message: `Booking #${bookingId} deleted from history.` });
     }
 
     // DELETE /api/admin/reviews/:id
@@ -6844,6 +7273,7 @@ async function handleDelete(context) {
     // DELETE /api/coupons/:code OR /api/admin/coupons/:code
     const couponMatch = path.match(/^\/api\/(?:admin\/)?coupons\/([^/]+)$/);
     if (couponMatch) {
+        if (auth?.role !== 'admin') return jsonError(403, 'Administrator access required.');
         const code = decodeURIComponent(couponMatch[1]).toUpperCase();
         await env.DB.prepare('DELETE FROM coupons WHERE code = ?').bind(code).run();
         return jsonResponse({ ok: true });

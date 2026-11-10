@@ -229,3 +229,57 @@ export async function enqueueFirebaseBackfillBatch(db) {
         queued: Number(results[0].meta?.changes || 0)
     };
 }
+
+function toFirestoreValue(value) {
+    if (value === null || value === undefined) return { nullValue: null };
+    if (typeof value === 'boolean') return { booleanValue: value };
+    if (typeof value === 'number') {
+        return Number.isInteger(value) ? { integerValue: String(value) } : { doubleValue: value };
+    }
+    if (typeof value === 'string') return { stringValue: value };
+    if (Array.isArray(value)) {
+        return { arrayValue: { values: value.map(toFirestoreValue) } };
+    }
+    if (typeof value === 'object') {
+        const fields = {};
+        for (const [k, v] of Object.entries(value)) {
+            if (v !== undefined) fields[k] = toFirestoreValue(v);
+        }
+        return { mapValue: { fields } };
+    }
+    return { stringValue: String(value) };
+}
+
+export async function writeFirestoreDocument(env, documentPath, data) {
+    if (!env || !env.FIREBASE_PROJECT_ID || !env.FIREBASE_SERVICE_ACCOUNT_EMAIL ||
+        !env.FIREBASE_SERVICE_ACCOUNT_PRIVATE_KEY) {
+        return false;
+    }
+    try {
+        const accessToken = await getAccessToken(env);
+        const projectId = encodeURIComponent(env.FIREBASE_PROJECT_ID);
+        const cleanPath = String(documentPath || '')
+            .split('/')
+            .filter(Boolean)
+            .map(seg => encodeURIComponent(seg))
+            .join('/');
+        if (!cleanPath) return false;
+        const fields = {};
+        for (const [key, val] of Object.entries(data || {})) {
+            if (val !== undefined) fields[key] = toFirestoreValue(val);
+        }
+        const documentUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${cleanPath}`;
+        const response = await fetch(documentUrl, {
+            method: 'PATCH',
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ fields })
+        });
+        return response.ok;
+    } catch (err) {
+        console.warn('writeFirestoreDocument warning:', err?.message || err);
+        return false;
+    }
+}

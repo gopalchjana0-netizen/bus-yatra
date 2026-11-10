@@ -2832,32 +2832,12 @@ async function saveAdminFestivalTheme() {
     try {
         console.log("Saving festival theme:", { enabled, festival, targets, greeting });
 
-        // 1. Save to Cloudflare D1 via Backend API
+        // 1. Save to Cloudflare D1 + Securely sync to Firebase Firestore via Backend API
         const res = await apiRequest('/api/admin/festival-theme', {
             method: 'POST',
             body: JSON.stringify({ enabled, festival, targets, greeting })
         });
         console.log("API response festival theme:", res);
-
-        // 2. Broadcast via Firebase Firestore in real-time (<100ms sync)
-        try {
-            const firestore = typeof getBusYatraFirestore === 'function' ? getBusYatraFirestore() : null;
-            if (firestore) {
-                // Non-blocking timeout so Firestore latency never hangs the UI
-                Promise.race([
-                    firestore.collection('system_config').doc('festivalTheme').set({
-                        enabled,
-                        festival,
-                        targets,
-                        greeting,
-                        updated_at: new Date().toISOString()
-                    }),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1500))
-                ]).catch(fe => console.warn("Firestore broadcast notice:", fe));
-            }
-        } catch (fe) {
-            console.warn("Firestore broadcast notice:", fe);
-        }
 
         // 3. Update admin app data cache
         if (res && res.featureFlags) {

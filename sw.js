@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bus-yatra-v10.41';
+const CACHE_NAME = 'bus-yatra-v10.42';
 const urlsToCache = [
   '/style.css',
   '/tailwind.js',
@@ -102,23 +102,7 @@ self.addEventListener('fetch', event => {
   }
 
   // 3. Same-Origin Static Assets (JS, CSS, Images, Icons, Fonts)
-  // For critical application scripts and stylesheets, prioritize fresh network response with offline fallback
-  if (url.pathname.endsWith('.js') || url.pathname.endsWith('.css')) {
-    event.respondWith(
-      fetch(fetchTarget).then(networkResponse => {
-        if (networkResponse && networkResponse.status === 200) {
-          const clone = networkResponse.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(fetchTarget, clone)).catch(() => {});
-        }
-        return networkResponse;
-      }).catch(() => {
-        return caches.match(fetchTarget, { ignoreSearch: true });
-      })
-    );
-    return;
-  }
-
-  // Dynamic Festival Icon Routing:
+  // Dynamic Festival Icon Routing (declared before any fetchTarget access):
   let fetchTarget = event.request;
   if (currentFestivalTheme === 'diwali') {
     if (url.pathname === '/icons/icon-192.png') fetchTarget = '/icons/icon-diwali-192.png';
@@ -130,6 +114,22 @@ self.addEventListener('fetch', event => {
     if (url.pathname === '/icons/icon-192.png') fetchTarget = `/icons/icon-${currentFestivalTheme}-192.png`;
     else if (url.pathname === '/icons/icon-512.png') fetchTarget = `/icons/icon-${currentFestivalTheme}-512.png`;
     else if (url.pathname === '/icons/logo-customer.png') fetchTarget = `/icons/logo-customer-${currentFestivalTheme}.png`;
+  }
+
+  // For critical application scripts and stylesheets, prioritize fresh network response with offline fallback
+  if (url.pathname.endsWith('.js') || url.pathname.endsWith('.css')) {
+    event.respondWith(
+      fetch(fetchTarget).then(networkResponse => {
+        if (networkResponse && networkResponse.status === 200) {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(fetchTarget, clone)).catch(() => {});
+        }
+        return networkResponse;
+      }).catch(() => {
+        return caches.match(fetchTarget, { ignoreSearch: true }).then(cached => cached || new Response('', { status: 504 }));
+      })
+    );
+    return;
   }
 
   event.respondWith(
