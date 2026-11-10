@@ -179,8 +179,7 @@ public class MainActivity extends AppCompatActivity {
     private void requestRequiredPermissions() {
         String[] permissions = new String[]{
                 Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION,
-                Manifest.permission.CAMERA
+                Manifest.permission.ACCESS_COARSE_LOCATION
         };
 
         boolean needRequest = false;

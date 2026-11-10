@@ -24,9 +24,13 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Ensure Gradle Wrapper & Build APKs
+      - name: Generate Official Release Keystore & Build APKs
         working-directory: ./android
         run: |
+          if [ ! -f busyatra-release.jks ]; then
+            echo "Generating production release keystore..."
+            keytool -genkeypair -v -keystore busyatra-release.jks -alias busyatra -keyalg RSA -keysize 2048 -validity 10000 -storepass busyatra2026 -keypass busyatra2026 -dname "CN=Bus Yatra, OU=Production, O=Bus Yatra, L=Kolkata, ST=West Bengal, C=IN"
+          fi
           gradle wrapper --gradle-version 8.5
           chmod +x gradlew
           ./gradlew assembleCustomerRelease assembleOwnerRelease assembleCaptainRelease assembleAdminRelease --no-daemon
@@ -65,4 +69,3 @@ jobs:
           files: release-apks/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
