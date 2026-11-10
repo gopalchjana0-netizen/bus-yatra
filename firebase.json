@@ -11,6 +11,8 @@
       "**/node_modules/**",
       "migrations/**",
       "functions/**",
+      "android/**",
+      "release-apks/**",
       "*.sql",
       "wrangler.jsonc",
       "README.md"
