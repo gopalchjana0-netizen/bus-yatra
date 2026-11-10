@@ -39,10 +39,10 @@ jobs:
         run: |
           mkdir -p release-apks
           # Find and copy the generated APKs with clean naming
-          cp $(find android/app/build/outputs/apk/customer -name "*.apk" | head -n 1) release-apks/BusYatra-Customer.apk
-          cp $(find android/app/build/outputs/apk/owner -name "*.apk" | head -n 1) release-apks/BusYatra-Owner.apk
-          cp $(find android/app/build/outputs/apk/captain -name "*.apk" | head -n 1) release-apks/BusYatra-Captain.apk
-          cp $(find android/app/build/outputs/apk/admin -name "*.apk" | head -n 1) release-apks/BusYatra-Admin.apk
+          cp $(find android/app/build/outputs/apk/customer/release -name "*.apk" | head -n 1) release-apks/BusYatra-Customer.apk
+          cp $(find android/app/build/outputs/apk/owner/release -name "*.apk" | head -n 1) release-apks/BusYatra-Owner.apk
+          cp $(find android/app/build/outputs/apk/captain/release -name "*.apk" | head -n 1) release-apks/BusYatra-Captain.apk
+          cp $(find android/app/build/outputs/apk/admin/release -name "*.apk" | head -n 1) release-apks/BusYatra-Admin.apk
           ls -la release-apks/
 
       - name: Upload APK Artifacts
@@ -52,20 +52,7 @@ jobs:
           path: release-apks/*.apk
 
       - name: Publish Official GitHub Release
-        uses: softprops/action-gh-release@v2
-        if: success()
-        with:
-          tag_name: v1.0.0
-          name: "Bus Yatra Official Android Apps (v1.0.0)"
-          body: |
-            ### 🚌 Bus Yatra Official Android Applications
-            All 4 official native Android APKs built and verified:
-            - 🚌 **BusYatra-Customer.apk**: Passenger ticket booking & live bus tracking
-            - 👑 **BusYatra-Owner.apk**: Bus owner fleet management & earnings dashboard
-            - 👨‍✈️ **BusYatra-Captain.apk**: Conductor/Driver live GPS broadcast & ticket scanner
-            - 🛡️ **BusYatra-Admin.apk**: Super Admin complete control portal
-
-            *Cloud OTA Enabled*: Features, buses, routes, and fares update automatically inside the installed apps without reinstalling!
-          files: release-apks/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload v1.0.0 release-apks/*.apk --clobber || gh release create v1.0.0 release-apks/*.apk --title "Bus Yatra Official Android Apps (v1.0.0)" --notes "Official native Android APKs with cloud auto-updates."
