@@ -119,7 +119,7 @@ const defaultFeatureFlags = {
     customerFeedback: true,
     tripReminders: true,
     // Live GPS tracking window controls
-    trackingLeadHours: 6,
+    trackingLeadHours: 5,
     trackingLeadWindowEnabled: true,
     // Temporary Seat Hold Timer controls
     seatHoldTimer: true,
@@ -138,7 +138,7 @@ const defaultFeatureFlags = {
 const defaultExpansionConfig = {
     liveTracking: {
         leadWindowEnabled: true,
-        leadHours: 6,
+        leadHours: 5,
         graceMinutes: 30
     },
     seatHold: {
@@ -204,7 +204,7 @@ async function getFeatureFlags(db) {
 
     flags.expansionConfig = expansionConfig;
     if (expansionConfig.liveTracking) {
-        flags.trackingLeadHours = typeof expansionConfig.liveTracking.leadHours === 'number' ? expansionConfig.liveTracking.leadHours : 6;
+        flags.trackingLeadHours = typeof expansionConfig.liveTracking.leadHours === 'number' ? expansionConfig.liveTracking.leadHours : 5;
         flags.trackingLeadWindowEnabled = expansionConfig.liveTracking.leadWindowEnabled !== false;
         flags.trackingGraceMinutes = typeof expansionConfig.liveTracking.graceMinutes === 'number' ? expansionConfig.liveTracking.graceMinutes : 30;
     }
@@ -5013,46 +5013,83 @@ async function handlePost(context) {
     if (path === '/api/admin/feature-flags' || path === '/api/admin/expansion-settings') {
         const body = await readJson(request);
         if (!body || typeof body !== 'object') return jsonError(400, 'Feature flags payload required.');
-        const allKeys = Object.keys(defaultFeatureFlags);
-        const expConfig = body.expansionConfig || {};
+        const currentFlags = await getFeatureFlags(env.DB);
+        const currentExp = currentFlags.expansionConfig || {};
+        const bodyExp = (body.expansionConfig && typeof body.expansionConfig === 'object') ? body.expansionConfig : {};
+        const mergedExp = { ...currentExp };
 
-        if (!expConfig.liveTracking) {
-            expConfig.liveTracking = { ...defaultExpansionConfig.liveTracking };
-        }
-        if (body.trackingLeadHours !== undefined) {
-            expConfig.liveTracking.leadHours = parseFloat(body.trackingLeadHours) || 6;
-        }
-        if (body.trackingLeadWindowEnabled !== undefined) {
-            expConfig.liveTracking.leadWindowEnabled = Boolean(body.trackingLeadWindowEnabled);
-        }
-        if (body.trackingGraceMinutes !== undefined) {
-            expConfig.liveTracking.graceMinutes = parseInt(body.trackingGraceMinutes, 10) || 30;
-        }
-
-        if (!expConfig.seatHold) {
-            expConfig.seatHold = { ...defaultExpansionConfig.seatHold };
-        }
-        if (body.seatHoldMinutes !== undefined) {
-            expConfig.seatHold.holdMinutes = parseInt(body.seatHoldMinutes, 10) || 15;
-        }
-        if (body.seatHoldTimer !== undefined) {
-            expConfig.seatHold.enabled = Boolean(body.seatHoldTimer);
-        }
-
-        const statements = allKeys.map(key => {
-            let isEnabled = defaultFeatureFlags[key];
-            if (typeof body[key] === 'boolean') {
-                isEnabled = body[key];
-            } else if (body.flags && typeof body.flags[key] === 'boolean') {
-                isEnabled = body.flags[key];
+        for (const [k, v] of Object.entries(bodyExp)) {
+            if (v && typeof v === 'object' && !Array.isArray(v)) {
+                mergedExp[k] = { ...(currentExp[k] || {}), ...v };
             }
-            const cfg = expConfig[key] ? JSON.stringify(expConfig[key]) : null;
-            return env.DB.prepare(
+        }
+
+        const hasLiveTrackingUpdates = Boolean(
+            bodyExp.liveTracking ||
+            body.trackingLeadHours !== undefined ||
+            body.trackingLeadWindowEnabled !== undefined ||
+            body.trackingGraceMinutes !== undefined
+        );
+        if (hasLiveTrackingUpdates) {
+            const baseLive = mergedExp.liveTracking || { ...defaultExpansionConfig.liveTracking };
+            if (body.trackingLeadHours !== undefined) {
+                const parsedLead = parseFloat(body.trackingLeadHours);
+                baseLive.leadHours = (Number.isFinite(parsedLead) && parsedLead >= 0.5 && parsedLead <= 72) ? parsedLead : 5;
+            }
+            if (body.trackingLeadWindowEnabled !== undefined) {
+                baseLive.leadWindowEnabled = Boolean(body.trackingLeadWindowEnabled);
+            }
+            if (body.trackingGraceMinutes !== undefined) {
+                const parsedGrace = parseInt(body.trackingGraceMinutes, 10);
+                baseLive.graceMinutes = (Number.isFinite(parsedGrace) && parsedGrace >= 0 && parsedGrace <= 180) ? parsedGrace : 30;
+            }
+            mergedExp.liveTracking = baseLive;
+        }
+
+        const hasSeatHoldUpdates = Boolean(
+            bodyExp.seatHold ||
+            body.seatHoldMinutes !== undefined ||
+            body.seatHoldTimer !== undefined
+        );
+        if (hasSeatHoldUpdates) {
+            const baseHold = mergedExp.seatHold || { ...defaultExpansionConfig.seatHold };
+            if (body.seatHoldMinutes !== undefined) {
+                const parsedHold = parseInt(body.seatHoldMinutes, 10);
+                baseHold.holdMinutes = (Number.isFinite(parsedHold) && parsedHold >= 1 && parsedHold <= 120) ? parsedHold : 15;
+            }
+            if (body.seatHoldTimer !== undefined) {
+                baseHold.enabled = Boolean(body.seatHoldTimer);
+            }
+            mergedExp.seatHold = baseHold;
+        }
+
+        const allKeys = Object.keys(defaultFeatureFlags);
+        const statements = [];
+        for (const key of allKeys) {
+            const hasFlagInput = typeof body[key] === 'boolean' || (body.flags && typeof body.flags[key] === 'boolean');
+            const hasConfigInput = mergedExp[key] && (bodyExp[key] || (key === 'liveTracking' && hasLiveTrackingUpdates) || (key === 'seatHold' && hasSeatHoldUpdates));
+            if (!hasFlagInput && !hasConfigInput) continue;
+
+            const isEnabled = typeof body[key] === 'boolean'
+                ? body[key]
+                : (body.flags && typeof body.flags[key] === 'boolean')
+                    ? body.flags[key]
+                    : Boolean(currentFlags[key]);
+            const cfg = mergedExp[key] ? JSON.stringify(mergedExp[key]) : null;
+            statements.push(env.DB.prepare(
                 `INSERT INTO platform_features (feature_key, enabled, config) VALUES (?, ?, ?)
                  ON CONFLICT (feature_key) DO UPDATE SET enabled = excluded.enabled, config = COALESCE(excluded.config, platform_features.config)`
-            ).bind(key, isEnabled ? 1 : 0, cfg);
-        });
-        await env.DB.batch(statements);
+            ).bind(key, isEnabled ? 1 : 0, cfg));
+        }
+        if (hasLiveTrackingUpdates) {
+            statements.push(env.DB.prepare(
+                `INSERT INTO platform_features (feature_key, enabled, config) VALUES ('trackingLeadWindowEnabled', ?, NULL)
+                 ON CONFLICT (feature_key) DO UPDATE SET enabled = excluded.enabled`
+            ).bind(mergedExp.liveTracking.leadWindowEnabled ? 1 : 0));
+        }
+        if (statements.length > 0) {
+            await env.DB.batch(statements);
+        }
         return jsonResponse({ ok: true, featureFlags: await getFeatureFlags(env.DB) });
     }
 

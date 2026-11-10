@@ -2625,8 +2625,8 @@ function renderAdminFeatureFlags() {
     // Live Tracking Window controls
     const isWindowEnabled = flags.trackingLeadWindowEnabled !== false && liveTrackingCfg.leadWindowEnabled !== false;
     setChecked('flagTrackingLeadWindowEnabled', isWindowEnabled);
-    const leadHours = (flags.trackingLeadHours !== undefined) ? flags.trackingLeadHours : (liveTrackingCfg.leadHours !== undefined ? liveTrackingCfg.leadHours : 6);
-    setValue('cfgTrackingLeadHours', leadHours, 6);
+    const leadHours = (flags.trackingLeadHours !== undefined) ? flags.trackingLeadHours : (liveTrackingCfg.leadHours !== undefined ? liveTrackingCfg.leadHours : 5);
+    setValue('cfgTrackingLeadHours', leadHours, 5);
     const graceMins = (flags.trackingGraceMinutes !== undefined) ? flags.trackingGraceMinutes : (liveTrackingCfg.graceMinutes !== undefined ? liveTrackingCfg.graceMinutes : 30);
     setValue('cfgTrackingGraceMinutes', graceMins, 30);
 
@@ -2880,8 +2880,10 @@ window.updateAdminFestivalLivePreview = updateAdminFestivalLivePreview;
 window.saveAdminFestivalTheme = saveAdminFestivalTheme;
 
 async function saveAdminFeatureFlags() {
-    const leadHoursVal = parseFloat(document.getElementById('cfgTrackingLeadHours')?.value) || 6;
-    const graceMinsVal = parseInt(document.getElementById('cfgTrackingGraceMinutes')?.value, 10) || 30;
+    const rawLeadHours = parseFloat(document.getElementById('cfgTrackingLeadHours')?.value);
+    const leadHoursVal = (Number.isFinite(rawLeadHours) && rawLeadHours >= 0.5) ? rawLeadHours : 5;
+    const rawGraceMins = parseInt(document.getElementById('cfgTrackingGraceMinutes')?.value, 10);
+    const graceMinsVal = (Number.isFinite(rawGraceMins) && rawGraceMins >= 0) ? rawGraceMins : 30;
     const leadWindowEnabledVal = document.getElementById('flagTrackingLeadWindowEnabled')?.checked ?? true;
     const seatHoldTimerVal = document.getElementById('flagSeatHoldTimer')?.checked ?? true;
     const seatHoldMinsVal = parseInt(document.getElementById('cfgSeatHoldMinutes')?.value, 10) || 15;

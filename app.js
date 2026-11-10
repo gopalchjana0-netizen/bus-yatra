@@ -3163,7 +3163,8 @@ function openTicketModalFromBooking(b) {
     const isApproved = b.status === 'Approved';
     const badge = document.getElementById('tktStatusBadge');
     if (isApproved) {
-        const bus = (getAppData().buses || []).find(x => x.id === b.busId || x.id == b.busId) || null;
+        const cleanBusId = String(b.busId || '').replace('_RETURN', '');
+        const bus = (getAppData().buses || []).find(x => x.id === cleanBusId || x.id === b.busId || x.id == b.busId) || null;
         const trackingWin = typeof getJourneyTrackingWindow === 'function' ? getJourneyTrackingWindow(b, bus) : null;
         if (trackingWin && trackingWin.status === 'COMPLETED') {
             badge.className = "bg-gray-100 text-gray-700 text-[11px] font-black px-2.5 py-1 rounded-full border border-gray-300 uppercase";
@@ -3367,7 +3368,8 @@ async function searchCustomerBookings() {
         const isCancelled = b.status === "Cancelled";
         const isCancelRequested = b.status === "Cancellation Requested";
 
-        const bus = (getAppData().buses || []).find(x => x.id === b.busId || x.id == b.busId) || null;
+        const cleanBusId = String(b.busId || '').replace('_RETURN', '');
+        const bus = (getAppData().buses || []).find(x => x.id === cleanBusId || x.id === b.busId || x.id == b.busId) || null;
         const trackingWin = typeof getJourneyTrackingWindow === 'function' ? getJourneyTrackingWindow(b, bus) : { status: 'LIVE_ACTIVE' };
         const isJourneyCompleted = isApproved && trackingWin.status === 'COMPLETED';
         const isTrackingLive = isApproved && trackingWin.status === 'LIVE_ACTIVE' && getAppData().featureFlags.liveTracking !== false;
@@ -3458,8 +3460,8 @@ async function searchCustomerBookings() {
                         <span>📍</span> <span>${currentLang === 'bn' ? 'লাইভ ট্র্যাক' : 'Track Live'}</span>
                     </button>
                 ` : isTrackingUpcoming ? `
-                    <button type="button" class="track-upcoming-btn bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 py-1.5 px-3 rounded-lg font-bold text-xs shadow-xs transition flex items-center gap-1" title="${currentLang === 'bn' ? 'যাত্রা শুরুর ' + (trackingWin.leadHours || 6) + ' ঘণ্টা আগে ট্র্যাকিং চালু হবে' : 'Tracking unlocks ' + (trackingWin.leadHours || 6) + ' hours before departure'}">
-                        <span>🕒</span> <span>${currentLang === 'bn' ? 'ট্র্যাকিং ' + (trackingWin.leadHours || 6) + ' ঘণ্টা আগে চালু হবে' : 'Track in ' + trackingWin.hoursUntilTrack + 'h'}</span>
+                    <button type="button" class="track-upcoming-btn bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 py-1.5 px-3 rounded-lg font-bold text-xs shadow-xs transition flex items-center gap-1" title="${currentLang === 'bn' ? 'যাত্রা শুরুর ' + (trackingWin.leadHours || 5) + ' ঘণ্টা আগে ট্র্যাকিং চালু হবে' : 'Tracking unlocks ' + (trackingWin.leadHours || 5) + ' hours before departure'}">
+                        <span>🕒</span> <span>${currentLang === 'bn' ? 'ট্র্যাকিং ' + (trackingWin.leadHours || 5) + ' ঘণ্টা আগে (' + trackingWin.hoursUntilTrack + ' ঘণ্টা বাকি)' : 'Track in ' + trackingWin.hoursUntilTrack + 'h'}</span>
                     </button>
                 ` : isJourneyCompleted ? `
                     <span class="inline-flex items-center gap-1.5 bg-gray-100 text-gray-600 border border-gray-200 py-1.5 px-3 rounded-lg font-bold text-xs select-none">
@@ -3486,7 +3488,7 @@ async function searchCustomerBookings() {
             if (upcomingBtn) {
                 upcomingBtn.onclick = () => {
                     const departureStr = trackingWin.departureDate ? trackingWin.departureDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (b.departureTime || '07:00 AM');
-                    const leadHrs = trackingWin.leadHours || 6;
+                    const leadHrs = trackingWin.leadHours || 5;
                     const msg = currentLang === 'bn'
                         ? `🕒 লাইভ জিপিএস ট্র্যাকিং যাত্রা শুরুর ${leadHrs} ঘণ্টা আগে স্বয়ংক্রিয়ভাবে সক্রিয় হবে। আপনার যাত্রা: ${b.date} • ${departureStr}।`
                         : `🕒 Live GPS tracking unlocks ${leadHrs} hours before departure. Scheduled trip: ${b.date} • ${departureStr}.`;
@@ -3628,7 +3630,8 @@ function updateTrackingTicker() {
 
 async function openLiveTracking(busId, busTitle, booking = null) {
     if (booking && typeof getJourneyTrackingWindow === 'function') {
-        const bus = (getAppData().buses || []).find(b => b.id === busId || b.id == busId);
+        const cleanBusId = String(busId || '').replace('_RETURN', '');
+        const bus = (getAppData().buses || []).find(b => b.id === cleanBusId || b.id === busId || b.id == busId);
         const win = getJourneyTrackingWindow(booking, bus);
         if (win.status === 'COMPLETED') {
             const msg = currentLang === 'bn' 
@@ -3639,7 +3642,7 @@ async function openLiveTracking(busId, busTitle, booking = null) {
         }
         if (win.status === 'UPCOMING') {
             const departureStr = win.departureDate ? win.departureDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (booking.departureTime || '07:00 AM');
-            const leadHrs = win.leadHours || 6;
+            const leadHrs = win.leadHours || 5;
             const msg = currentLang === 'bn' 
                 ? `🕒 লাইভ ট্র্যাকিং যাত্রা শুরুর ${leadHrs} ঘণ্টা আগে সক্রিয় হবে। (যাত্রা সময়: ${booking.date} • ${departureStr})` 
                 : `🕒 Live tracking unlocks ${leadHrs} hours before scheduled departure.`;

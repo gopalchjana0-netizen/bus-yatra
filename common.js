@@ -1793,7 +1793,7 @@ window.saveSeatLayoutFromDesigner = saveSeatLayoutFromDesigner;
 // =========================================================================
 function getJourneyTrackingWindow(booking, bus = null) {
     if (!booking) {
-        return { status: 'COMPLETED', labelBn: 'যাত্রা সম্পন্ন', labelEn: 'Completed', leadHours: 6 };
+        return { status: 'COMPLETED', labelBn: 'যাত্রা সম্পন্ন', labelEn: 'Completed', leadHours: 5 };
     }
 
     const appFlags = (typeof getAppData === 'function' && getAppData() && getAppData().featureFlags) || {};
@@ -1806,13 +1806,14 @@ function getJourneyTrackingWindow(booking, bus = null) {
 
     const rawLeadHours = appFlags.trackingLeadHours !== undefined
         ? appFlags.trackingLeadHours
-        : (liveTrackingCfg.leadHours !== undefined ? liveTrackingCfg.leadHours : 6);
-    const leadHours = Math.max(0.1, parseFloat(rawLeadHours) || 6);
+        : (liveTrackingCfg.leadHours !== undefined ? liveTrackingCfg.leadHours : 5);
+    const leadHours = Math.max(0.1, parseFloat(rawLeadHours) || 5);
 
     const rawGraceMins = appFlags.trackingGraceMinutes !== undefined
         ? appFlags.trackingGraceMinutes
         : (liveTrackingCfg.graceMinutes !== undefined ? liveTrackingCfg.graceMinutes : 30);
-    const graceMinutes = Math.max(0, parseInt(rawGraceMins, 10) || 30);
+    const parsedGrace = parseInt(rawGraceMins, 10);
+    const graceMinutes = (Number.isFinite(parsedGrace) && parsedGrace >= 0) ? parsedGrace : 30;
 
     const now = new Date();
     const dateStr = booking.date || booking.journey_date;
@@ -1861,8 +1862,11 @@ function getJourneyTrackingWindow(booking, bus = null) {
         return { hours: defaultH, minutes: defaultM };
     }
 
-    // 2. Determine Departure Time
-    let timings = (bus && (bus.stoppageTimings || bus.stoppage_timings)) || {};
+    // 2. Determine Departure Time (supports outbound & _RETURN trips)
+    const isReturnTrip = Boolean(booking.tripDirection === 'DOWN' || String(booking.busId || booking.bus_id || '').endsWith('_RETURN'));
+    let timings = (bus && (isReturnTrip
+        ? (bus.returnStoppageTimings || bus.return_stoppage_timings || bus.stoppageTimings || bus.stoppage_timings)
+        : (bus.stoppageTimings || bus.stoppage_timings))) || {};
     if (typeof timings === 'string') {
         try { timings = JSON.parse(timings); } catch (_) { timings = {}; }
     }
@@ -1871,8 +1875,8 @@ function getJourneyTrackingWindow(booking, bus = null) {
     if (!departureTimeStr && booking.boarding && timings && timings[booking.boarding]) {
         departureTimeStr = timings[booking.boarding];
     }
-    if (!departureTimeStr && bus && bus.time) {
-        departureTimeStr = bus.time;
+    if (!departureTimeStr && bus) {
+        departureTimeStr = isReturnTrip ? (bus.returnTime || bus.return_time || bus.time) : bus.time;
     }
     if (!departureTimeStr) {
         departureTimeStr = '07:00 AM';
@@ -1881,7 +1885,7 @@ function getJourneyTrackingWindow(booking, bus = null) {
     const depTime = parseTimeStr(departureTimeStr, 7, 0);
     const departureDate = new Date(year, month, day, depTime.hours, depTime.minutes, 0);
 
-    // 3. Determine Arrival / Completion Time
+    // 3. Determine Arrival / Completion Time (handles overnight arrival across midnight)
     let droppingTimeStr = null;
     if (booking.dropping && timings && timings[booking.dropping]) {
         droppingTimeStr = timings[booking.dropping];
@@ -1907,15 +1911,12 @@ function getJourneyTrackingWindow(booking, bus = null) {
     const completionDate = new Date(arrivalDate.getTime() + graceMinutes * 60 * 1000);
 
     // Tracking starts X hours before departure (or anytime if leadWindowEnabled is false)
-    const trackStartDate = isLeadWindowEnabled 
+    const trackStartDate = isLeadWindowEnabled
         ? new Date(departureDate.getTime() - leadHours * 60 * 60 * 1000)
-        : new Date(0); // If disabled, always allowed before completionDate
+        : new Date(0);
 
-    // Check completed:
-    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const journeyMidnight = new Date(year, month, day).getTime();
-
-    if (now.getTime() >= completionDate.getTime() || todayMidnight > journeyMidnight) {
+    // Check completed strictly against completionDate so overnight journeys remain active until arrival + grace
+    if (now.getTime() >= completionDate.getTime()) {
         return {
             status: 'COMPLETED',
             departureDate,
