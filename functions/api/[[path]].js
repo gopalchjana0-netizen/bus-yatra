@@ -3080,7 +3080,7 @@ async function handlePost(context) {
         }
         const booking = await env.DB.prepare(
             `SELECT b.id, b.fare, bs.owner_phone, COALESCE(bs.company_name, bs.owner_name || ' Travels') AS company_name
-             FROM bookings b JOIN buses bs ON bs.id = b.bus_id WHERE b.id = ?`
+             FROM bookings b JOIN buses bs ON (bs.id = b.bus_id OR (bs.id || '_RETURN') = b.bus_id) WHERE b.id = ?`
         ).bind(bookingId).first();
         if (!booking) return jsonError(404, 'Booking not found.');
         const setting = await env.DB.prepare(
@@ -6017,19 +6017,26 @@ async function handlePost(context) {
         }
         const body = await readJson(request);
         if (!body) return jsonError(400, 'Feedback payload required.');
-        const passengerName = String(body.passengerName || body.name || '').trim();
+        const passengerName = String(body.passengerName || body.name || '').trim().slice(0, 80);
         const passengerPhone = String(body.passengerPhone || body.phone || '').trim();
-        const busId = String(body.busId || '').trim();
-        const busName = String(body.busName || '').trim();
+        const busId = String(body.busId || '').trim().slice(0, 100);
+        const busName = String(body.busName || '').trim().slice(0, 120);
         const rating = Math.min(5, Math.max(1, parseInt(body.rating, 10) || 5));
-        const comment = String(body.comment || body.note || '').trim();
-        const bookingId = String(body.bookingId || ('FB_' + Date.now())).trim();
+        const comment = String(body.comment || body.note || '').trim().slice(0, 1000);
+        const bookingId = String(body.bookingId || ('FB_' + Date.now())).trim().slice(0, 100);
 
         if (!passengerName || passengerName.length < 2) {
             return jsonError(400, 'অনুগ্রহ করে আপনার নাম লিখুন (Please enter your name).');
         }
         if (!/^[6-9]\d{9}$/.test(passengerPhone)) {
             return jsonError(400, 'সঠিক ১০ ডিজিটের ভারতীয় মোবাইল নম্বর দিন (Enter a valid 10-digit mobile number).');
+        }
+        const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        const recentRev = await env.DB.prepare(
+            'SELECT COUNT(*) AS cnt FROM reviews WHERE passenger_phone = ? AND created_at > ?'
+        ).bind(passengerPhone, tenMinsAgo).first();
+        if (recentRev && Number(recentRev.cnt) >= 3) {
+            return jsonError(429, 'অল্প সময়ে একাধিক রিভিউ জমা হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করুন।');
         }
 
         const reviewId = 'rev_' + Date.now() + '_' + secureRandomHex(3);
@@ -6132,14 +6139,20 @@ async function handlePost(context) {
         const ownerPhone = auth.identifier;
         const body = await readJson(request);
         if (!body) return jsonError(400, 'Invalid JSON.');
-        const busId = String(body.busId || '').trim();
+        const rawBusId = String(body.busId || '').trim();
+        const busId = rawBusId.replace('_RETURN', '');
         const journeyDate = String(body.journeyDate || '').trim();
-        const category = String(body.category || 'misc').trim();
+        const category = String(body.category || 'misc').trim().slice(0, 50);
         const amount = Number(body.amount);
-        const note = String(body.note || '').trim();
+        const note = String(body.note || '').trim().slice(0, 500);
 
-        if (!busId || !journeyDate || !amount || amount <= 0) {
+        if (!busId || !journeyDate || !Number.isFinite(amount) || amount <= 0 || amount > 1000000) {
             return jsonError(400, 'Bus ID, Journey Date, and a valid amount are required.');
+        }
+        const ownedBus = await env.DB.prepare('SELECT id FROM buses WHERE id = ? AND owner_phone = ?')
+            .bind(busId, ownerPhone).first();
+        if (!ownedBus) {
+            return jsonError(403, 'You can only add expenses for your own buses.');
         }
 
         const id = `exp_${Date.now()}_${secureRandomHex(3)}`;
@@ -7377,17 +7390,11 @@ async function handleDelete(context) {
             await env.DB.prepare("UPDATE buses SET driver_phone = '', driver_name = '' WHERE driver_phone = ?").bind(capPhone).run();
         }
 
-        // 3. Delete from portal_credentials & sessions & devices
+        // 3. Delete from portal_credentials & sessions & devices (do not permanently blacklist phone so owner can re-assign staff later)
         if (capPhone) {
             await env.DB.prepare("DELETE FROM portal_credentials WHERE role = 'captain' AND identifier = ?").bind(capPhone).run();
             await env.DB.prepare("DELETE FROM portal_sessions WHERE role = 'captain' AND identifier = ?").bind(capPhone).run();
             await env.DB.prepare("DELETE FROM user_login_devices WHERE role = 'captain' AND identifier = ?").bind(capPhone).run();
-            // Block captain from login
-            await env.DB.prepare(`
-                INSERT INTO access_control_list (phone, role, status, reason, blocked_by, blocked_at, updated_at)
-                VALUES (?, 'captain', 'permanently_banned', 'ক্যাপ্টেন অ্যাকাউন্ট সম্পূর্ণ মুছে ফেলা হয়েছে', 'admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                ON CONFLICT(phone) DO UPDATE SET status = 'permanently_banned', reason = excluded.reason, updated_at = CURRENT_TIMESTAMP
-            `).bind(capPhone).run();
         }
         if (busId) {
             await env.DB.prepare("DELETE FROM portal_credentials WHERE role = 'captain' AND bus_id = ?").bind(busId).run();
@@ -7399,8 +7406,12 @@ async function handleDelete(context) {
     // DELETE /api/admin/customers/:phone
     const custMatch = path.match(/^\/api\/admin\/customers\/([^/]+)$/);
     if (custMatch) {
+        if (auth?.role !== 'admin') return jsonError(403, 'Unauthorized.');
         const phone = decodeURIComponent(custMatch[1]);
         await env.DB.prepare('DELETE FROM customers WHERE phone = ?').bind(phone).run();
+        await env.DB.prepare("DELETE FROM portal_sessions WHERE role = 'customer' AND identifier = ?").bind(phone).run();
+        await env.DB.prepare("DELETE FROM portal_credentials WHERE role = 'customer' AND identifier = ?").bind(phone).run();
+        await env.DB.prepare("DELETE FROM user_login_devices WHERE role = 'customer' AND identifier = ?").bind(phone).run();
         return jsonResponse({ ok: true });
     }
 

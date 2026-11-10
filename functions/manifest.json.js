@@ -26,11 +26,11 @@ export async function onRequestGet(context) {
     } catch (_) {}
 
     const manifest = {
-        "id": isDiwali ? "/?festival=diwali" : "/",
+        "id": "/",
         "name": isDiwali ? "Bus Yatra 🪔 - অনলাইন বাস টিকিট বুকিং" : "Bus Yatra - অনলাইন বাস টিকিট বুকিং",
         "short_name": festivalName,
         "description": isDiwali ? "Bus Yatra - শুভ দীপাবলি ও শ্যামাপূজা! আনন্দময় ও নিরাপদ যাত্রার শুভেচ্ছা।" : "Bus Yatra - পিংলা ও কলকাতার মধ্যে দ্রুত ও সুরক্ষিত দৈনিক বাস টিকিট বুকিং সেবা।",
-        "start_url": "/",
+        "start_url": "/?source=customer_pwa",
         "scope": "/",
         "display": "standalone",
         "orientation": "portrait-primary",
