@@ -419,9 +419,60 @@ function setAppData(data) {
 
 // --- PWA Installation Support (Universal for Customer, Owner, Captain & Admin) ---
 let pwaDeferredPrompt = null;
+const CUSTOMER_INSTALL_STATE_KEY = 'busyatra_customer_install_banner_state';
+const CUSTOMER_INSTALL_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const CUSTOMER_BANNER_BOOT_TS = Date.now();
+let customerAutoBannerTimer = null;
+
+function getCustomerInstallBannerState() {
+    try {
+        const raw = localStorage.getItem(CUSTOMER_INSTALL_STATE_KEY);
+        if (!raw) return { count: 0, hiddenUntil: 0, permanent: false };
+        const parsed = JSON.parse(raw);
+        return {
+            count: Number(parsed.count) || 0,
+            hiddenUntil: Number(parsed.hiddenUntil) || 0,
+            permanent: Boolean(parsed.permanent)
+        };
+    } catch (_) {
+        return { count: 0, hiddenUntil: 0, permanent: false };
+    }
+}
+
+function saveCustomerInstallBannerState(state) {
+    try {
+        localStorage.setItem(CUSTOMER_INSTALL_STATE_KEY, JSON.stringify(state));
+    } catch (_) {}
+}
+
+function isAndroidChromeBrowser() {
+    if (typeof navigator === 'undefined' || typeof window === 'undefined') return false;
+    const ua = navigator.userAgent || '';
+    if (!/Android/i.test(ua)) return false;
+    if (!/Chrome\/\d+/i.test(ua)) return false;
+    if (/BusYatraAndroidApp|wv\)|; wv|FBAN|FBAV|Instagram|WhatsApp|Line|Snapchat|EdgA|OPR|SamsungBrowser|UCBrowser|YaBrowser|Firefox/i.test(ua)) {
+        return false;
+    }
+    return true;
+}
+
+function hideCustomerAutoBannerSmooth(el) {
+    if (!el) return;
+    el.classList.remove('auto-banner-open');
+    setTimeout(() => {
+        if (!el.classList.contains('auto-banner-open')) {
+            el.classList.add('hidden');
+            el.style.display = 'none';
+        }
+    }, 520);
+}
 
 function hideAllInstallBanners() {
     if (typeof document === 'undefined') return;
+    if (customerAutoBannerTimer) {
+        clearTimeout(customerAutoBannerTimer);
+        customerAutoBannerTimer = null;
+    }
     const bannerIds = [
         'mobileAppInstallBanner',
         'mobileOwnerAppInstallBanner',
@@ -431,6 +482,9 @@ function hideAllInstallBanners() {
     bannerIds.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
+            if (id === 'mobileAppInstallBanner') {
+                el.classList.remove('auto-banner-open');
+            }
             el.classList.add('hidden');
             el.style.display = 'none';
         }
@@ -440,6 +494,25 @@ window.hideAllInstallBanners = hideAllInstallBanners;
 
 function dismissInstallBanner(bannerId) {
     const el = document.getElementById(bannerId);
+    if (bannerId === 'mobileAppInstallBanner') {
+        if (el) hideCustomerAutoBannerSmooth(el);
+        const state = getCustomerInstallBannerState();
+        const nextCount = (state.count || 0) + 1;
+        if (nextCount >= 2) {
+            saveCustomerInstallBannerState({
+                count: nextCount,
+                hiddenUntil: 0,
+                permanent: true
+            });
+        } else {
+            saveCustomerInstallBannerState({
+                count: nextCount,
+                hiddenUntil: Date.now() + CUSTOMER_INSTALL_COOLDOWN_MS,
+                permanent: false
+            });
+        }
+        return;
+    }
     if (el) {
         el.classList.add('hidden');
         el.style.display = 'none';
@@ -452,6 +525,7 @@ window.dismissInstallBanner = dismissInstallBanner;
 
 function isPwaStandalone() {
     if (typeof window === 'undefined') return false;
+    const ua = (typeof navigator !== 'undefined' && navigator.userAgent) ? navigator.userAgent : '';
     const isStandaloneMQ = Boolean(
         window.matchMedia && (
             window.matchMedia('(display-mode: standalone)').matches ||
@@ -461,6 +535,7 @@ function isPwaStandalone() {
     );
     const isNavStandalone = window.navigator && window.navigator.standalone === true;
     const isAndroidAppReferrer = Boolean(typeof document !== 'undefined' && document.referrer && document.referrer.includes('android-app://'));
+    const isNativeApk = /BusYatraAndroidApp/i.test(ua) || Boolean(window.location.search && /source=[a-z_]*apk/i.test(window.location.search));
     const isSourcePwa = Boolean(window.location.search && /source=[a-z_]*pwa/i.test(window.location.search));
     const isLocalMarked = Boolean(
         typeof localStorage !== 'undefined' && (
@@ -468,7 +543,48 @@ function isPwaStandalone() {
             localStorage.getItem('busyatra_app_installed') === 'true'
         )
     );
-    return isStandaloneMQ || isNavStandalone || isAndroidAppReferrer || isSourcePwa || isLocalMarked;
+    return isStandaloneMQ || isNavStandalone || isAndroidAppReferrer || isNativeApk || isSourcePwa || isLocalMarked;
+}
+
+async function scheduleCustomerAutoInstallBanner() {
+    if (typeof document === 'undefined') return;
+    if (!isAndroidChromeBrowser() || isPwaStandalone() || !pwaDeferredPrompt) return;
+
+    const state = getCustomerInstallBannerState();
+    if (state.permanent) return;
+    if (state.hiddenUntil && Date.now() < state.hiddenUntil) return;
+
+    if (typeof navigator !== 'undefined' && typeof navigator.getInstalledRelatedApps === 'function') {
+        try {
+            const installedApps = await navigator.getInstalledRelatedApps();
+            if (Array.isArray(installedApps) && installedApps.length > 0) {
+                try {
+                    localStorage.setItem('busyatra_pwa_installed', 'true');
+                    localStorage.setItem('busyatra_app_installed', 'true');
+                } catch (_) {}
+                hideAllInstallBanners();
+                return;
+            }
+        } catch (_) {}
+    }
+
+    const delayMs = Math.max(1000, 2500 - (Date.now() - CUSTOMER_BANNER_BOOT_TS));
+    if (customerAutoBannerTimer) clearTimeout(customerAutoBannerTimer);
+    customerAutoBannerTimer = setTimeout(() => {
+        if (!pwaDeferredPrompt || isPwaStandalone() || !isAndroidChromeBrowser()) return;
+        const freshState = getCustomerInstallBannerState();
+        if (freshState.permanent || (freshState.hiddenUntil && Date.now() < freshState.hiddenUntil)) return;
+
+        const el = document.getElementById('mobileAppInstallBanner');
+        if (!el) return;
+        el.classList.remove('hidden');
+        el.style.display = 'block';
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                el.classList.add('auto-banner-open');
+            });
+        });
+    }, delayMs);
 }
 
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -477,12 +593,19 @@ window.addEventListener('beforeinstallprompt', (e) => {
     window.dispatchEvent(new CustomEvent('pwa-install-ready'));
     console.log('Bus Yatra PWA install prompt is ready.');
 
-    // Only un-hide the mobile banner if user is NOT in standalone/installed mode and hasn't dismissed it
     if (!isPwaStandalone()) {
         const path = (window.location.pathname || '').toLowerCase();
-        let currentBannerId = 'mobileAppInstallBanner';
-        if (path.includes('owner')) currentBannerId = 'mobileOwnerAppInstallBanner';
-        else if (path.includes('captain')) currentBannerId = 'mobileCaptainAppInstallBanner';
+        if (!path.includes('owner') && !path.includes('captain') && !path.includes('admin')) {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => { scheduleCustomerAutoInstallBanner(); }, { once: true });
+            } else {
+                scheduleCustomerAutoInstallBanner();
+            }
+            return;
+        }
+
+        let currentBannerId = 'mobileOwnerAppInstallBanner';
+        if (path.includes('captain')) currentBannerId = 'mobileCaptainAppInstallBanner';
         else if (path.includes('admin')) currentBannerId = 'mobileAdminAppInstallBanner';
 
         const isDismissed = localStorage.getItem('dismissed_' + currentBannerId) === 'true';
@@ -504,6 +627,7 @@ window.addEventListener('appinstalled', () => {
         localStorage.setItem('busyatra_pwa_installed', 'true');
         localStorage.setItem('busyatra_app_installed', 'true');
     } catch (_) {}
+    saveCustomerInstallBannerState({ count: 2, hiddenUntil: 0, permanent: true });
     hideAllInstallBanners();
     console.log('Bus Yatra PWA successfully installed!');
 });
@@ -598,14 +722,21 @@ async function triggerPwaInstall(appName = 'Bus Yatra') {
             pwaDeferredPrompt.prompt();
             const { outcome } = await pwaDeferredPrompt.userChoice;
             console.log(`User response to PWA install: ${outcome}`);
+            pwaDeferredPrompt = null;
             if (outcome === 'accepted') {
-                pwaDeferredPrompt = null;
-                ['mobileAppInstallBanner', 'mobileOwnerAppInstallBanner', 'mobileCaptainAppInstallBanner', 'mobileAdminAppInstallBanner'].forEach(id => {
-                    const banner = document.getElementById(id);
-                    if (banner) banner.classList.add('hidden');
-                });
+                try {
+                    localStorage.setItem('busyatra_pwa_installed', 'true');
+                    localStorage.setItem('busyatra_app_installed', 'true');
+                } catch (_) {}
+                saveCustomerInstallBannerState({ count: 2, hiddenUntil: 0, permanent: true });
+                hideAllInstallBanners();
                 return;
             }
+            const autoBanner = document.getElementById('mobileAppInstallBanner');
+            if (autoBanner && autoBanner.classList.contains('auto-banner-open')) {
+                dismissInstallBanner('mobileAppInstallBanner');
+            }
+            return;
         } catch (err) {
             console.warn('PWA prompt error:', err);
         }

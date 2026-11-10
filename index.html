@@ -57,7 +57,7 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preload" href="common.js?v=10.40" as="script">
+    <link rel="preload" href="common.js?v=10.43" as="script">
     <link rel="preload" href="app.js?v=10.41" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
@@ -168,6 +168,134 @@
             border-color: rgba(255, 255, 255, 0.55);
             transform: translateY(-1px);
         }
+
+        /* --- Premium Automatic Top Slide-Down PWA Install Banner --- */
+        #mobileAppInstallBanner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 9998;
+            padding: 10px 12px 0 12px;
+            transform: translateY(-130%);
+            opacity: 0;
+            transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease;
+            pointer-events: none;
+        }
+        #mobileAppInstallBanner.auto-banner-open {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .by-install-card {
+            max-width: 520px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 18px;
+            border: 1px solid rgba(220, 38, 38, 0.16);
+            box-shadow: 0 18px 42px -10px rgba(15, 23, 42, 0.38), 0 4px 12px -2px rgba(220, 38, 38, 0.12);
+            overflow: hidden;
+            position: relative;
+        }
+        .by-install-accent {
+            height: 3px;
+            width: 100%;
+            background: linear-gradient(90deg, #dc2626 0%, #f59e0b 50%, #dc2626 100%);
+        }
+        .by-install-inner {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 11px 12px;
+        }
+        .by-install-logo {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 1.5px solid rgba(220, 38, 38, 0.22);
+            box-shadow: 0 4px 10px rgba(220, 38, 38, 0.15);
+            background: #fff;
+        }
+        .by-install-copy {
+            flex: 1;
+            min-width: 0;
+            text-align: left;
+        }
+        .by-install-title {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 900;
+            color: #111827;
+            letter-spacing: -0.01em;
+            line-height: 1.2;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .by-install-badge {
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #b91c1c;
+            background: #fee2e2;
+            padding: 2px 6px;
+            border-radius: 9999px;
+        }
+        .by-install-desc {
+            margin: 3px 0 0 0;
+            font-size: 11px;
+            font-weight: 600;
+            color: #4b5563;
+            line-height: 1.35;
+        }
+        .by-install-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .by-install-cta {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            padding: 9px 12px;
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: 0.03em;
+            cursor: pointer;
+            white-space: nowrap;
+            box-shadow: 0 6px 14px -4px rgba(220, 38, 38, 0.55);
+            transition: transform 0.15s ease, filter 0.15s ease;
+        }
+        .by-install-cta:active {
+            transform: scale(0.95);
+        }
+        .by-install-close {
+            width: 28px;
+            height: 28px;
+            border-radius: 9999px;
+            border: 1px solid #e5e7eb;
+            background: #f9fafb;
+            color: #6b7280;
+            font-size: 13px;
+            font-weight: 800;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+        .by-install-close:hover {
+            background: #f3f4f6;
+            color: #111827;
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 antialiased min-h-screen flex flex-col">
@@ -250,22 +378,26 @@
         <!-- Gemini Shimmering Bottom Beam (Independent Overlay, No overflow on header) -->
         <div class="gemini-shimmer-bar"></div>
     </header>
-    <!-- Mobile App Install Quick Banner (Hidden by default; never shown if already installed) -->
-    <div id="mobileAppInstallBanner" class="hidden md:hidden gemini-aurora-bg text-white px-3.5 py-2.5 flex items-center justify-between shadow-md border-b border-white/20">
-        <div class="flex items-center gap-2.5">
-            <img src="icons/icon-192.png" class="w-8 h-8 rounded-xl shadow border border-white/25 object-cover shrink-0" alt="Bus Yatra App">
-            <div class="text-left leading-tight">
-                <p class="text-xs font-black tracking-tight text-white flex items-center gap-1">
-                    <span id="lblMobileBannerTitle">Bus Yatra মোবাইল অ্যাপ</span>
-                </p>
-                <p id="lblMobileBannerSub" class="text-[10px] text-red-100 font-medium">দ্রুত ও সহজে বাসের টিকিট কাটুন</p>
+    <!-- Automatic Top Slide-Down PWA App Install Banner (Android Chrome only; hidden if installed or dismissed) -->
+    <div id="mobileAppInstallBanner" class="hidden" role="dialog" aria-label="Install Bus Yatra App" style="display: none;">
+        <div class="by-install-card">
+            <div class="by-install-accent"></div>
+            <div class="by-install-inner">
+                <img src="icons/logo-customer.png" class="by-install-logo" alt="Bus Yatra Logo">
+                <div class="by-install-copy">
+                    <p class="by-install-title">
+                        <span>Bus Yatra</span>
+                        <span class="by-install-badge">App</span>
+                    </p>
+                    <p class="by-install-desc">আমাদের Bus Yatra অ্যাপটি ইনস্টল করুন এবং সহজেই বাসের টিকিট বুক করুন।</p>
+                </div>
+                <div class="by-install-actions">
+                    <button id="btnAutoPwaInstall" type="button" onclick="triggerPwaInstall('Bus Yatra')" class="by-install-cta">
+                        INSTALL APP
+                    </button>
+                    <button id="btnAutoPwaClose" type="button" onclick="dismissInstallBanner('mobileAppInstallBanner')" class="by-install-close" title="বন্ধ করুন" aria-label="Close">✕</button>
+                </div>
             </div>
-        </div>
-        <div class="flex items-center gap-1.5">
-            <button id="btnMobileBannerInstall" type="button" onclick="triggerPwaInstall('Bus Yatra')" class="bg-yellow-400 hover:bg-yellow-300 text-gray-950 font-black text-xs px-3 py-1.5 rounded-xl shadow-sm whitespace-nowrap active:scale-95 transition">
-                📲 ইনস্টল
-            </button>
-            <button type="button" onclick="dismissInstallBanner('mobileAppInstallBanner')" class="text-white/80 hover:text-white text-sm p-1 leading-none" title="বন্ধ করুন">✕</button>
         </div>
     </div>
 
@@ -1594,7 +1726,7 @@
     <!-- Firebase App & Firestore Compat SDKs for Real-Time Live Bus Tracking -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="common.js?v=10.40"></script>
+    <script src="common.js?v=10.43"></script>
     <script src="app.js?v=10.41"></script>
     <script>
         if (typeof initFestivalThemeSync === 'function') {
