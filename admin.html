@@ -13,7 +13,7 @@
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preload" href="common.js?v=10.37" as="script">
-    <link rel="preload" href="app-admin.js?v=10.38" as="script">
+    <link rel="preload" href="app-admin.js?v=10.39" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
     <script src="tailwind.js?v=10.37" defer></script>
@@ -25,6 +25,16 @@
 
     <style>
         .hidden { display: none !important; }
+        @media (max-width: 767px) {
+            .hide-on-mobile { display: none !important; }
+            .show-on-mobile { display: block !important; }
+            .show-on-mobile-flex { display: flex !important; }
+        }
+        @media (min-width: 768px) {
+            .hide-on-desktop { display: none !important; }
+            .show-on-desktop { display: block !important; }
+            .show-on-desktop-flex { display: flex !important; }
+        }
         img { max-width: 100%; height: auto; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f3f4f6; margin: 0; }
         .w-9 { width: 2.25rem !important; height: 2.25rem !important; }
@@ -313,19 +323,19 @@
                     </div>
 
                     <!-- Clean Notification Bell on Mobile (Matching sample media_1794321492063_17f52c26.jpg) -->
-                    <button type="button" onclick="switchAdminTab('sos')" class="flex md:hidden gemini-glass-pill text-white p-2 rounded-xl text-sm transition items-center justify-center relative active:scale-95" title="জরুরি SOS ও নোটিফিকেশন">
+                    <button type="button" onclick="switchAdminTab('sos')" class="hide-on-desktop gemini-glass-pill text-white p-2 rounded-xl text-sm transition items-center justify-center relative active:scale-95" title="জরুরি SOS ও নোটিফিকেশন">
                         <span>🔔</span>
                         <span id="badgeMobileHeaderSos" class="hidden absolute -top-1 -right-1 bg-red-600 text-white text-[9px] w-4 h-4 rounded-full font-black flex items-center justify-center animate-pulse">0</span>
                     </button>
 
                     <!-- Desktop Only Header Buttons (Preserves Windows Laptop View 100%) -->
-                    <button onclick="openChangePasswordModal()" class="hidden md:flex gemini-glass-pill hover:bg-white/20 text-yellow-300 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap">
+                    <button onclick="openChangePasswordModal()" class="hide-on-mobile gemini-glass-pill hover:bg-white/20 text-yellow-300 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap">
                         <span>🔑</span> <span class="font-bold text-xs" data-bn="পাসওয়ার্ড" data-en="Password">পাসওয়ার্ড</span>
                     </button>
-                    <button onclick="loadAdminDashboard()" class="hidden md:flex gemini-glass-pill hover:bg-white/20 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap">
+                    <button onclick="loadAdminDashboard()" class="hide-on-mobile gemini-glass-pill hover:bg-white/20 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap">
                         <span>🔄</span> <span class="font-bold text-xs" data-bn="রিফ্রেশ" data-en="Refresh">রিফ্রেশ</span>
                     </button>
-                    <button onclick="adminLogout()" class="hidden md:flex bg-red-600/80 hover:bg-red-700 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap border border-red-500/40">
+                    <button onclick="adminLogout()" class="hide-on-mobile bg-red-600/80 hover:bg-red-700 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap border border-red-500/40">
                         <span>🚪</span> <span class="font-bold text-xs" data-bn="লগআউট" data-en="Logout">লগআউট</span>
                     </button>
                 </div>
@@ -532,7 +542,7 @@
     <main class="max-w-6xl mx-auto px-3 sm:px-4 pt-3 pb-24 md:py-6 space-y-6 flex-1 w-full">
 
         <!-- Admin Desktop Tabs (Sticky Navigation Bar below Header - 100% UNCHANGED for Windows Laptop) -->
-        <div id="adminStickyTabsWrapper" class="hidden md:block sticky top-[56px] sm:top-[60px] z-40 bg-gray-100/95 backdrop-blur-md -mx-4 px-4 py-2 shadow-xs">
+        <div id="adminStickyTabsWrapper" class="hide-on-mobile sticky top-[56px] sm:top-[60px] z-40 bg-gray-100/95 backdrop-blur-md -mx-4 px-4 py-2 shadow-xs">
             <div class="flex flex-nowrap overflow-x-auto bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200 gap-1 sm:gap-1.5 scrollbar-thin no-scrollbar">
                 <button onclick="switchAdminTab('buses')" id="tabBusesBtn" class="shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold bg-red-600 text-white shadow-md transition whitespace-nowrap" data-bn="🚌 বাস ফ্লিট" data-en="🚌 Fleet">
                     🚌 Fleet
@@ -593,7 +603,7 @@
         </div>
 
         <!-- Mobile Top Back Bar (Shown on Mobile when a tab is opened) -->
-        <div id="adminMobileTopBackBar" class="hidden md:hidden sticky top-[52px] z-30 bg-white/95 backdrop-blur-md -mx-3 px-3.5 py-2.5 border-b border-gray-200 flex items-center justify-between shadow-xs mb-3">
+        <div id="adminMobileTopBackBar" class="hidden hide-on-desktop sticky top-[52px] z-30 bg-white/95 backdrop-blur-md -mx-3 px-3.5 py-2.5 border-b border-gray-200 flex items-center justify-between shadow-xs mb-3">
             <button type="button" onclick="returnToAdminMobileHome()" class="flex items-center gap-1.5 text-xs font-black text-gray-900 bg-gray-100 hover:bg-gray-200 active:scale-95 px-3 py-1.5 rounded-xl border border-gray-300 transition cursor-pointer">
                 <span>⬅️</span>
                 <span data-bn="হোম ড্যাশবোর্ড" data-en="Home Hub">হোম ড্যাশবোর্ড</span>
@@ -604,7 +614,7 @@
         </div>
 
         <!-- Mobile App Hub 2-Column Pastel Cards Grid (Matching reference sample: media_1794321492063_17f52c26.jpg) -->
-        <div id="adminMobileHubGrid" class="block md:hidden space-y-4 pb-12">
+        <div id="adminMobileHubGrid" class="hide-on-desktop space-y-4 pb-12">
             <!-- Mobile App Hero / Welcome Card -->
             <div class="gemini-aurora-bg rounded-3xl p-4 sm:p-5 text-white shadow-lg relative overflow-hidden">
                 <div class="gemini-shimmer-bar"></div>
@@ -843,7 +853,7 @@
         </div>
 
         <!-- Tab 1: Bus Management -->
-        <div id="tabBusesContent" class="hidden md:block space-y-6">
+        <div id="tabBusesContent" class="space-y-6">
             <!-- Stats Grid -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
@@ -3024,7 +3034,7 @@
     </footer>
 
     <!-- Mobile Bottom Navigation Bar (Fixed bottom navigation matching app standards) -->
-    <nav id="adminMobileBottomNav" class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200 px-3 py-1.5 flex justify-around items-center md:hidden shadow-2xl select-none" style="padding-bottom: max(0.5rem, env(safe-area-inset-bottom));">
+    <nav id="adminMobileBottomNav" class="hide-on-desktop fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200 px-3 py-1.5 flex justify-around items-center shadow-2xl select-none" style="padding-bottom: max(0.5rem, env(safe-area-inset-bottom));">
         <button type="button" onclick="returnToAdminMobileHome()" id="adminNavBtnHome" class="flex flex-col items-center text-red-600 active:scale-90 transition-all cursor-pointer py-1 px-2 rounded-xl">
             <span class="text-xl leading-none">🏠</span>
             <span class="text-[10px] font-black mt-1" data-bn="হোম" data-en="Home">হোম</span>
@@ -3914,7 +3924,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="common.js?v=10.37"></script>
-    <script src="app-admin.js?v=10.38"></script>
+    <script src="app-admin.js?v=10.39"></script>
     <script>
         function toggleAdminSidebar() {
             const sb = document.getElementById('adminSidebar');

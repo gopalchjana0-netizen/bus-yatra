@@ -959,6 +959,9 @@ function switchOwnerTab(tab) {
         }
         updateOwnerNavHighlight(tab === 'approvals' ? 'approvals' : (tab === 'ledger' ? 'ledger' : ''));
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+        if (hubGrid) hubGrid.classList.add('hidden');
+        if (backBar) backBar.classList.add('hidden');
     }
 
     if (tab === 'approvals') renderOwnerApprovals();

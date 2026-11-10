@@ -575,6 +575,9 @@ function switchAdminTab(tab) {
         }
         updateAdminNavHighlight(tab === 'buses' ? 'buses' : (tab === 'customers' ? 'customers' : ''));
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+        if (hubGrid) hubGrid.classList.add('hidden');
+        if (backBar) backBar.classList.add('hidden');
     }
 
     if (tab === 'buses') {
