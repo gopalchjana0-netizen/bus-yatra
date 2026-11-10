@@ -684,8 +684,13 @@ async function loadOwnerDashboard() {
 
         // Restore active tab across page refresh / reload
         const savedOwnerTab = sessionStorage.getItem('owner_active_tab') || (window.location.hash ? window.location.hash.replace('#', '') : null);
-        if (savedOwnerTab && ['approvals', 'settings', 'captains', 'manifest', 'ledger', 'reviews', 'notifications'].includes(savedOwnerTab)) {
+        const isMobile = window.innerWidth < 768;
+        if (isMobile && (!savedOwnerTab || savedOwnerTab === 'home')) {
+            returnToOwnerMobileHome();
+        } else if (savedOwnerTab && ['approvals', 'settings', 'captains', 'manifest', 'ledger', 'reviews', 'notifications'].includes(savedOwnerTab)) {
             switchOwnerTab(savedOwnerTab);
+        } else if (!isMobile) {
+            switchOwnerTab('approvals');
         }
     } catch (error) {
         if (error.status === 401) {
@@ -862,6 +867,59 @@ async function refreshOwnerBookingQueue() {
     }
 }
 
+// --- Mobile Navigation & App Hub Functions for Owner ---
+function returnToOwnerMobileHome() {
+    sessionStorage.setItem('owner_active_tab', 'home');
+    const tabs = ['approvals', 'settings', 'captains', 'manifest', 'ledger', 'reviews', 'notifications'];
+    tabs.forEach(t => {
+        const content = document.getElementById(`tab${capitalize(t)}Content`);
+        if (content) content.classList.add('hidden');
+    });
+
+    const hubGrid = document.getElementById('ownerMobileHubGrid');
+    if (hubGrid) hubGrid.classList.remove('hidden');
+
+    const backBar = document.getElementById('ownerMobileTopBackBar');
+    if (backBar) backBar.classList.add('hidden');
+
+    updateOwnerNavHighlight('home');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+window.returnToOwnerMobileHome = returnToOwnerMobileHome;
+
+function updateOwnerNavHighlight(activeItem) {
+    const navItems = {
+        home: document.getElementById('ownerNavBtnHome'),
+        approvals: document.getElementById('ownerNavBtnApprovals'),
+        ledger: document.getElementById('ownerNavBtnLedger'),
+        gps: document.getElementById('ownerNavBtnGps')
+    };
+    Object.keys(navItems).forEach(key => {
+        const el = navItems[key];
+        if (!el) return;
+        if (key === activeItem) {
+            el.className = "flex flex-col items-center text-amber-600 active:scale-90 transition-all cursor-pointer py-1 px-2 rounded-xl";
+            const label = el.querySelector('span:last-child');
+            if (label) label.className = "text-[10px] font-black mt-1";
+        } else {
+            el.className = "flex flex-col items-center text-gray-500 hover:text-gray-900 active:scale-90 transition-all cursor-pointer py-1 px-2 rounded-xl";
+            const label = el.querySelector('span:last-child');
+            if (label) label.className = "text-[10px] font-bold mt-1";
+        }
+    });
+}
+window.updateOwnerNavHighlight = updateOwnerNavHighlight;
+
+function scrollToOwnerSubscriptionBanner() {
+    const banner = document.getElementById('ownerSubscriptionDueBanner');
+    if (banner && !banner.classList.contains('hidden')) {
+        banner.scrollIntoView({ behavior: 'smooth' });
+    } else {
+        alert('আপনার কোনো বকেয়া প্ল্যাটফর্ম সাবস্ক্রিপশন ফি নেই। আপনার অ্যাকাউন্ট সম্পূর্ণ অ্যাক্টিভ ও চালু আছে!');
+    }
+}
+window.scrollToOwnerSubscriptionBanner = scrollToOwnerSubscriptionBanner;
+
 // --- Tabs Navigation ---
 function switchOwnerTab(tab) {
     sessionStorage.setItem('owner_active_tab', tab);
@@ -877,6 +935,31 @@ function switchOwnerTab(tab) {
     const activeBtn = document.getElementById(`tab${capitalize(tab)}Btn`);
     if (activeContent) activeContent.classList.remove('hidden');
     if (activeBtn) activeBtn.className = "flex-1 min-w-[105px] sm:min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-black bg-gradient-to-r from-gray-900 to-gray-800 text-white shadow-md shadow-gray-900/20 transition-all whitespace-nowrap text-center flex items-center justify-center gap-1.5 cursor-pointer";
+
+    // Handle Mobile Hub & Back Bar
+    const isMobile = window.innerWidth < 768;
+    const hubGrid = document.getElementById('ownerMobileHubGrid');
+    const backBar = document.getElementById('ownerMobileTopBackBar');
+    const tabTitleEl = document.getElementById('ownerMobileActiveTabTitle');
+
+    if (isMobile) {
+        if (hubGrid) hubGrid.classList.add('hidden');
+        if (backBar) backBar.classList.remove('hidden');
+        if (tabTitleEl) {
+            const tabTitles = {
+                approvals: '🎫 বুকিং অনুমোদন',
+                settings: '⚙️ বাস ও সেটিংস',
+                captains: '👨‍✈️ কন্ডাক্টর ও স্টাফ',
+                manifest: '📋 দৈনিক যাত্রী তালিকা',
+                ledger: '📊 ট্রিপ খতিয়ান',
+                notifications: '📢 নোটিশ ও ঘোষণা',
+                reviews: '⭐ যাত্রী ফিডব্যাক'
+            };
+            tabTitleEl.innerText = tabTitles[tab] || capitalize(tab);
+        }
+        updateOwnerNavHighlight(tab === 'approvals' ? 'approvals' : (tab === 'ledger' ? 'ledger' : ''));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
     if (tab === 'approvals') renderOwnerApprovals();
     if (tab === 'settings') loadOwnerBuses();
@@ -1008,6 +1091,16 @@ async function deleteOwnerAllOnDate() {
 function renderOwnerApprovals() {
     const db = getAppData();
     const container = document.getElementById('ownerBookingsList');
+
+    // Update pending approvals badge on mobile hub card
+    const allBookings = Object.values(db.bookings || {});
+    const pendingCount = allBookings.filter(b => b.status === "Pending Approval" || b.status === "Cancellation Requested").length;
+    const badgeMobApprovals = document.getElementById('badgeOwnerMobileApprovals');
+    if (badgeMobApprovals) {
+        badgeMobApprovals.innerText = pendingCount;
+        badgeMobApprovals.classList.toggle('hidden', pendingCount === 0);
+    }
+
     if (!container) return;
 
     const filter = document.getElementById('bookingFilterStatus')?.value || 'Pending Approval';
@@ -2900,7 +2993,7 @@ async function loadOwnerNotifications() {
 
         // Update badge
         const unreadCount = (cachedOwnerNotifications.received || []).length;
-        const badges = [document.getElementById('ownerHeaderNotifBadge'), document.getElementById('ownerUnreadNotifBadge'), document.getElementById('ownerSidebarNotifBadge')];
+        const badges = [document.getElementById('ownerHeaderNotifBadge'), document.getElementById('ownerUnreadNotifBadge'), document.getElementById('ownerSidebarNotifBadge'), document.getElementById('badgeOwnerMobileNotices')];
         badges.forEach(b => {
             if (b) {
                 if (unreadCount > 0) {

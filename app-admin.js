@@ -452,8 +452,13 @@ async function loadAdminDashboard() {
 
         // Restore active tab across page refresh / reload
         const savedTab = sessionStorage.getItem('admin_active_tab') || (window.location.hash ? window.location.hash.replace('#', '') : null);
-        if (savedTab && ['buses', 'customers', 'owners', 'subscriptions', 'requests', 'feedback', 'finance', 'coupons', 'promotions', 'nextgen', 'flags', 'notifications', 'devices', 'support', 'sos'].includes(savedTab)) {
+        const isMobile = window.innerWidth < 768;
+        if (isMobile && (!savedTab || savedTab === 'home')) {
+            returnToAdminMobileHome();
+        } else if (savedTab && ['buses', 'customers', 'owners', 'subscriptions', 'requests', 'feedback', 'finance', 'coupons', 'promotions', 'nextgen', 'flags', 'notifications', 'devices', 'support', 'sos'].includes(savedTab)) {
             switchAdminTab(savedTab);
+        } else if (!isMobile) {
+            switchAdminTab('buses');
         }
     } catch (error) {
         console.error('Failed to load admin dashboard:', error);
@@ -468,6 +473,49 @@ async function loadAdminDashboard() {
         alert(`Failed to load admin data from the server: ${error.message}`);
     }
 }
+
+// --- Mobile Navigation & App Hub Functions ---
+function returnToAdminMobileHome() {
+    sessionStorage.setItem('admin_active_tab', 'home');
+    const tabs = ['buses', 'customers', 'owners', 'subscriptions', 'requests', 'feedback', 'finance', 'coupons', 'promotions', 'nextgen', 'flags', 'notifications', 'devices', 'support', 'sos'];
+    tabs.forEach(t => {
+        const content = document.getElementById(`tab${capitalize(t)}Content`);
+        if (content) content.classList.add('hidden');
+    });
+
+    const hubGrid = document.getElementById('adminMobileHubGrid');
+    if (hubGrid) hubGrid.classList.remove('hidden');
+
+    const backBar = document.getElementById('adminMobileTopBackBar');
+    if (backBar) backBar.classList.add('hidden');
+
+    updateAdminNavHighlight('home');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+window.returnToAdminMobileHome = returnToAdminMobileHome;
+
+function updateAdminNavHighlight(activeItem) {
+    const navItems = {
+        home: document.getElementById('adminNavBtnHome'),
+        buses: document.getElementById('adminNavBtnFleet'),
+        customers: document.getElementById('adminNavBtnBookings'),
+        apps: document.getElementById('adminNavBtnApps')
+    };
+    Object.keys(navItems).forEach(key => {
+        const el = navItems[key];
+        if (!el) return;
+        if (key === activeItem) {
+            el.className = "flex flex-col items-center text-red-600 active:scale-90 transition-all cursor-pointer py-1 px-2 rounded-xl";
+            const label = el.querySelector('span:last-child');
+            if (label) label.className = "text-[10px] font-black mt-1";
+        } else {
+            el.className = "flex flex-col items-center text-gray-500 hover:text-gray-900 active:scale-90 transition-all cursor-pointer py-1 px-2 rounded-xl";
+            const label = el.querySelector('span:last-child');
+            if (label) label.className = "text-[10px] font-bold mt-1";
+        }
+    });
+}
+window.updateAdminNavHighlight = updateAdminNavHighlight;
 
 // --- Tabs Navigation ---
 function switchAdminTab(tab) {
@@ -494,6 +542,39 @@ function switchAdminTab(tab) {
                 scrollParent.scrollLeft = btnLeft - (parentWidth / 2) + (btnWidth / 2);
             }
         } catch (_) {}
+    }
+
+    // Handle Mobile Hub & Back Bar
+    const isMobile = window.innerWidth < 768;
+    const hubGrid = document.getElementById('adminMobileHubGrid');
+    const backBar = document.getElementById('adminMobileTopBackBar');
+    const tabTitleEl = document.getElementById('adminMobileActiveTabTitle');
+
+    if (isMobile) {
+        if (hubGrid) hubGrid.classList.add('hidden');
+        if (backBar) backBar.classList.remove('hidden');
+        if (tabTitleEl) {
+            const tabTitles = {
+                buses: '🚌 বাস ফ্লিট ও রুট',
+                customers: '🎫 বুকিংস ও টিকিট',
+                owners: '👥 বাস অপারেটর',
+                subscriptions: '💳 সাবস্ক্রিপশন ও বিলিং',
+                requests: '📝 মালিকদের রিকুয়েস্ট',
+                feedback: '⭐ যাত্রী ফিডব্যাক',
+                finance: '💰 আয় ও ফাইন্যান্স',
+                coupons: '🏷️ প্রোমো কোড ও কুপন',
+                promotions: '🎯 বিজ্ঞাপন ও প্রমোশন',
+                nextgen: '⚡ নেক্সট-জেন ফিচার',
+                flags: '⚙️ ফিচার টগলস',
+                notifications: '📢 ব্রডকাস্ট নোটিশ',
+                devices: '📱 ডিভাইস সিকিউরিটি',
+                support: '🤖 এআই সাপোর্ট ডেস্ক',
+                sos: '🚨 জরুরি SOS ডেস্ক'
+            };
+            tabTitleEl.innerText = tabTitles[tab] || capitalize(tab);
+        }
+        updateAdminNavHighlight(tab === 'buses' ? 'buses' : (tab === 'customers' ? 'customers' : ''));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     if (tab === 'buses') {
@@ -1862,7 +1943,7 @@ async function loadAdminOwnerRequests() {
         const pendingBusesCount = (getAppData().buses || []).filter(b => b.approvalStatus === 'pending').length;
         const pendingPhotosCount = (getAppData().buses || []).filter(b => b.photoApprovalStatus === 'pending' || b.photo_approval_status === 'pending').length;
         const totalCount = requests.length + pendingBusesCount + pendingPhotosCount;
-        ['badgePendingRequests', 'badgeSidebarRequests'].forEach(id => {
+        ['badgePendingRequests', 'badgeSidebarRequests', 'badgeMobileRequests'].forEach(id => {
             const badge = document.getElementById(id);
             if (badge) {
                 badge.innerText = totalCount;
@@ -2253,6 +2334,11 @@ function updateAdminPromoStats(promos) {
     if (badgeSide) {
         badgeSide.innerText = active;
         badgeSide.classList.toggle('hidden', active === 0);
+    }
+    const badgeMob = document.getElementById('badgeMobilePromos');
+    if (badgeMob) {
+        badgeMob.innerText = active;
+        badgeMob.classList.toggle('hidden', active === 0);
     }
 }
 
@@ -3692,6 +3778,11 @@ function updateFeedbackBadges() {
         badgeSide.innerText = reviews.length;
         badgeSide.classList.toggle('hidden', reviews.length === 0);
     }
+    const badgeMob = document.getElementById('badgeMobileFeedback');
+    if (badgeMob) {
+        badgeMob.innerText = reviews.length;
+        badgeMob.classList.toggle('hidden', reviews.length === 0);
+    }
 }
 window.updateFeedbackBadges = updateFeedbackBadges;
 
@@ -4698,6 +4789,7 @@ function renderAdminSubscriptionsUI() {
     // Update badges
     const badgePending = document.getElementById('badgePendingSubscriptions');
     const badgeSidebar = document.getElementById('badgeSidebarSubscriptions');
+    const badgeMob = document.getElementById('badgeMobileSubscriptions');
     if (badgePending) {
         badgePending.innerText = pendingCount;
         badgePending.classList.toggle('hidden', pendingCount === 0);
@@ -4705,6 +4797,10 @@ function renderAdminSubscriptionsUI() {
     if (badgeSidebar) {
         badgeSidebar.innerText = pendingCount;
         badgeSidebar.classList.toggle('hidden', pendingCount === 0);
+    }
+    if (badgeMob) {
+        badgeMob.innerText = pendingCount;
+        badgeMob.classList.toggle('hidden', pendingCount === 0);
     }
 
     // Build unified cards list per owner
@@ -6384,6 +6480,11 @@ async function loadAdminDevicesData() {
             badgeActiveDevices.innerText = stats.activeToday ?? 0;
             badgeActiveDevices.classList.toggle('hidden', !stats.activeToday);
         }
+        const badgeMobDevices = document.getElementById('badgeMobileDevices');
+        if (badgeMobDevices) {
+            badgeMobDevices.innerText = stats.activeToday ?? 0;
+            badgeMobDevices.classList.toggle('hidden', !stats.activeToday);
+        }
 
         if (devTopBrands) {
             const brands = stats.topBrands || [];
@@ -6926,6 +7027,7 @@ async function loadAdminSupportTickets(isSilent = false) {
             // Update pending badge in sticky navigation tab & sidebar
             const badgePending = document.getElementById('badgePendingTickets');
             const badgeSidebar = document.getElementById('badgeSidebarSupport');
+            const badgeMobSupport = document.getElementById('badgeMobileSupport');
             const pendingTotal = openCount + inProgCount;
             if (badgePending) {
                 if (pendingTotal > 0) {
@@ -6941,6 +7043,14 @@ async function loadAdminSupportTickets(isSilent = false) {
                     badgeSidebar.classList.remove('hidden');
                 } else {
                     badgeSidebar.classList.add('hidden');
+                }
+            }
+            if (badgeMobSupport) {
+                if (pendingTotal > 0) {
+                    badgeMobSupport.innerText = pendingTotal;
+                    badgeMobSupport.classList.remove('hidden');
+                } else {
+                    badgeMobSupport.classList.add('hidden');
                 }
             }
 
@@ -7491,6 +7601,8 @@ async function checkAdminSosBadge() {
             const activeCount = (data.stats && data.stats.active !== undefined) ? data.stats.active : (data.alerts || []).length;
             const badge = document.getElementById('badgeActiveSosCount');
             const badgeSidebar = document.getElementById('badgeSidebarSos');
+            const badgeMobile = document.getElementById('badgeMobileSos');
+            const badgeHeader = document.getElementById('badgeMobileHeaderSos');
             if (badge) {
                 badge.innerText = activeCount;
                 badge.classList.toggle('hidden', activeCount === 0);
@@ -7498,6 +7610,14 @@ async function checkAdminSosBadge() {
             if (badgeSidebar) {
                 badgeSidebar.innerText = activeCount;
                 badgeSidebar.classList.toggle('hidden', activeCount === 0);
+            }
+            if (badgeMobile) {
+                badgeMobile.innerText = activeCount;
+                badgeMobile.classList.toggle('hidden', activeCount === 0);
+            }
+            if (badgeHeader) {
+                badgeHeader.innerText = activeCount;
+                badgeHeader.classList.toggle('hidden', activeCount === 0);
             }
         }
     } catch (_) {}
@@ -7529,6 +7649,8 @@ async function loadAdminSosAlerts(isSilent = false) {
             // Badges
             const badgeActive = document.getElementById('badgeActiveSosCount');
             const badgeSidebar = document.getElementById('badgeSidebarSos');
+            const badgeMobile = document.getElementById('badgeMobileSos');
+            const badgeHeader = document.getElementById('badgeMobileHeaderSos');
             if (badgeActive) {
                 badgeActive.innerText = active;
                 badgeActive.classList.toggle('hidden', active === 0);
@@ -7536,6 +7658,14 @@ async function loadAdminSosAlerts(isSilent = false) {
             if (badgeSidebar) {
                 badgeSidebar.innerText = active;
                 badgeSidebar.classList.toggle('hidden', active === 0);
+            }
+            if (badgeMobile) {
+                badgeMobile.innerText = active;
+                badgeMobile.classList.toggle('hidden', active === 0);
+            }
+            if (badgeHeader) {
+                badgeHeader.innerText = active;
+                badgeHeader.classList.toggle('hidden', active === 0);
             }
 
             // Audio alert if new active alert arrives while admin is on the tab

@@ -13,7 +13,7 @@
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preload" href="common.js?v=10.37" as="script">
-    <link rel="preload" href="app-admin.js?v=10.37" as="script">
+    <link rel="preload" href="app-admin.js?v=10.38" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
     <script src="tailwind.js?v=10.37" defer></script>
@@ -305,19 +305,27 @@
                         </h1>
                     </div>
                 </div>
-                <div class="flex items-center gap-1.5 sm:gap-2 shrink-0 overflow-x-auto max-w-full pb-0.5">
+                <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
                     <!-- Language Switcher (বাংলা / ENG) -->
                     <div class="flex items-center bg-black/40 rounded-xl p-0.5 border border-white/20 text-xs shrink-0 shadow-xs">
-                        <button type="button" onclick="setPortalLanguage('bn')" class="lang-btn-bn px-2 sm:px-2.5 py-1 rounded-lg text-[10px] sm:text-xs font-black bg-yellow-400 text-gray-900 shadow-xs transition">বাংলা</button>
-                        <button type="button" onclick="setPortalLanguage('en')" class="lang-btn-en px-2 sm:px-2.5 py-1 rounded-lg text-[10px] sm:text-xs font-bold text-gray-400 hover:text-white bg-transparent transition">ENG</button>
+                        <button type="button" onclick="setPortalLanguage('bn')" class="lang-btn-bn px-2 sm:px-2.5 py-1 rounded-lg text-[10px] sm:text-xs font-black bg-yellow-400 text-gray-900 shadow-xs transition active:scale-95">বাংলা</button>
+                        <button type="button" onclick="setPortalLanguage('en')" class="lang-btn-en px-2 sm:px-2.5 py-1 rounded-lg text-[10px] sm:text-xs font-bold text-gray-400 hover:text-white bg-transparent transition active:scale-95">ENG</button>
                     </div>
-                    <button onclick="openChangePasswordModal()" class="gemini-glass-pill hover:bg-white/20 text-yellow-300 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap">
+
+                    <!-- Clean Notification Bell on Mobile (Matching sample media_1794321492063_17f52c26.jpg) -->
+                    <button type="button" onclick="switchAdminTab('sos')" class="flex md:hidden gemini-glass-pill text-white p-2 rounded-xl text-sm transition items-center justify-center relative active:scale-95" title="জরুরি SOS ও নোটিফিকেশন">
+                        <span>🔔</span>
+                        <span id="badgeMobileHeaderSos" class="hidden absolute -top-1 -right-1 bg-red-600 text-white text-[9px] w-4 h-4 rounded-full font-black flex items-center justify-center animate-pulse">0</span>
+                    </button>
+
+                    <!-- Desktop Only Header Buttons (Preserves Windows Laptop View 100%) -->
+                    <button onclick="openChangePasswordModal()" class="hidden md:flex gemini-glass-pill hover:bg-white/20 text-yellow-300 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap">
                         <span>🔑</span> <span class="font-bold text-xs" data-bn="পাসওয়ার্ড" data-en="Password">পাসওয়ার্ড</span>
                     </button>
-                    <button onclick="loadAdminDashboard()" class="gemini-glass-pill hover:bg-white/20 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap">
+                    <button onclick="loadAdminDashboard()" class="hidden md:flex gemini-glass-pill hover:bg-white/20 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap">
                         <span>🔄</span> <span class="font-bold text-xs" data-bn="রিফ্রেশ" data-en="Refresh">রিফ্রেশ</span>
                     </button>
-                    <button onclick="adminLogout()" class="bg-red-600/80 hover:bg-red-700 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap border border-red-500/40">
+                    <button onclick="adminLogout()" class="hidden md:flex bg-red-600/80 hover:bg-red-700 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap border border-red-500/40">
                         <span>🚪</span> <span class="font-bold text-xs" data-bn="লগআউট" data-en="Logout">লগআউট</span>
                     </button>
                 </div>
@@ -521,10 +529,10 @@
     </div>
 
     <!-- Main Content -->
-    <main class="max-w-6xl mx-auto px-4 py-6 space-y-6 flex-1 w-full">
+    <main class="max-w-6xl mx-auto px-3 sm:px-4 pt-3 pb-24 md:py-6 space-y-6 flex-1 w-full">
 
-        <!-- Admin Tabs (Sticky Navigation Bar below Header) -->
-        <div id="adminStickyTabsWrapper" class="sticky top-[56px] sm:top-[60px] z-40 bg-gray-100/95 backdrop-blur-md -mx-4 px-4 py-2 shadow-xs">
+        <!-- Admin Desktop Tabs (Sticky Navigation Bar below Header - 100% UNCHANGED for Windows Laptop) -->
+        <div id="adminStickyTabsWrapper" class="hidden md:block sticky top-[56px] sm:top-[60px] z-40 bg-gray-100/95 backdrop-blur-md -mx-4 px-4 py-2 shadow-xs">
             <div class="flex flex-nowrap overflow-x-auto bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200 gap-1 sm:gap-1.5 scrollbar-thin no-scrollbar">
                 <button onclick="switchAdminTab('buses')" id="tabBusesBtn" class="shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold bg-red-600 text-white shadow-md transition whitespace-nowrap" data-bn="🚌 বাস ফ্লিট" data-en="🚌 Fleet">
                     🚌 Fleet
@@ -584,8 +592,258 @@
             </div>
         </div>
 
+        <!-- Mobile Top Back Bar (Shown on Mobile when a tab is opened) -->
+        <div id="adminMobileTopBackBar" class="hidden md:hidden sticky top-[52px] z-30 bg-white/95 backdrop-blur-md -mx-3 px-3.5 py-2.5 border-b border-gray-200 flex items-center justify-between shadow-xs mb-3">
+            <button type="button" onclick="returnToAdminMobileHome()" class="flex items-center gap-1.5 text-xs font-black text-gray-900 bg-gray-100 hover:bg-gray-200 active:scale-95 px-3 py-1.5 rounded-xl border border-gray-300 transition cursor-pointer">
+                <span>⬅️</span>
+                <span data-bn="হোম ড্যাশবোর্ড" data-en="Home Hub">হোম ড্যাশবোর্ড</span>
+            </button>
+            <span id="adminMobileActiveTabTitle" class="text-xs font-black text-gray-800 truncate max-w-[190px]">
+                🚌 বাস ফ্লিট ও রুট
+            </span>
+        </div>
+
+        <!-- Mobile App Hub 2-Column Pastel Cards Grid (Matching reference sample: media_1794321492063_17f52c26.jpg) -->
+        <div id="adminMobileHubGrid" class="block md:hidden space-y-4 pb-12">
+            <!-- Mobile App Hero / Welcome Card -->
+            <div class="gemini-aurora-bg rounded-3xl p-4 sm:p-5 text-white shadow-lg relative overflow-hidden">
+                <div class="gemini-shimmer-bar"></div>
+                <div class="flex items-center justify-between gap-3 relative z-10">
+                    <div>
+                        <span class="bg-yellow-400 text-gray-950 px-2 py-0.5 rounded text-[10px] font-black uppercase">Super Admin Hub</span>
+                        <h2 class="text-lg font-black leading-tight mt-1 text-white">স্বাগতম, অ্যাডমিন!</h2>
+                        <p class="text-xs text-yellow-100/90 mt-0.5">সব সার্ভিস ও ফ্লিট পরিচালনা করুন</p>
+                    </div>
+                    <button type="button" onclick="openAdminAppQrModal()" class="bg-white/20 hover:bg-white/30 active:scale-95 text-white p-2.5 rounded-2xl border border-white/30 text-center flex flex-col items-center shrink-0 transition shadow-sm cursor-pointer">
+                        <span class="text-xl">📲</span>
+                        <span class="text-[9px] font-black mt-0.5 whitespace-nowrap">৪টি অ্যাপ</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2-Column Pastel Cards Grid -->
+            <div class="grid grid-cols-2 gap-3 sm:gap-3.5">
+                <!-- Card 1: বাস ফ্লিট ও রুট (Pastel Sky Blue) -->
+                <div onclick="switchAdminTab('buses')" class="bg-[#edf5fe] hover:bg-[#e1effe] border border-[#d0e4fb] p-4 rounded-3xl flex flex-col justify-between h-[152px] shadow-xs active:scale-[0.97] transition-all cursor-pointer">
+                    <div class="flex items-center justify-between">
+                        <div class="w-13 h-13 rounded-2xl bg-[#bcd7f7] text-[#1d4ed8] flex items-center justify-center text-2xl shadow-xs">
+                            🚌
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm text-gray-900 leading-snug tracking-tight" data-bn="বাস ফ্লিট ও রুট" data-en="Bus Fleet &amp; Routes">বাস ফ্লিট ও রুট</h3>
+                        <p class="text-[10px] text-gray-500 font-semibold mt-0.5 truncate" data-bn="কোচ ও রুট ম্যানেজ" data-en="Manage Fleet">কোচ ও রুট ম্যানেজ</p>
+                    </div>
+                </div>
+
+                <!-- Card 2: বুকিংস ও টিকিট (Pastel Warm Peach) -->
+                <div onclick="switchAdminTab('customers')" class="bg-[#fff4eb] hover:bg-[#ffe8d6] border border-[#fde2cb] p-4 rounded-3xl flex flex-col justify-between h-[152px] shadow-xs active:scale-[0.97] transition-all cursor-pointer">
+                    <div class="flex items-center justify-between">
+                        <div class="w-13 h-13 rounded-2xl bg-[#fed7b9] text-[#c2410c] flex items-center justify-center text-2xl shadow-xs">
+                            🎫
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm text-gray-900 leading-snug tracking-tight" data-bn="বুকিংস ও টিকিট" data-en="Bookings &amp; Tickets">বুকিংস ও টিকিট</h3>
+                        <p class="text-[10px] text-gray-500 font-semibold mt-0.5 truncate" data-bn="সব বুকিং ও এক্সপোর্ট" data-en="All Bookings Data">সব বুকিং ও এক্সপোর্ট</p>
+                    </div>
+                </div>
+
+                <!-- Card 3: বাস অপারেটর ডিরেক্টরি (Pastel Mint Green) -->
+                <div onclick="switchAdminTab('owners')" class="bg-[#eafaf1] hover:bg-[#d5f5e3] border border-[#c6f0d8] p-4 rounded-3xl flex flex-col justify-between h-[152px] shadow-xs active:scale-[0.97] transition-all cursor-pointer">
+                    <div class="flex items-center justify-between">
+                        <div class="w-13 h-13 rounded-2xl bg-[#bbf3d6] text-[#047857] flex items-center justify-center text-2xl shadow-xs">
+                            👥
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm text-gray-900 leading-snug tracking-tight" data-bn="বাস অপারেটর" data-en="Bus Operators">বাস অপারেটর</h3>
+                        <p class="text-[10px] text-gray-500 font-semibold mt-0.5 truncate" data-bn="মালিক ও স্টাফ তালিকা" data-en="Owners &amp; Captains">মালিক ও স্টাফ তালিকা</p>
+                    </div>
+                </div>
+
+                <!-- Card 4: সাবস্ক্রিপশন ও বিলিং (Pastel Lavender) -->
+                <div onclick="switchAdminTab('subscriptions')" class="bg-[#f4edfd] hover:bg-[#eadefc] border border-[#e2d0fb] p-4 rounded-3xl flex flex-col justify-between h-[152px] shadow-xs active:scale-[0.97] transition-all cursor-pointer relative">
+                    <div class="flex items-center justify-between">
+                        <div class="w-13 h-13 rounded-2xl bg-[#e0cbfc] text-[#6d28d9] flex items-center justify-center text-2xl shadow-xs">
+                            💳
+                        </div>
+                        <span id="badgeMobileSubscriptions" class="hidden bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full font-black shadow-xs">0</span>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm text-gray-900 leading-snug tracking-tight" data-bn="সাবস্ক্রিপশন ফি" data-en="Subscriptions">সাবস্ক্রিপশন ফি</h3>
+                        <p class="text-[10px] text-gray-500 font-semibold mt-0.5 truncate" data-bn="পেমেন্ট ও মাসিক বিল" data-en="Monthly Dues &amp; Billing">পেমেন্ট ও মাসিক বিল</p>
+                    </div>
+                </div>
+
+                <!-- Card 5: আয় ও ফাইন্যান্স রিপোর্ট (Pastel Gold/Yellow) -->
+                <div onclick="switchAdminTab('finance')" class="bg-[#fefce8] hover:bg-[#fef9c3] border border-[#fef08a] p-4 rounded-3xl flex flex-col justify-between h-[152px] shadow-xs active:scale-[0.97] transition-all cursor-pointer">
+                    <div class="flex items-center justify-between">
+                        <div class="w-13 h-13 rounded-2xl bg-[#fef08a] text-[#854d0e] flex items-center justify-center text-2xl shadow-xs">
+                            💰
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm text-gray-900 leading-snug tracking-tight" data-bn="আয় ও রিপোর্ট" data-en="Finance &amp; Reports">আয় ও রিপোর্ট</h3>
+                        <p class="text-[10px] text-gray-500 font-semibold mt-0.5 truncate" data-bn="টোটাল রেভিনিউ হিসাব" data-en="Revenue &amp; P&amp;L">টোটাল রেভিনিউ হিসাব</p>
+                    </div>
+                </div>
+
+                <!-- Card 6: যাত্রী ফিডব্যাক (Pastel Soft Rose) -->
+                <div onclick="switchAdminTab('feedback')" class="bg-[#fef1f2] hover:bg-[#fee2e2] border border-[#fecdd3] p-4 rounded-3xl flex flex-col justify-between h-[152px] shadow-xs active:scale-[0.97] transition-all cursor-pointer relative">
+                    <div class="flex items-center justify-between">
+                        <div class="w-13 h-13 rounded-2xl bg-[#fecdd3] text-[#be123c] flex items-center justify-center text-2xl shadow-xs">
+                            ⭐
+                        </div>
+                        <span id="badgeMobileFeedback" class="hidden bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black shadow-xs">0</span>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm text-gray-900 leading-snug tracking-tight" data-bn="যাত্রী ফিডব্যাক" data-en="Customer Feedback">যাত্রী ফিডব্যাক</h3>
+                        <p class="text-[10px] text-gray-500 font-semibold mt-0.5 truncate" data-bn="স্টার রেটিং ও মতামত" data-en="Reviews &amp; Ratings">স্টার রেটিং ও মতামত</p>
+                    </div>
+                </div>
+
+                <!-- Card 7: মালিকদের রিকুয়েস্ট (Pastel Indigo) -->
+                <div onclick="switchAdminTab('requests')" class="bg-[#eef2ff] hover:bg-[#e0e7ff] border border-[#c7d2fe] p-4 rounded-3xl flex flex-col justify-between h-[152px] shadow-xs active:scale-[0.97] transition-all cursor-pointer relative">
+                    <div class="flex items-center justify-between">
+                        <div class="w-13 h-13 rounded-2xl bg-[#c7d2fe] text-[#3730a3] flex items-center justify-center text-2xl shadow-xs">
+                            📝
+                        </div>
+                        <span id="badgeMobileRequests" class="hidden bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black shadow-xs">0</span>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm text-gray-900 leading-snug tracking-tight" data-bn="মালিকদের রিকুয়েস্ট" data-en="Owner Requests">মালিকদের রিকুয়েস্ট</h3>
+                        <p class="text-[10px] text-gray-500 font-semibold mt-0.5 truncate" data-bn="অনুমোদন ও নতুন বাস" data-en="Approvals Queue">অনুমোদন ও নতুন বাস</p>
+                    </div>
+                </div>
+
+                <!-- Card 8: প্রমোশন ও বিজ্ঞাপন (Pastel Teal) -->
+                <div onclick="switchAdminTab('promotions')" class="bg-[#e6faf8] hover:bg-[#ccfbf1] border border-[#c1f2ed] p-4 rounded-3xl flex flex-col justify-between h-[152px] shadow-xs active:scale-[0.97] transition-all cursor-pointer relative">
+                    <div class="flex items-center justify-between">
+                        <div class="w-13 h-13 rounded-2xl bg-[#b7f1eb] text-[#0f766e] flex items-center justify-center text-2xl shadow-xs">
+                            🎯
+                        </div>
+                        <span id="badgeMobilePromos" class="hidden bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded-full font-black shadow-xs">0</span>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm text-gray-900 leading-snug tracking-tight" data-bn="বিজ্ঞাপন ও প্রমোশন" data-en="Ads &amp; Promos">বিজ্ঞাপন ও প্রমোশন</h3>
+                        <p class="text-[10px] text-gray-500 font-semibold mt-0.5 truncate" data-bn="ব্যানার ও অফার প্রচার" data-en="Marketing Banners">ব্যানার ও অফার প্রচার</p>
+                    </div>
+                </div>
+
+                <!-- Card 9: নেক্সট-জেন ফিচার (Pastel Purple) -->
+                <div onclick="switchAdminTab('nextgen')" class="bg-[#f3e8ff] hover:bg-[#e9d5ff] border border-[#e9d5ff] p-4 rounded-3xl flex flex-col justify-between h-[152px] shadow-xs active:scale-[0.97] transition-all cursor-pointer">
+                    <div class="flex items-center justify-between">
+                        <div class="w-13 h-13 rounded-2xl bg-[#dfc4fd] text-[#7e22ce] flex items-center justify-center text-2xl shadow-xs">
+                            ⚡
+                        </div>
+                        <span class="bg-purple-600 text-white text-[9px] px-1.5 py-0.5 rounded-full font-black uppercase">NEW</span>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm text-gray-900 leading-snug tracking-tight" data-bn="নেক্সট-জেন ফিচার" data-en="Next-Gen Features">নেক্সট-জেন ফিচার</h3>
+                        <p class="text-[10px] text-gray-500 font-semibold mt-0.5 truncate" data-bn="স্মার্ট অ্যালগরিদম কন্ট্রোল" data-en="AI &amp; Advanced Tools">স্মার্ট অ্যালগরিদম কন্ট্রোল</p>
+                    </div>
+                </div>
+
+                <!-- Card 10: প্রোমো কোড ও কুপন (Pastel Sky) -->
+                <div onclick="switchAdminTab('coupons')" class="bg-[#f0f9ff] hover:bg-[#e0f2fe] border border-[#bae6fd] p-4 rounded-3xl flex flex-col justify-between h-[152px] shadow-xs active:scale-[0.97] transition-all cursor-pointer">
+                    <div class="flex items-center justify-between">
+                        <div class="w-13 h-13 rounded-2xl bg-[#bae6fd] text-[#0369a1] flex items-center justify-center text-2xl shadow-xs">
+                            🏷️
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm text-gray-900 leading-snug tracking-tight" data-bn="প্রোমো কোড ও কুপন" data-en="Promo Codes">প্রোমো কোড ও কুপন</h3>
+                        <p class="text-[10px] text-gray-500 font-semibold mt-0.5 truncate" data-bn="ডিসকাউন্ট ভাউচার তৈরি" data-en="Create Discount Codes">ডিসকাউন্ট ভাউচার তৈরি</p>
+                    </div>
+                </div>
+
+                <!-- Card 11: ফিচার টগলস (Pastel Slate) -->
+                <div onclick="switchAdminTab('flags')" class="bg-[#f8fafc] hover:bg-[#f1f5f9] border border-[#e2e8f0] p-4 rounded-3xl flex flex-col justify-between h-[152px] shadow-xs active:scale-[0.97] transition-all cursor-pointer">
+                    <div class="flex items-center justify-between">
+                        <div class="w-13 h-13 rounded-2xl bg-[#cbd5e1] text-[#334155] flex items-center justify-center text-2xl shadow-xs">
+                            ⚙️
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm text-gray-900 leading-snug tracking-tight" data-bn="ফিচার টগলস" data-en="Feature Toggles">ফিচার টগলস</h3>
+                        <p class="text-[10px] text-gray-500 font-semibold mt-0.5 truncate" data-bn="সিস্টেম অন/অফ সুইচ" data-en="System Switch Controls">সিস্টেম অন/অফ সুইচ</p>
+                    </div>
+                </div>
+
+                <!-- Card 12: ব্রডকাস্ট নোটিশ (Pastel Mint Green) -->
+                <div onclick="switchAdminTab('notifications')" class="bg-[#ecfdf5] hover:bg-[#d1fae5] border border-[#a7f3d0] p-4 rounded-3xl flex flex-col justify-between h-[152px] shadow-xs active:scale-[0.97] transition-all cursor-pointer">
+                    <div class="flex items-center justify-between">
+                        <div class="w-13 h-13 rounded-2xl bg-[#a7f3d0] text-[#065f46] flex items-center justify-center text-2xl shadow-xs">
+                            📢
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm text-gray-900 leading-snug tracking-tight" data-bn="ব্রডকাস্ট নোটিশ" data-en="Notifications">ব্রডকাস্ট নোটিশ</h3>
+                        <p class="text-[10px] text-gray-500 font-semibold mt-0.5 truncate" data-bn="জরুরি পুশ নোটিফিকেশন" data-en="Send Alerts &amp; SMS">জরুরি পুশ নোটিফিকেশন</p>
+                    </div>
+                </div>
+
+                <!-- Card 13: ডিভাইস ও সিকিউরিটি (Pastel Violet) -->
+                <div onclick="switchAdminTab('devices')" class="bg-[#f5f3ff] hover:bg-[#ede9fe] border border-[#ddd6fe] p-4 rounded-3xl flex flex-col justify-between h-[152px] shadow-xs active:scale-[0.97] transition-all cursor-pointer relative">
+                    <div class="flex items-center justify-between">
+                        <div class="w-13 h-13 rounded-2xl bg-[#ddd6fe] text-[#5b21b6] flex items-center justify-center text-2xl shadow-xs">
+                            📱
+                        </div>
+                        <span id="badgeMobileDevices" class="hidden bg-indigo-600 text-white text-[10px] px-2 py-0.5 rounded-full font-black shadow-xs">0</span>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm text-gray-900 leading-snug tracking-tight" data-bn="ডিভাইস সিকিউরিটি" data-en="Device Security">ডিভাইস সিকিউরিটি</h3>
+                        <p class="text-[10px] text-gray-500 font-semibold mt-0.5 truncate" data-bn="লগইন অডিট ও আইপি" data-en="Audit Logs &amp; IPs">লগইন অডিট ও আইপি</p>
+                    </div>
+                </div>
+
+                <!-- Card 14: এআই সাপোর্ট ডেস্ক (Pastel Cyan) -->
+                <div onclick="switchAdminTab('support')" class="bg-[#ecfeff] hover:bg-[#cffafe] border border-[#a5f3fc] p-4 rounded-3xl flex flex-col justify-between h-[152px] shadow-xs active:scale-[0.97] transition-all cursor-pointer relative">
+                    <div class="flex items-center justify-between">
+                        <div class="w-13 h-13 rounded-2xl bg-[#a5f3fc] text-[#0e7490] flex items-center justify-center text-2xl shadow-xs overflow-hidden">
+                            <img src="assets/ai-agent-avatar.jpg" class="w-full h-full object-cover object-top" alt="AI">
+                        </div>
+                        <span id="badgeMobileSupport" class="bg-red-600 text-white text-[9px] px-1.5 py-0.5 rounded-full font-black">NEW</span>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm text-gray-900 leading-snug tracking-tight" data-bn="এআই সাপোর্ট ডেস্ক" data-en="AI Support Desk">এআই সাপোর্ট ডেস্ক</h3>
+                        <p class="text-[10px] text-gray-500 font-semibold mt-0.5 truncate" data-bn="অটোমেটেড হেল্পডেস্ক" data-en="AI Support Tickets">অটোমেটেড হেল্পডেস্ক</p>
+                    </div>
+                </div>
+
+                <!-- Card 15: জরুরি SOS ডেস্ক (Pastel Rose Red with pulse) -->
+                <div onclick="switchAdminTab('sos')" class="bg-[#fff1f2] hover:bg-[#ffe4e6] border-2 border-red-300 p-4 rounded-3xl flex flex-col justify-between h-[152px] shadow-sm active:scale-[0.97] transition-all cursor-pointer relative">
+                    <div class="flex items-center justify-between">
+                        <div class="w-13 h-13 rounded-2xl bg-[#fecdd3] text-[#9f1239] flex items-center justify-center text-2xl shadow-xs animate-pulse">
+                            🚨
+                        </div>
+                        <span id="badgeMobileSos" class="hidden bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full font-black animate-pulse shadow-xs">0</span>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm text-red-950 leading-snug tracking-tight" data-bn="জরুরি SOS ডেস্ক" data-en="Emergency SOS">জরুরি SOS ডেস্ক</h3>
+                        <p class="text-[10px] text-red-700 font-semibold mt-0.5 truncate" data-bn="লাইভ বিপদ সংকেত" data-en="Active Passenger SOS">লাইভ বিপদ সংকেত</p>
+                    </div>
+                </div>
+
+                <!-- Card 16: ৪টি অ্যাপ APK ও QR হাব (Special Highlight Amber Card) -->
+                <div onclick="openAdminAppQrModal()" class="bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100 hover:from-amber-100 hover:to-yellow-200 border-2 border-amber-300 p-4 rounded-3xl flex flex-col justify-between h-[152px] shadow-sm active:scale-[0.97] transition-all cursor-pointer relative">
+                    <div class="flex items-center justify-between">
+                        <div class="w-13 h-13 rounded-2xl bg-amber-400 text-gray-950 flex items-center justify-center text-2xl shadow-xs">
+                            📲
+                        </div>
+                        <span class="bg-amber-600 text-white text-[9px] px-2 py-0.5 rounded-full font-black uppercase shadow-xs">APK &amp; QR</span>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm text-gray-950 leading-snug tracking-tight" data-bn="৪টি অ্যাপ APK ও QR" data-en="4 Apps Hub">৪টি অ্যাপ APK ও QR</h3>
+                        <p class="text-[10px] text-amber-800 font-semibold mt-0.5 truncate" data-bn="ডাউনলোড, শেয়ার ও প্রিন্ট" data-en="Download &amp; Share">ডাউনলোড, শেয়ার ও প্রিন্ট</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Tab 1: Bus Management -->
-        <div id="tabBusesContent" class="space-y-6">
+        <div id="tabBusesContent" class="hidden md:block space-y-6">
             <!-- Stats Grid -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
@@ -2754,7 +3012,7 @@
 
     </main>
 
-    <footer class="mt-auto border-t border-gray-200 bg-white py-6 text-center text-xs text-gray-500 shadow-xs">
+    <footer class="mt-auto border-t border-gray-200 bg-white py-6 mb-16 md:mb-0 text-center text-xs text-gray-500 shadow-xs">
         <div class="max-w-6xl mx-auto px-4 space-y-1">
             <p class="font-bold text-gray-800 tracking-wide text-sm">
                 © <span class="footer-dynamic-year">2026</span> Bus Yatra. All Rights Reserved.
@@ -2764,6 +3022,30 @@
             </p>
         </div>
     </footer>
+
+    <!-- Mobile Bottom Navigation Bar (Fixed bottom navigation matching app standards) -->
+    <nav id="adminMobileBottomNav" class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200 px-3 py-1.5 flex justify-around items-center md:hidden shadow-2xl select-none" style="padding-bottom: max(0.5rem, env(safe-area-inset-bottom));">
+        <button type="button" onclick="returnToAdminMobileHome()" id="adminNavBtnHome" class="flex flex-col items-center text-red-600 active:scale-90 transition-all cursor-pointer py-1 px-2 rounded-xl">
+            <span class="text-xl leading-none">🏠</span>
+            <span class="text-[10px] font-black mt-1" data-bn="হোম" data-en="Home">হোম</span>
+        </button>
+        <button type="button" onclick="switchAdminTab('buses')" id="adminNavBtnFleet" class="flex flex-col items-center text-gray-500 hover:text-gray-900 active:scale-90 transition-all cursor-pointer py-1 px-2 rounded-xl">
+            <span class="text-xl leading-none">🚌</span>
+            <span class="text-[10px] font-bold mt-1" data-bn="ফ্লিট" data-en="Fleet">ফ্লিট</span>
+        </button>
+        <button type="button" onclick="switchAdminTab('customers')" id="adminNavBtnBookings" class="flex flex-col items-center text-gray-500 hover:text-gray-900 active:scale-90 transition-all cursor-pointer py-1 px-2 rounded-xl">
+            <span class="text-xl leading-none">🎫</span>
+            <span class="text-[10px] font-bold mt-1" data-bn="বুকিং" data-en="Bookings">বুকিং</span>
+        </button>
+        <button type="button" onclick="openAdminAppQrModal()" id="adminNavBtnApps" class="flex flex-col items-center text-amber-600 active:scale-90 transition-all cursor-pointer py-1 px-2 rounded-xl">
+            <span class="text-xl leading-none">📲</span>
+            <span class="text-[10px] font-black mt-1" data-bn="৪টি অ্যাপ" data-en="Apps">৪টি অ্যাপ</span>
+        </button>
+        <button type="button" onclick="toggleAdminSidebar()" class="flex flex-col items-center text-gray-500 hover:text-gray-900 active:scale-90 transition-all cursor-pointer py-1 px-2 rounded-xl">
+            <span class="text-xl leading-none">☰</span>
+            <span class="text-[10px] font-bold mt-1" data-bn="মেনু" data-en="Menu">মেনু</span>
+        </button>
+    </nav>
     </div><!-- End of adminProtectedApp -->
 
     <!-- All Portals Official Android APKs & QR Marketing Hub Modal (Customer, Owner, Captain, Admin) -->
@@ -3632,7 +3914,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="common.js?v=10.37"></script>
-    <script src="app-admin.js?v=10.37"></script>
+    <script src="app-admin.js?v=10.38"></script>
     <script>
         function toggleAdminSidebar() {
             const sb = document.getElementById('adminSidebar');
