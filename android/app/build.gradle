@@ -1,0 +1,80 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.busyatra'
+    compileSdk 34
+
+    defaultConfig {
+        minSdk 23
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    flavorDimensions = ["app"]
+
+    productFlavors {
+        customer {
+            dimension "app"
+            applicationId "com.busyatra.customer"
+            versionCode 1
+            versionName "1.0.0"
+            resValue "string", "app_name", "Bus Yatra"
+            buildConfigField "String", "PORTAL_URL", "\"https://busyatra.pages.dev/?source=customer_apk\""
+        }
+        owner {
+            dimension "app"
+            applicationId "com.busyatra.owner"
+            versionCode 1
+            versionName "1.0.0"
+            resValue "string", "app_name", "Bus Yatra Owner"
+            buildConfigField "String", "PORTAL_URL", "\"https://busyatra.pages.dev/owner?source=owner_apk\""
+        }
+        captain {
+            dimension "app"
+            applicationId "com.busyatra.captain"
+            versionCode 1
+            versionName "1.0.0"
+            resValue "string", "app_name", "Bus Yatra Captain"
+            buildConfigField "String", "PORTAL_URL", "\"https://busyatra.pages.dev/captain?source=captain_apk\""
+        }
+        admin {
+            dimension "app"
+            applicationId "com.busyatra.admin"
+            versionCode 1
+            versionName "1.0.0"
+            resValue "string", "app_name", "Bus Yatra Admin"
+            buildConfigField "String", "PORTAL_URL", "\"https://busyatra.pages.dev/admin?source=admin_apk\""
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.debug
+        }
+        debug {
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+    implementation 'androidx.webkit:webkit:1.10.0'
+    implementation 'androidx.core:core:1.12.0'
+}

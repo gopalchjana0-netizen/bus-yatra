@@ -1,0 +1,2005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bus Yatra | Online Bus Ticket Booking | ভারতের যেকোনো রুটের নির্ভরযোগ্য অনলাইন বাস সার্ভিস</title>
+    <meta name="description" content="Bus Yatra - সারা ভারতের যেকোনো রুটের নির্ভরযোগ্য অনলাইন বাস টিকিট বুকিং প্ল্যাটফর্ম। All India daily bus booking, live GPS tracking, 65-seater bus service, instant confirmation & seat selection.">
+    <meta name="keywords" content="Bus Yatra, online bus booking, pan India bus service, West Bengal bus booking, Kolkata bus, Pingla bus, Digha bus, Siliguri bus, বাস যাত্রা, ভারতের বাস সার্ভিস, অনলাইন বাস টিকিট">
+    <meta name="robots" content="index, follow">
+    <meta name="google-site-verification" content="googleb7dc0ba45d9f55b1" />
+    <link rel="canonical" href="https://busyatra.pages.dev/">
+
+    <!-- Favicon & PWA Icons -->
+    <link rel="icon" id="dynamicFavicon" type="image/png" href="/icons/favicon.png">
+    <link rel="apple-touch-icon" id="dynamicAppleIcon" href="/icons/icon-192.png">
+    <link rel="manifest" id="dynamicManifestLink" href="/manifest.json">
+    <meta name="theme-color" content="#d9381e">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://busyatra.pages.dev/">
+    <meta property="og:title" content="Bus Yatra | Online Bus Ticket Booking | All India Bus Service">
+    <meta property="og:description" content="Book deluxe bus tickets across India with live GPS tracking, exact stoppage departure timings, instant seat selection & secure UPI payment.">
+    <meta property="og:image" content="https://busyatra.pages.dev/icons/logo-customer.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://busyatra.pages.dev/">
+    <meta property="twitter:title" content="Bus Yatra | All India Online Bus Ticket Booking">
+    <meta property="twitter:description" content="Fast, reliable online bus ticket booking across India.">
+    <meta property="twitter:image" content="https://busyatra.pages.dev/icons/logo-customer.png">
+
+    <!-- Schema.org JSON-LD Structured Data for Google Search -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "TravelAgency",
+      "name": "Bus Yatra",
+      "url": "https://busyatra.pages.dev/",
+      "logo": "https://busyatra.pages.dev/icons/logo-customer.png",
+      "description": "All-India online passenger bus booking service with live tracking and instant confirmation.",
+      "telephone": "+918768447312",
+      "priceRange": "₹₹",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Pingla",
+        "addressRegion": "West Bengal",
+        "addressCountry": "IN"
+      }
+    }
+    </script>
+
+    <!-- High-Speed DNS Prefetch & Preconnect for Sub-Second CDN Loading -->
+    <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
+    <link rel="dns-prefetch" href="https://unpkg.com">
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="dns-prefetch" href="https://www.gstatic.com">
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preload" href="common.js?v=10.37" as="script">
+    <link rel="preload" href="app.js?v=10.37" as="script">
+
+    <link rel="stylesheet" href="style.css?v=10.37">
+    <script src="tailwind.js?v=10.37" defer></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        /* Fail-safe base styling to prevent unstyled layout or oversized images */
+        .hidden { display: none !important; }
+        img { max-width: 100%; height: auto; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f3f4f6; margin: 0; }
+        .w-9 { width: 2.25rem !important; height: 2.25rem !important; }
+        .w-8 { width: 2rem !important; height: 2rem !important; }
+        .w-7 { width: 1.75rem !important; height: 1.75rem !important; }
+        .w-12 { width: 3rem !important; height: 3rem !important; }
+        .rounded-full { border-radius: 9999px !important; }
+        @media print {
+            body * { visibility: hidden !important; }
+            #printableTicketSheet, #printableTicketSheet * { visibility: visible !important; }
+            #printableTicketSheet {
+                position: fixed !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 15px !important;
+                box-shadow: none !important;
+                border: 2px solid #000 !important;
+            }
+        }
+
+        /* --- Google Gemini Dynamic Aurora Glow Header Styling --- */
+        .gemini-aurora-bg {
+            background: linear-gradient(125deg, #d32f2f 0%, #b91c1c 20%, #6d28d9 46%, #2563eb 70%, #0284c7 85%, #d32f2f 100%);
+            background-size: 320% 320%;
+            animation: geminiAuroraShift 14s ease-in-out infinite;
+        }
+        #mainCustomerHeader {
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 50 !important;
+            width: 100% !important;
+            box-shadow: 0 4px 20px -2px rgba(109, 40, 217, 0.3), 0 2px 6px -1px rgba(0, 0, 0, 0.15);
+        }
+        @keyframes geminiAuroraShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .gemini-shimmer-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .gemini-shimmer-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 200%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(255, 255, 255, 0.25) 20%, 
+                rgba(196, 181, 253, 0.95) 40%, 
+                rgba(56, 189, 248, 0.95) 50%, 
+                rgba(253, 224, 71, 0.9) 60%, 
+                rgba(255, 255, 255, 0.25) 80%, 
+                transparent 100%
+            );
+            animation: geminiShimmerRun 5s linear infinite;
+        }
+        @keyframes geminiShimmerRun {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(50%); }
+        }
+        .gemini-logo-glow {
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.5), 0 0 20px rgba(109, 40, 217, 0.4);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+        }
+        .gemini-logo-glow:hover {
+            transform: scale(1.08) rotate(-2deg);
+            box-shadow: 0 0 18px rgba(255, 255, 255, 0.75), 0 0 28px rgba(99, 102, 241, 0.65);
+        }
+        .gemini-title-sparkle {
+            background: linear-gradient(135deg, #ffffff 0%, #fef08a 35%, #ffffff 70%, #bae6fd 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 200% auto;
+            animation: geminiTitleShine 7s linear infinite;
+            filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
+        }
+        @keyframes geminiTitleShine {
+            0% { background-position: 0% center; }
+            100% { background-position: 200% center; }
+        }
+        .gemini-glass-pill {
+            background: rgba(255, 255, 255, 0.18);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.32);
+            transition: all 0.25s ease;
+        }
+        .gemini-glass-pill:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.55);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 antialiased min-h-screen flex flex-col">
+
+    <!-- 5-Second Auto-Dismiss Drop-Down Toast Notification Banner -->
+    <div id="dropdownToast" class="fixed top-0 left-0 right-0 z-[100] transform -translate-y-full transition-all duration-500 ease-out pointer-events-none flex justify-center p-3">
+        <div id="dropdownToastContent" class="pointer-events-auto bg-gray-900/95 text-white backdrop-blur-md px-5 py-3.5 rounded-2xl shadow-2xl border border-white/20 flex items-center gap-3.5 max-w-md w-full">
+            <span id="dropdownToastIcon" class="text-2xl shrink-0">🎉</span>
+            <div class="flex-1 text-left">
+                <p id="dropdownToastTitle" class="text-[11px] font-black uppercase tracking-wider text-yellow-400">Notification</p>
+                <p id="dropdownToastMessage" class="text-xs sm:text-sm font-semibold text-gray-100 leading-snug"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Impersonation Banner (Visible when admin accesses customer portal) -->
+    <div id="adminImpersonationBanner" class="hidden sticky top-0 z-[60] bg-gradient-to-r from-purple-900 via-indigo-900 to-gray-900 text-white px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between shadow-md border-b-2 border-yellow-400">
+        <div class="flex items-center gap-2 text-xs min-w-0">
+            <span class="text-base shrink-0">🛡️</span>
+            <div class="truncate">
+                <strong class="text-yellow-300 block leading-tight">অ্যাডমিন এক্সেস মোড (Admin Impersonation Mode)</strong>
+                <p id="adminImpersonationText" class="text-[11px] text-gray-200 truncate">আপনি অ্যাডমিন হিসেবে এই যাত্রীর প্যানেল পরিচালনা করছেন।</p>
+            </div>
+        </div>
+        <button type="button" onclick="exitAdminCustomerImpersonation()" class="bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-black text-xs px-3 py-1.5 rounded-lg shadow-sm transition flex items-center gap-1 active:scale-95 shrink-0 whitespace-nowrap">
+            <span>⬅️</span> <span>অ্যাডমিন প্যানেলে ফিরুন</span>
+        </button>
+    </div>
+
+    <!-- Header with Google Gemini Animated Aurora Glow & Shimmer -->
+    <header id="mainCustomerHeader" class="gemini-aurora-bg sticky top-0 z-50 text-white shadow-md relative">
+        <div class="max-w-4xl mx-auto px-4 py-2.5 flex justify-between items-center relative z-10">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSidebar()" class="text-white text-xl font-bold focus:outline-none hover:bg-white/20 p-1.5 rounded-lg transition" aria-label="Open menu">☰</button>
+                <div class="flex items-center gap-2.5">
+                    <img src="icons/logo-customer.png" alt="Bus Yatra Logo" class="w-9 h-9 rounded-full gemini-logo-glow border border-white/40 object-cover">
+                    <h1 id="lblHeaderTitle" class="text-xl font-black tracking-tight leading-none gemini-title-sparkle">
+                        Bus Yatra
+                    </h1>
+                </div>
+            </div>
+            <div class="flex items-center gap-1.5 sm:gap-2.5">
+                <!-- Desktop Only Action Buttons -->
+                <button type="button" onclick="openCustomerAppQrModal()" class="hidden md:flex bg-yellow-400 hover:bg-yellow-300 text-gray-950 text-xs font-black px-2.5 py-1.5 rounded-full shadow-sm transition items-center gap-1 active:scale-95" title="অ্যাপ ইনস্টল ও QR">
+                    <span>📲</span> <span id="lblHeaderInstall">Install &amp; QR</span>
+                </button>
+                <button type="button" onclick="openCustomerFeedbackQrModal()" class="hidden md:flex gemini-glass-pill text-white text-xs font-bold px-2.5 py-1.5 rounded-full transition items-center gap-1" title="যাত্রী মতামত ও ফিডব্যাক">
+                    <span>⭐</span> <span id="lblHeaderFeedback">Feedback QR</span>
+                </button>
+
+                <!-- Language Switch (Always visible) -->
+                <div class="flex gap-1 bg-black/25 p-0.5 rounded-lg border border-white/20 backdrop-blur-xs">
+                    <button onclick="changeLang('bn')" class="px-2 py-0.5 rounded text-xs font-bold bg-white text-gray-900 shadow-sm transition" id="langBnBtn">বাংলা</button>
+                    <button onclick="changeLang('en')" class="px-2 py-0.5 rounded text-xs font-bold text-white hover:bg-white/20 transition" id="langEnBtn">English</button>
+                </div>
+                
+                <!-- Notice Bell Button -->
+                <button type="button" onclick="openCustomerNotificationModal()" class="relative gemini-glass-pill text-white text-xs font-bold px-2.5 py-1.5 rounded-full transition flex items-center gap-1 shadow-xs" title="Notifications">
+                    <span>🔔</span> <span id="lblHeaderNotice" class="hidden sm:inline">Notice</span>
+                    <span id="customerHeaderNotifBadge" class="hidden bg-yellow-400 text-gray-950 text-[10px] px-1.5 py-0.2 rounded-full font-black">0</span>
+                </button>
+
+                <!-- Desktop / Tablet Only Header Controls (Mobile uses bottom navigation) -->
+                <button onclick="openMyBookingsModal()" class="hidden sm:flex gemini-glass-pill text-white text-xs font-bold px-2.5 py-1.5 rounded-full transition items-center gap-1">
+                    🎟️ <span id="lblHeaderMyBookings">My Bookings</span>
+                </button>
+                <button type="button" onclick="openCustomerSosModal()" class="hidden sm:flex bg-red-600 hover:bg-red-700 text-white text-xs font-black px-2.5 py-1.5 rounded-full transition items-center gap-1 shadow-sm border border-white/40 active:scale-95" title="Emergency SOS Safety Alert">
+                    <span class="animate-pulse">🚨</span>
+                    <span>SOS</span>
+                </button>
+                <button type="button" onclick="if(typeof openCustomerAiSupportModal==='function'){openCustomerAiSupportModal();}else{var m=document.getElementById('customerAiSupportModal');if(m){m.classList.remove('hidden');m.style.display='flex';}}" class="hidden sm:flex bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-black px-2.5 py-1.5 rounded-full transition items-center gap-1.5 shadow-sm border border-white/40 active:scale-95" title="Bus Yatra AI Support Desk">
+                    <img src="icons/ai-support-avatar.jpg" class="w-4 h-4 rounded-full object-cover border border-white" alt="AI Support">
+                    <span id="lblHeaderAiSupport">সাহায্য</span>
+                </button>
+                <button id="btnHeaderCustomerAuth" onclick="openCustomerAuthModal()" class="hidden sm:flex bg-white text-gray-900 hover:bg-gray-100 text-xs font-bold px-2.5 py-1.5 rounded-full shadow-sm transition items-center gap-1.5 active:scale-95">
+                    <span>👤</span> <span id="headerCustomerName">লগইন / রেজিস্টার</span>
+                </button>
+            </div>
+        </div>
+        <!-- Gemini Shimmering Bottom Beam (Independent Overlay, No overflow on header) -->
+        <div class="gemini-shimmer-bar"></div>
+    </header>
+    <!-- Mobile App Install Quick Banner (Hidden by default; never shown if already installed) -->
+    <div id="mobileAppInstallBanner" class="hidden md:hidden gemini-aurora-bg text-white px-3.5 py-2.5 flex items-center justify-between shadow-md border-b border-white/20">
+        <div class="flex items-center gap-2.5">
+            <img src="icons/icon-192.png" class="w-8 h-8 rounded-xl shadow border border-white/25 object-cover shrink-0" alt="Bus Yatra App">
+            <div class="text-left leading-tight">
+                <p class="text-xs font-black tracking-tight text-white flex items-center gap-1">
+                    <span id="lblMobileBannerTitle">Bus Yatra মোবাইল অ্যাপ</span>
+                </p>
+                <p id="lblMobileBannerSub" class="text-[10px] text-red-100 font-medium">দ্রুত ও সহজে বাসের টিকিট কাটুন</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-1.5">
+            <button id="btnMobileBannerInstall" type="button" onclick="triggerPwaInstall('Bus Yatra')" class="bg-yellow-400 hover:bg-yellow-300 text-gray-950 font-black text-xs px-3 py-1.5 rounded-xl shadow-sm whitespace-nowrap active:scale-95 transition">
+                📲 ইনস্টল
+            </button>
+            <button type="button" onclick="dismissInstallBanner('mobileAppInstallBanner')" class="text-white/80 hover:text-white text-sm p-1 leading-none" title="বন্ধ করুন">✕</button>
+        </div>
+    </div>
+
+    <!-- Sidebar / Drawer (Smooth Vertical Scrolling & Google-Compliant Corporate Links) -->
+    <div id="sidebarMenu" class="fixed inset-0 bg-black/60 z-50 hidden transition-opacity backdrop-blur-xs" onclick="toggleSidebar()">
+        <div class="absolute left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-2xl flex flex-col justify-between text-gray-800 overflow-hidden select-none" onclick="event.stopPropagation()">
+            <!-- Sticky Top Header -->
+            <div class="flex justify-between items-center p-4 sm:p-5 border-b shrink-0 bg-white">
+                <div class="flex items-center gap-2.5">
+                    <img src="icons/logo-customer.png" class="w-8 h-8 rounded-full shadow-xs" alt="Bus Yatra">
+                    <div>
+                        <h2 id="lblMenuTitle" class="font-black text-lg text-red-600 leading-tight">Bus Yatra</h2>
+                        <p class="text-[10px] text-gray-500 font-medium">Pan-India Express Service</p>
+                    </div>
+                </div>
+                <button type="button" onclick="toggleSidebar()" class="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-100 font-bold text-lg transition" aria-label="Close menu">✕</button>
+            </div>
+
+            <!-- Smooth Scrollable Body -->
+            <div class="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 min-h-0 touch-pan-y focus:outline-none" style="-webkit-overflow-scrolling: touch;">
+                <!-- Primary Passenger Navigation -->
+                <nav class="space-y-1.5 pb-2">
+                    <button onclick="toggleSidebar(); resetApp();" id="lblMenuHome" class="w-full text-left p-2.5 rounded-xl hover:bg-red-50 text-gray-800 font-semibold text-xs flex items-center gap-3 transition">
+                        🏠 <span>Home / Bus Search</span>
+                    </button>
+                    <button onclick="toggleSidebar(); openCustomerNotificationModal();" class="w-full text-left p-2.5 rounded-xl hover:bg-red-50 text-gray-800 font-semibold text-xs flex items-center justify-between transition">
+                        <span class="flex items-center gap-3">🔔 <span id="lblMenuNotice">Notifications &amp; Notice</span></span>
+                        <span id="lblMenuNoticeBadge" class="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">নোটিশ</span>
+                    </button>
+                    <button onclick="toggleSidebar(); openMyBookingsModal();" id="lblMenuBookings" class="w-full text-left p-2.5 rounded-xl hover:bg-red-50 text-gray-800 font-semibold text-xs flex items-center gap-3 transition">
+                        🎟️ <span>My Bookings &amp; PDF Ticket</span>
+                    </button>
+                    <button onclick="toggleSidebar(); openCustomerAuthModal();" id="lblMenuAuth" class="w-full text-left p-2.5 rounded-xl hover:bg-red-50 text-gray-800 font-semibold text-xs flex items-center gap-3 transition">
+                        👤 <span id="lblSidebarAuthText">লগইন / নতুন অ্যাকাউন্ট</span>
+                    </button>
+                    <button onclick="toggleSidebar(); openCustomerFeedbackQrModal();" class="w-full text-left p-2.5 rounded-xl hover:bg-red-50 text-gray-800 font-semibold text-xs flex items-center gap-3 transition">
+                        ⭐ <span id="lblMenuFeedback">Passenger Feedback QR</span>
+                    </button>
+                    <button type="button" onclick="toggleSidebar(); openCustomerAppQrModal();" class="w-full text-left p-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs flex items-center gap-3 transition border border-amber-200">
+                        📲 <span id="lblMenuInstall">Install App &amp; QR Code</span>
+                    </button>
+                    <button type="button" onclick="toggleSidebar(); if(typeof openCustomerAiSupportModal==='function'){openCustomerAiSupportModal();}else{var m=document.getElementById('customerAiSupportModal');if(m){m.classList.remove('hidden');m.style.display='flex';}}" class="w-full text-left p-2.5 rounded-xl bg-indigo-50/80 hover:bg-indigo-100 text-indigo-950 font-bold text-xs flex items-center gap-3 transition border border-indigo-200">
+                        <img src="icons/ai-support-avatar.jpg" class="w-5 h-5 rounded-full object-cover border border-indigo-400" alt="AI Agent">
+                        <span id="lblMenuAiSupport">🤖 এআই হেল্পডেস্ক ও সহায়তা (AI Support)</span>
+                    </button>
+
+                    <!-- Corporate & Legal Enterprise Navigation (English - Google Approval Compliant) -->
+                    <div class="pt-3 border-t mt-3">
+                        <p class="text-[10px] uppercase tracking-wider font-extrabold text-gray-400 px-2 pb-1.5 flex items-center gap-1.5">
+                            <span>🏢</span> <span>Corporate &amp; Legal</span>
+                        </p>
+                        <div class="space-y-1">
+                            <button type="button" onclick="toggleSidebar(); openCorporateModal('about');" class="w-full text-left p-2 rounded-xl hover:bg-gray-100 text-gray-700 font-semibold text-xs flex items-center gap-2.5 transition">
+                                <span>🏢</span> <span>About Us</span>
+                            </button>
+                            <button type="button" onclick="toggleSidebar(); openCorporateModal('terms');" class="w-full text-left p-2 rounded-xl hover:bg-gray-100 text-gray-700 font-semibold text-xs flex items-center gap-2.5 transition">
+                                <span>📜</span> <span>Terms &amp; Conditions</span>
+                            </button>
+                            <button type="button" onclick="toggleSidebar(); openCorporateModal('privacy');" class="w-full text-left p-2 rounded-xl hover:bg-gray-100 text-gray-700 font-semibold text-xs flex items-center gap-2.5 transition">
+                                <span>🛡️</span> <span>Privacy Policy</span>
+                            </button>
+                            <button type="button" onclick="toggleSidebar(); openCorporateModal('refund');" class="w-full text-left p-2 rounded-xl hover:bg-gray-100 text-gray-700 font-semibold text-xs flex items-center gap-2.5 transition">
+                                <span>💳</span> <span>Cancellation &amp; Refund</span>
+                            </button>
+                            <button type="button" onclick="toggleSidebar(); openCorporateModal('contact');" class="w-full text-left p-2 rounded-xl hover:bg-gray-100 text-gray-700 font-semibold text-xs flex items-center gap-2.5 transition">
+                                <span>📞</span> <span>Contact Us &amp; Grievance</span>
+                            </button>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+
+            <!-- Sticky Bottom Footer -->
+            <div class="border-t p-4 sm:p-5 space-y-1.5 shrink-0 bg-gray-50">
+                <button onclick="toggleSidebar(); customerLogout();" id="lblMenuLogout" class="hidden w-full text-left p-2 rounded-xl hover:bg-red-50 text-red-600 font-bold text-xs flex items-center gap-2 transition">
+                    🚪 <span>Logout / Reset</span>
+                </button>
+                <div class="text-[10px] text-gray-400 text-center font-medium leading-relaxed">
+                    <p class="font-bold text-gray-600">Bus Yatra Mobility Services</p>
+                    <p>© <span id="corporateFooterYear">2026</span> Bus Yatra • Founder: Gopal Chandra Jana</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Bookings Modal -->
+    <div id="myBookingsModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl border border-gray-200 flex flex-col max-h-[90vh]">
+            <div class="bg-red-600 text-white p-4 flex justify-between items-center">
+                <h3 id="lblMyBookingsTitle" class="font-bold text-base md:text-lg flex items-center gap-2">🎟️ My Bookings & Digital Pass</h3>
+                <button onclick="closeMyBookingsModal()" id="lblCloseModal" class="text-white hover:bg-red-700 p-1.5 rounded-lg text-sm font-bold">✕ Close</button>
+            </div>
+            <div class="p-5 space-y-4 overflow-y-auto">
+                <p id="lblMyBookingsDesc" class="text-xs text-gray-500">Enter your Booking ID and registered 10-digit mobile number to view ticket status, download PDF ticket, and track live bus GPS.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input type="text" id="lookupBookingId" placeholder="Booking ID (e.g. BK_XXXX)" class="w-full p-2.5 border rounded-xl text-sm font-mono uppercase">
+                    <input type="tel" id="lookupPhone" placeholder="10-digit mobile number" class="w-full p-2.5 border rounded-xl text-sm" maxlength="10">
+                </div>
+                <button onclick="searchCustomerBookings()" id="btnLookupSearch" class="w-full bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl font-bold text-sm shadow-md transition">
+                    🔍 Find My Ticket
+                </button>
+                <div id="lookupResults" class="space-y-3 mt-3">
+                    <div id="lblLookupPlaceholder" class="text-center text-gray-400 py-6 text-xs">Enter your details above and click Find My Ticket.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Authentication Modal (Login / Register / Forgot PIN) -->
+    <div id="customerAuthModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl border border-gray-200 flex flex-col max-h-[92vh]">
+            <div class="bg-red-600 text-white p-4 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <img src="icons/logo-customer.png" class="w-7 h-7 rounded-full bg-white p-0.5" alt="Customer Logo">
+                    <h3 id="customerAuthModalTitle" class="font-bold text-base flex items-center gap-1.5">👤 <span data-bn="যাত্রী অ্যাকাউন্ট" data-en="Passenger Portal">যাত্রী অ্যাকাউন্ট</span></h3>
+                </div>
+                <button onclick="closeCustomerAuthModal()" id="btnCustomerAuthClose" class="text-white hover:bg-red-700 p-1.5 rounded-lg text-sm font-bold">✕ Close</button>
+            </div>
+
+            <!-- Tabs: Login / Register / Forgot PIN -->
+            <div class="flex border-b bg-gray-50 text-xs font-bold text-center">
+                <button type="button" onclick="switchCustomerAuthTab('login')" id="tabCustomerLoginBtn" class="flex-1 py-3 border-b-2 border-red-600 text-red-600 bg-white transition">
+                    Login
+                </button>
+                <button type="button" onclick="switchCustomerAuthTab('register')" id="tabCustomerRegisterBtn" class="flex-1 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition">
+                    Register
+                </button>
+                <button type="button" onclick="switchCustomerAuthTab('forgot')" id="tabCustomerForgotBtn" class="flex-1 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-800 transition">
+                    Forgot PIN?
+                </button>
+            </div>
+
+            <div class="p-5 space-y-4 overflow-y-auto">
+                <!-- PWA Install Banner inside Auth Modal -->
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-2.5 flex items-center justify-between gap-2 shadow-xs">
+                    <div class="flex items-center gap-2 text-left">
+                        <span class="text-xl">📲</span>
+                        <div>
+                            <p id="lblAuthModalPwaTitle" class="text-xs font-bold text-amber-950">Bus Yatra Mobile App</p>
+                            <p id="lblAuthModalPwaSub" class="text-[10px] text-amber-800">Install the app before logging in</p>
+                        </div>
+                    </div>
+                    <button id="btnAuthModalPwaInstall" type="button" onclick="triggerPwaInstall('Bus Yatra')" class="bg-amber-500 hover:bg-amber-600 text-gray-900 font-black text-xs px-3 py-1.5 rounded-lg shadow-sm whitespace-nowrap transition">
+                        Install Now
+                    </button>
+                </div>
+
+                <!-- Tab 1: Login Form -->
+                <div id="customerLoginForm" class="space-y-3.5">
+                    <p class="text-xs text-gray-600" data-bn="আপনার ১০-সংখ্যার মোবাইল নম্বর এবং ৪-সংখ্যার গোপন পিন দিয়ে লগইন করুন।" data-en="Login with your 10-digit mobile number and 4-digit PIN.">আপনার ১০-সংখ্যার মোবাইল নম্বর এবং ৪-সংখ্যার গোপন পিন দিয়ে লগইন করুন。</p>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="মোবাইল নম্বর" data-en="Mobile Number">মোবাইল নম্বর</label>
+                        <input type="tel" id="customerLoginPhone" maxlength="10" placeholder="১০ সংখ্যার মোবাইল নম্বর দিন" class="w-full p-2.5 border rounded-xl text-sm font-semibold bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">৪-ডিজিটের পিন (4-Digit PIN)</label>
+                        <input type="password" id="customerLoginPin" maxlength="4" placeholder="••••" class="w-full p-2.5 border rounded-xl text-center text-xl font-bold tracking-widest bg-gray-50">
+                    </div>
+                    <button type="button" id="btnCustomerLoginSubmit" onclick="submitCustomerLogin()" class="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold text-sm shadow-md transition">
+                        ✓ Secure Login
+                    </button>
+                    <div class="flex justify-between items-center text-xs pt-1">
+                        <button type="button" onclick="switchCustomerAuthTab('forgot')" class="text-blue-600 hover:underline font-semibold">পিন ভুলে গেছেন? (Forgot PIN?)</button>
+                        <button type="button" onclick="switchCustomerAuthTab('register')" class="text-red-600 hover:underline font-bold">নতুন একাউন্ট খুলুন</button>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Registration Form -->
+                <div id="customerRegisterForm" class="space-y-3.5 hidden">
+                    <p class="text-xs text-gray-600">আপনার নাম, মোবাইল, ইমেইল এবং ৪-ডিজিটের পিন দিয়ে রেজিস্টার করুন। কোনো অ্যাডমিন অনুমোদন লাগবে না; রেজিস্টারের পরই সাথে সাথে লগইন হবে।</p>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="আপনার পূর্ণ নাম" data-en="Full Name">আপনার পূর্ণ নাম</label>
+                        <input type="text" id="customerRegName" placeholder="যেমন: রাহুল জানা" class="w-full p-2.5 border rounded-xl text-sm font-semibold bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">মোবাইল নম্বর (10-Digit Mobile)</label>
+                        <input type="tel" id="customerRegPhone" maxlength="10" placeholder="যেমন: 9876543210" class="w-full p-2.5 border rounded-xl text-sm font-semibold bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">ইমেইল ঠিকানা (Email OTP ও রিকভারির জন্য)</label>
+                        <input type="email" id="customerRegEmail" placeholder="যেমন: rahul@gmail.com" class="w-full p-2.5 border rounded-xl text-sm font-semibold bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">লগইন করার জন্য ৪-ডিজিটের পিন (Set 4-Digit PIN)</label>
+                        <input type="password" id="customerRegPin" maxlength="4" placeholder="৪ সংখ্যার পিন দিন (e.g. 1234)" class="w-full p-2.5 border rounded-xl text-center text-xl font-bold tracking-widest bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">সিকিউরিটি প্রশ্ন (Security Question - পিন ভুলে গেলে লাগবে)</label>
+                        <select id="customerRegQuestion" class="w-full p-2.5 border rounded-xl text-xs font-semibold bg-gray-50">
+                            <option value="আপনার জন্মস্থান কোন শহরে?" data-bn="আপনার জন্মস্থান কোন শহরে?" data-en="What city were you born in?">আপনার জন্মস্থান কোন শহরে?</option>
+                            <option value="আপনার প্রথম স্কুলের নাম কি?" data-bn="আপনার প্রথম স্কুলের নাম কি?" data-en="What is your first school name?">আপনার প্রথম স্কুলের নাম কি?</option>
+                            <option value="আপনার প্রিয় খাবার কি?" data-bn="আপনার প্রিয় খাবার কি?" data-en="What is your favorite food?">আপনার প্রিয় খাবার কি?</option>
+                            <option value="আপনার প্রিয় বন্ধুর নাম কি?" data-bn="আপনার প্রিয় বন্ধুর নাম কি?" data-en="What is your best friend's name?">আপনার প্রিয় বন্ধুর নাম কি?</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="সিকিউরিটি উত্তর" data-en="Secret Answer">সিকিউরিটি উত্তর</label>
+                        <input type="text" id="customerRegAnswer" placeholder="সহজ একটি উত্তর দিন যা মনে থাকবে" class="w-full p-2.5 border rounded-xl text-sm font-semibold bg-gray-50">
+                    </div>
+                    <button type="button" onclick="submitCustomerRegister()" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold text-sm shadow-md transition">
+                        ✓ রেজিস্টার ও স্বয়ংক্রিয় লগইন করুন
+                    </button>
+                    <div class="text-center text-xs pt-1">
+                        <button type="button" onclick="switchCustomerAuthTab('login')" class="text-red-600 hover:underline font-bold">আগে থেকেই অ্যাকাউন্ট আছে? এখানে লগইন করুন</button>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Forgot PIN Form -->
+                <div id="customerForgotForm" class="space-y-3.5 hidden">
+                    <p class="text-xs text-gray-600">পিন ভুলে গেলে নিচের যেকোনো একটি সহজ মাধ্যমে নতুন পিন সেট করে নিন:</p>
+
+                    <!-- Forgot Subtabs -->
+                    <div class="flex border rounded-xl p-1 bg-gray-100 gap-1 text-center text-xs">
+                        <button type="button" id="tabCustForgotOtp" onclick="switchCustForgotSubTab('otp')" class="flex-1 py-1.5 rounded-lg font-bold bg-white text-gray-900 shadow-sm transition">
+                            ✉️ Email OTP
+                        </button>
+                        <button type="button" id="tabCustForgotQuestion" onclick="switchCustForgotSubTab('question')" class="flex-1 py-1.5 rounded-lg font-bold text-gray-500 hover:text-gray-900 transition">
+                            ❓ সিকিউরিটি প্রশ্ন
+                        </button>
+                        <button type="button" id="tabCustForgotAdmin" onclick="switchCustForgotSubTab('admin')" class="flex-1 py-1.5 rounded-lg font-bold text-gray-500 hover:text-gray-900 transition">
+                            👤 অ্যাডমিন হেল্প
+                        </button>
+                    </div>
+
+                    <!-- Sub-Option A: Email OTP -->
+                    <div id="custForgotOtpSection" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="রেজিস্টার্ড ইমেইল আইডি" data-en="Registered Email ID">রেজিস্টার্ড ইমেইল আইডি</label>
+                            <div class="flex gap-2">
+                                <input type="email" id="custForgotOtpEmail" placeholder="আপনার রেজিস্টার্ড ইমেইল (e.g. name@gmail.com)" class="w-full p-2.5 border rounded-xl text-sm font-semibold bg-gray-50 focus:bg-white focus:ring-2 focus:ring-red-500 transition">
+                                <button type="button" id="custSendOtpBtn" onclick="requestCustomerResetOtp()" class="bg-gray-800 hover:bg-black text-white px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition shadow-sm">
+                                    Send OTP
+                                </button>
+                            </div>
+                        </div>
+                        <p id="custOtpSentMsg" class="hidden text-xs text-green-700 font-semibold bg-green-50 p-2.5 rounded-lg border border-green-200"></p>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">ইমেইল ওটিপি কোড (6-Digit Email OTP)</label>
+                            <input type="text" id="custResetOtp" maxlength="6" placeholder="৬ সংখ্যার ওটিপি দিন" class="w-full p-2.5 border rounded-xl text-center text-lg font-bold tracking-widest bg-gray-50 focus:bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">নতুন ৪-ডিজিটের পিন (New 4-Digit PIN)</label>
+                            <input type="password" id="custResetOtpPin" maxlength="4" placeholder="••••" class="w-full p-2.5 border rounded-xl text-center text-xl font-bold tracking-widest bg-gray-50 focus:bg-white">
+                        </div>
+                        <button type="button" id="btnForgotEmailVerifyOtp" onclick="submitCustomerResetByOtp()" class="w-full bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl font-bold text-sm shadow-md transition">
+                            ✓ OTP যাচাই করে পিন রিসেট করুন
+                        </button>
+                    </div>
+
+                    <!-- Sub-Option B: Security Question -->
+                    <div id="custForgotQuestionSection" class="space-y-3 hidden">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="নিবন্ধিত মোবাইল নম্বর" data-en="Registered Mobile Number">নিবন্ধিত মোবাইল নম্বর</label>
+                            <div class="flex gap-2">
+                                <input type="tel" id="customerForgotPhone" maxlength="10" placeholder="১০ সংখ্যার মোবাইল নম্বর দিন" class="w-full p-2.5 border rounded-xl text-sm font-semibold bg-gray-50">
+                                <button type="button" onclick="checkCustomerSecurityQuestion()" class="bg-gray-800 hover:bg-black text-white px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap">প্রশ্ন খুঁজুন</button>
+                            </div>
+                        </div>
+                        <div id="customerForgotQuestionBox" class="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
+                            <div class="text-xs text-amber-800 font-bold flex items-center gap-1.5">
+                                <span>❓ সিকিউরিটি প্রশ্ন:</span>
+                                <span id="customerForgotQuestionPrompt" class="text-gray-900 font-semibold">মোবাইল নম্বর দিয়ে উপরে 'প্রশ্ন খুঁজুন' ক্লিক করুন</span>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="সিকিউরিটি উত্তর" data-en="Security Answer">সিকিউরিটি উত্তর</label>
+                                <input type="text" id="customerForgotAnswer" placeholder="রেজিস্ট্রেশনের সময় যা দিয়েছিলেন" class="w-full p-2.5 border rounded-xl text-sm font-semibold bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">নতুন ৪-ডিজিটের পিন (Set New 4-Digit PIN)</label>
+                                <input type="password" id="customerForgotNewPin" maxlength="4" placeholder="••••" class="w-full p-2.5 border rounded-xl text-center text-xl font-bold tracking-widest bg-white">
+                            </div>
+                            <button type="button" onclick="submitCustomerForgotPin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-bold text-xs shadow-md transition">
+                                ✓ নতুন পিন সেট করুন
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Sub-Option C: Admin Assistance -->
+                    <div id="custForgotAdminSection" class="space-y-3 hidden">
+                        <div class="p-3 bg-red-50 border border-red-200 rounded-xl space-y-2">
+                            <div class="text-xs font-bold text-red-900">অ্যাডমিনের মাধ্যমে পিন রিসেট</div>
+                            <p class="text-[11px] text-gray-600">আপনি রিকোয়েস্ট পাঠালে অ্যাডমিন তার ড্যাশবোর্ডে আপনার পিন দেখতে ও রিসেট করতে পারবে।</p>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1 text-left">আপনার মোবাইল নম্বর</label>
+                                <input type="tel" id="custAdminHelpPhone" maxlength="10" placeholder="১০ সংখ্যার মোবাইল নম্বর দিন" class="w-full p-2.5 border rounded-xl text-sm font-semibold bg-white">
+                            </div>
+                            <button type="button" onclick="submitCustomerRequestAdminPin()" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-xl text-xs font-bold shadow-sm transition">
+                                🚨 অ্যাডমিনকে পিন রিসেট রিকোয়েস্ট পাঠান
+                            </button>
+                            <p id="custAdminRequestMsg" class="hidden text-xs text-green-800 font-semibold bg-green-100 p-2 rounded-lg"></p>
+                        </div>
+                        <div class="p-3 bg-green-50 border border-green-200 rounded-xl text-center space-y-1.5">
+                            <div class="text-xs font-bold text-green-900">সরাসরি হোয়াটসঅ্যাপে কথা বলুন</div>
+                            <p class="text-[11px] text-gray-600">অ্যাডমিন আপনার পরিচয় যাচাই করে সাথে সাথে পিন জানিয়ে দেবে।</p>
+                            <button type="button" onclick="contactAdminForPinWhatsApp()" class="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm">
+                                💬 <span data-bn="অ্যাডমিনকে হোয়াটসঅ্যাপ করুন" data-en="WhatsApp Support Admin">অ্যাডমিনকে হোয়াটসঅ্যাপ করুন</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div id="feedbackModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl border space-y-4">
+            <h3 id="lblFeedbackTitle" class="font-bold text-lg text-gray-900">⭐ Share Your Trip Feedback</h3>
+            <p id="lblFeedbackDesc" class="text-xs text-gray-500">Your feedback helps bus operators improve service quality.</p>
+            <input type="hidden" id="feedbackBookingId" value="">
+            <div>
+                <label id="lblRating" class="block text-xs font-semibold text-gray-600 mb-1">Rating</label>
+                <select id="feedbackRating" class="w-full p-2.5 border rounded-xl text-sm bg-gray-50">
+                    <option value="5">⭐⭐⭐⭐⭐ Excellent (5/5)</option>
+                    <option value="4">⭐⭐⭐⭐ Very Good (4/5)</option>
+                    <option value="3">⭐⭐⭐ Good (3/5)</option>
+                    <option value="2">⭐⭐ Fair (2/5)</option>
+                    <option value="1">⭐ Poor (1/5)</option>
+                </select>
+            </div>
+            <div>
+                <label id="lblComment" class="block text-xs font-semibold text-gray-600 mb-1">Comments (Optional)</label>
+                <textarea id="feedbackComment" rows="3" placeholder="Write your experience..." class="w-full p-2.5 border rounded-xl text-sm bg-gray-50"></textarea>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeFeedbackModal()" id="btnSkipFeedback" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2.5 rounded-xl font-bold text-xs">Skip</button>
+                <button onclick="submitCustomerFeedback()" id="btnSubmitFeedback" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl font-bold text-xs shadow-md">Submit Feedback</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="max-w-4xl mx-auto px-4 pt-4 pb-24 md:py-6 flex-1 w-full space-y-6">
+
+        <!-- Festival Greeting Banner (Controlled via Admin Panel) -->
+        <div id="festivalGreetingBanner" class="hidden"></div>
+
+        <!-- Search Section -->
+        <section id="searchSection" class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200">
+            <h2 id="lblSearchTitle" class="text-base md:text-lg font-bold mb-4 text-red-600 flex items-center gap-2">
+                🔍 Search Bus Route
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr_1.1fr] gap-3 items-end relative">
+                <!-- From City Autocomplete -->
+                <div class="relative">
+                    <div class="flex justify-between items-center mb-1">
+                        <label id="lblFrom" class="block text-xs font-semibold text-gray-700">From (যাত্রার শুরু / Origin)</label>
+                        <button type="button" id="btnVoiceSearchOrigin" onclick="triggerVoiceRouteInput('from')" class="hidden text-xs text-red-600 hover:text-red-700 font-bold items-center gap-1 transition" title="মুখে বলুন / Voice Search" data-bn-title="মুখে বলুন" data-en-title="Voice Search">
+                            <span>🎙️</span> <span class="text-[10px]">মুখে বলুন</span>
+                        </button>
+                    </div>
+                    <input type="text" id="fromCityInput" placeholder="Type or search origin..." autocomplete="off" oninput="filterCityDropdown('from')" onclick="showCityDropdown('from')" class="w-full p-2.5 border rounded-xl bg-gray-50 text-sm font-medium">
+                    <div id="fromCityDropdown" class="hidden absolute left-0 right-0 top-full mt-1 bg-white border rounded-xl shadow-lg z-30 max-h-48 overflow-y-auto"></div>
+                </div>
+
+                <!-- Swap Route Button (⇄) -->
+                <div class="flex justify-center -my-1 md:my-0 md:pb-1">
+                    <button type="button" id="btnSwapRoute" onclick="swapSearchCities()" title="Swap Origin & Destination (রুট অদলবদল করুন)" aria-label="Swap Route" class="w-10 h-10 rounded-full bg-white border-2 border-red-200 hover:border-red-600 text-red-600 hover:bg-red-50 shadow-sm hover:shadow-md active:scale-90 flex items-center justify-center transition-all duration-300 focus:outline-none group">
+                        <span id="swapRouteIcon" class="inline-block transition-transform duration-300 text-lg font-black group-hover:rotate-180">⇄</span>
+                    </button>
+                </div>
+
+                <!-- To City Autocomplete -->
+                <div class="relative">
+                    <div class="flex justify-between items-center mb-1">
+                        <label id="lblTo" class="block text-xs font-semibold text-gray-700">To (গন্তব্য / Destination)</label>
+                        <button type="button" id="btnVoiceSearchDest" onclick="triggerVoiceRouteInput('to')" class="hidden text-xs text-red-600 hover:text-red-700 font-bold items-center gap-1 transition" title="মুখে বলুন / Voice Search" data-bn-title="মুখে বলুন" data-en-title="Voice Search">
+                            <span>🎙️</span> <span class="text-[10px]">মুখে বলুন</span>
+                        </button>
+                    </div>
+                    <input type="text" id="toCityInput" placeholder="Type or search destination..." autocomplete="off" oninput="filterCityDropdown('to')" onclick="showCityDropdown('to')" class="w-full p-2.5 border rounded-xl bg-gray-50 text-sm font-medium">
+                    <div id="toCityDropdown" class="hidden absolute left-0 right-0 top-full mt-1 bg-white border rounded-xl shadow-lg z-30 max-h-48 overflow-y-auto"></div>
+                </div>
+
+                <!-- Journey Date -->
+                <div>
+                    <label id="lblDate" class="block text-xs font-semibold text-gray-700 mb-1">Journey Date (যাত্রার তারিখ)</label>
+                    <input type="date" id="journeyDate" class="w-full p-2.5 border rounded-xl bg-gray-50 text-sm font-medium">
+                </div>
+            </div>
+
+            <!-- Quick Date Pills -->
+            <div class="flex gap-2 mt-3 overflow-x-auto pb-1 text-xs">
+                <button onclick="selectQuickDate(0, this)" id="lblQuickToday" class="px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 rounded-lg font-semibold shrink-0 hover:bg-red-100 transition date-pill">Today</button>
+                <button onclick="selectQuickDate(1, this)" id="lblQuickTomorrow" class="px-3 py-1.5 bg-gray-50 text-gray-700 border rounded-lg font-semibold shrink-0 hover:bg-gray-100 transition date-pill">Tomorrow</button>
+                <button onclick="openCustomDatePicker()" id="lblQuickCustom" class="px-3 py-1.5 bg-gray-50 text-gray-700 border rounded-lg font-semibold shrink-0 hover:bg-gray-100 transition">Custom Date 📅</button>
+            </div>
+
+            <button id="searchBusesButton" onclick="searchBuses()" class="mt-4 w-full bg-red-600 text-white py-3 rounded-xl font-bold shadow-md hover:bg-red-700 transition">
+                Search Buses
+            </button>
+
+            <!-- Customer Next-Gen Quick Action Row: Offline Tickets & Parcel Booking (Controlled by Admin) -->
+            <div id="customerQuickActionRow" class="hidden grid-cols-2 gap-2 mt-3 pt-3 border-t border-gray-100">
+                <button type="button" id="btnCustomerOfflineTicket" onclick="openCustomerOfflineTicketModal()" class="hidden items-center justify-center gap-1.5 p-2 bg-purple-50 hover:bg-purple-100 text-purple-900 rounded-xl border border-purple-200 text-xs font-bold transition">
+                    <span>📱</span> <span>অফলাইন টিকিট ও QR</span>
+                </button>
+                <button type="button" id="customerParcelSection" onclick="openCustomerParcelModal()" class="hidden items-center justify-center gap-1.5 p-2 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-xl border border-amber-200 text-xs font-bold transition">
+                    <span>📦</span> <span>বাস পার্সেল বুকিং</span>
+                </button>
+            </div>
+
+            <!-- Customer Referral & Earn Banner (Controlled by Admin) -->
+            <div id="customerReferralBanner" class="hidden mt-3 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-xl p-3 items-center justify-between gap-2 shadow-xs">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">🎁</span>
+                    <div class="text-left">
+                        <div class="text-xs font-black text-gray-900">রেফার করুন ও আকর্ষণীয় ক্যাশব্যাক জিতুন!</div>
+                        <p class="text-[11px] text-gray-600">বন্ধুদের সাথে শেয়ার করুন, তারা টিকিট কাটলেই ছাড় পাবেন।</p>
+                    </div>
+                </div>
+                <button type="button" onclick="copyReferralLink()" class="bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-3 py-1.5 rounded-xl whitespace-nowrap shadow-xs transition">
+                    🔗 লিংক কপি
+                </button>
+            </div>
+        </section>
+
+        <!-- Bus List Section -->
+        <section id="busListSection" class="hidden space-y-4">
+            <h3 id="lblAvailableBuses" class="text-md font-bold text-gray-800">Available Buses</h3>
+            <div id="busContainer" class="space-y-3">
+                <!-- Dynamic Bus Card -->
+            </div>
+        </section>
+
+        <!-- Step 1: Seat Selection Section -->
+        <section id="seatSelectionSection" class="hidden bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200">
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                <div>
+                    <h3 id="selectedBusTitle" class="font-bold text-lg text-gray-900">Bus Name</h3>
+                    <p id="lblSelectSeatsSub" class="text-xs text-gray-500">Step 1 of 2: Select your seat(s) - 65 Seater Layout</p>
+                </div>
+                <button id="lblBack" onclick="backToBuses()" class="text-sm text-red-600 font-semibold hover:underline">← Back to Buses</button>
+            </div>
+
+            <!-- 15-Minute Seat Hold Countdown Timer Banner -->
+            <div id="seatHoldTimerBanner" class="mb-4 bg-amber-50 border border-amber-300 rounded-xl p-3 flex items-center justify-between gap-3 text-xs shadow-xs">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">⏱️</span>
+                    <div>
+                        <span class="font-bold text-amber-900">Seat Hold Expiration Timer</span>
+                        <p class="text-[10px] text-amber-700">Complete payment before timer ends to secure your seats.</p>
+                    </div>
+                </div>
+                <div id="seatHoldCountdownClock" class="font-mono font-extrabold text-sm text-red-600 bg-white px-3 py-1 rounded-lg border border-amber-200">
+                    15:00
+                </div>
+            </div>
+
+            <!-- Women Safety & SOS Support Badge -->
+            <div id="customerWomenSafetyBadge" class="mb-4 bg-pink-50 border border-pink-200 rounded-xl p-2.5 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">🛡️</span>
+                    <div>
+                        <span class="text-xs font-bold text-pink-950">মহিলা যাত্রী নিরাপত্তা ও 24/7 SOS হেল্পলাইন</span>
+                        <p class="text-[10px] text-pink-800">নিরাপদ ও সংরক্ষিত যাত্রা নিশ্চিত করতে আমাদের বিশেষ হেল্প ডেস্ক প্রস্তুত।</p>
+                    </div>
+                </div>
+                <a href="tel:1091" class="bg-pink-600 hover:bg-pink-700 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shrink-0">
+                    🚨 SOS 1091
+                </a>
+            </div>
+
+            <!-- Boarding & Dropping Point Selectors (Determine dynamic fare) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 bg-gray-50 p-3.5 rounded-xl border border-gray-200">
+                <div>
+                    <label id="lblBoardingPoint" class="block text-xs font-bold text-gray-700 mb-1">Boarding Point (Departure)</label>
+                    <select id="boardingPointSelect" onchange="recalculateDynamicFare()" class="w-full p-2.5 border rounded-xl text-sm bg-white font-medium">
+                    </select>
+                </div>
+                <div>
+                    <label id="lblDroppingPoint" class="block text-xs font-bold text-gray-700 mb-1">Dropping Point (Destination)</label>
+                    <select id="droppingPointSelect" onchange="recalculateDynamicFare()" class="w-full p-2.5 border rounded-xl text-sm bg-white font-medium">
+                    </select>
+                </div>
+            </div>
+
+            <!-- Clean Seat Legend (No Women tag) -->
+            <div class="flex flex-wrap gap-5 text-xs mb-5 justify-center bg-gray-50 p-2.5 rounded-xl border border-gray-200">
+                <div class="flex items-center gap-1.5"><span class="w-4 h-4 bg-white border-2 border-green-600 rounded"></span> <span id="lblAvail">Available</span></div>
+                <div class="flex items-center gap-1.5"><span class="w-4 h-4 bg-purple-100 border-2 border-purple-600 rounded flex items-center justify-center text-[10px] text-purple-600 font-bold">✓</span> <span id="lblSel">Selected</span></div>
+                <div class="flex items-center gap-1.5"><span class="w-4 h-4 bg-gray-200 border border-gray-400 rounded"></span> <span id="lblBooked">Sold</span></div>
+                <div class="flex items-center gap-1.5"><span class="w-4 h-4 bg-amber-100 border-2 border-amber-400 rounded flex items-center justify-center text-[10px] text-amber-700 font-bold">🔒</span> <span id="lblHeld">Locked (15m)</span></div>
+            </div>
+
+            <!-- 65 Seats Grid (2+3 Layout) -->
+            <div class="max-w-md mx-auto bg-gray-100 p-2 sm:p-5 rounded-2xl border border-gray-300 relative shadow-inner overflow-hidden">
+                <div class="flex justify-between items-center mb-3 px-1 max-w-[340px] mx-auto">
+                    <span class="text-[11px] font-bold text-gray-500 flex items-center gap-1">🚌 বাস সিট লেআউট</span>
+                    <div id="lblSteeringWheel" class="bg-white px-3 py-1 rounded-full border shadow-sm text-xs font-bold text-gray-700">
+                        🛞 Driver
+                    </div>
+                </div>
+                <div id="seatsGrid" class="space-y-2 flex flex-col items-center w-full">
+                    <!-- Seats generated via JS -->
+                </div>
+                <div id="lblEmergencyExit" class="hidden sm:block absolute left-2 top-1/2 -translate-y-1/2 bg-gray-300 text-gray-700 text-[10px] font-bold px-1 py-3 rounded">
+                    Exit
+                </div>
+            </div>
+
+            <!-- Selected Seats & Next Step Action Bar -->
+            <div class="mt-6 border-t pt-4 max-w-md mx-auto space-y-3">
+                <div class="flex justify-between items-center bg-red-50 p-3.5 rounded-xl border border-red-100 text-sm">
+                    <div>
+                        <span id="lblSelSeatsText" class="text-xs text-gray-500 font-semibold block">Selected Seats</span>
+                        <span id="lblSelectedSeats" class="font-black text-gray-900 text-base">None</span>
+                    </div>
+                    <div class="text-right">
+                        <span id="lblTotalFareText" class="text-xs text-gray-500 font-semibold block">Total Fare</span>
+                        <span class="font-black text-red-600 text-xl">₹<span id="lblTotalFare">0</span></span>
+                    </div>
+                </div>
+
+                <button id="btnProceedToPayment" onclick="goToPaymentPage()" class="w-full bg-red-600 hover:bg-red-700 text-white py-3.5 rounded-xl font-bold shadow-md transition flex items-center justify-center gap-2 text-sm">
+                    <span>Next: Proceed to Payment</span> ➔
+                </button>
+            </div>
+        </section>
+
+        <!-- Step 2: Dedicated Passenger & Payment Page -->
+        <section id="paymentSection" class="hidden bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200">
+            <!-- 15-Minute Temporary Seat Hold Timer Banner -->
+            <div id="seatHoldCountdownBanner" class="hidden mb-4 p-3 bg-amber-50 border-2 border-amber-400 rounded-xl flex items-center justify-between text-amber-900 shadow-sm animate-pulse">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">⏱️</span>
+                    <div>
+                        <p id="lblHoldBannerTitle" class="text-xs font-bold leading-tight" data-bn="আসন সাময়িকভাবে লক করা আছে" data-en="Seats Temporarily Locked">আসন সাময়িকভাবে লক করা আছে</p>
+                        <p id="lblHoldBannerSub" class="text-[11px] text-amber-700">১৫ মিনিটের মধ্যে বুকিং সম্পন্ন করুন, নতুবা আসন উন্মুক্ত হয়ে যাবে।</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span id="seatHoldTimerDisplay" class="font-mono font-black text-lg text-amber-900 bg-amber-200/90 px-3 py-1 rounded-lg border border-amber-300">15:00</span>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                <div>
+                    <h3 id="lblPayDetailsTitle" class="font-bold text-lg text-gray-900">Passenger & Payment Details</h3>
+                    <p id="lblPayDetailsSub" class="text-xs text-gray-500">Step 2 of 2: Review your trip details and complete payment</p>
+                </div>
+                <button id="lblChangeSeats" onclick="backToSeatSelection()" class="text-sm text-red-600 font-semibold hover:underline">← Change Seats</button>
+            </div>
+
+            <!-- Trip Summary Review Card -->
+            <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-5 space-y-2 text-xs">
+                <div class="flex justify-between items-center border-b pb-2">
+                    <span id="paySummaryBus" class="font-bold text-sm text-gray-900">--</span>
+                    <span id="paySummaryDate" class="font-semibold text-gray-700">--</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-gray-600">
+                    <div><strong>Route:</strong> <span id="paySummaryRoute">--</span></div>
+                    <div><strong>Departure:</strong> <span id="paySummaryTime">--</span></div>
+                    <div><strong>Reserved Seats:</strong> <span id="paySummarySeats" class="font-bold text-red-600">--</span></div>
+                    <div><strong>Payable Fare:</strong> <span class="font-bold text-green-700 text-sm">₹<span id="paySummaryFare">0</span></span></div>
+                </div>
+                <div class="pt-2.5 border-t mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div>
+                        <label id="lblPayBoarding" class="block text-[11px] font-bold text-gray-700 mb-1">🛫 Boarding Point (ওঠার স্থান):</label>
+                        <select id="payBoardingSelect" onchange="syncPaymentStoppages('boarding')" class="w-full text-xs font-semibold p-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-1 focus:ring-red-500"></select>
+                    </div>
+                    <div>
+                        <label id="lblPayDropping" class="block text-[11px] font-bold text-gray-700 mb-1">🛬 Dropping Point (নামার স্থান):</label>
+                        <select id="payDroppingSelect" onchange="syncPaymentStoppages('dropping')" class="w-full text-xs font-semibold p-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-1 focus:ring-red-500"></select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="max-w-md mx-auto space-y-4">
+                <div>
+                    <label id="lblPassengerName" class="block text-xs font-semibold text-gray-700 mb-1">Passenger Full Name</label>
+                    <input type="text" id="passengerName" oninput="updateDynamicUpiQr()" placeholder="Enter full name" class="w-full p-2.5 border rounded-xl text-sm" maxlength="50">
+                </div>
+                <div>
+                    <label id="lblPhone" class="block text-xs font-semibold text-gray-700 mb-1">WhatsApp Mobile Number</label>
+                    <input type="tel" id="passengerPhone" oninput="updateDynamicUpiQr()" placeholder="10-digit mobile number" class="w-full p-2.5 border rounded-xl text-sm" maxlength="10">
+                    <span class="text-[10px] text-gray-400">Digital ticket pass will be linked to this number.</span>
+                </div>
+
+                <!-- Promo Code -->
+                <div>
+                    <label id="lblPromo" class="block text-xs font-semibold text-gray-700 mb-1">Promotional Discount Coupon</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="promoCodeInput" placeholder="Enter coupon (e.g. BENGAL10)" class="w-full p-2.5 border rounded-xl text-sm uppercase font-mono">
+                        <button onclick="applyPromoCode()" id="lblApply" class="bg-gray-800 hover:bg-black text-white px-4 py-2.5 rounded-xl text-xs font-bold transition">Apply</button>
+                    </div>
+                    <p id="promoFeedback" class="text-xs mt-1 font-semibold"></p>
+                </div>
+
+                <!-- Highway Dhaba Meal Pre-order (Next-Gen Passenger Feature) -->
+                <div id="customerMealSection" class="p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                            <span>🍽️</span> হাইওয়ে ধাবা খাবার প্রি-অর্ডার (Meal Pre-order)
+                        </span>
+                        <span class="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-bold">ঐচ্ছিক</span>
+                    </div>
+                    <p class="text-[11px] text-gray-600">যাত্রাবিরতির সময় বাসের সহযোগী ধাবায় ফ্রেশ গরম খাবার নিশ্চিত করতে টিকিটের সাথে খাবার প্রি-অর্ডার করুন।</p>
+                    <div class="flex flex-wrap gap-3 pt-1">
+                        <label class="flex items-center gap-1.5 text-xs text-gray-800 cursor-pointer">
+                            <input type="checkbox" id="chkMealVeg" class="w-4 h-4 text-amber-600 rounded">
+                            <span data-bn="ভেজ থালি +৳১২০" data-en="Veg Meal +৳120">ভেজ থালি +৳১২০</span>
+                        </label>
+                        <label class="flex items-center gap-1.5 text-xs text-gray-800 cursor-pointer">
+                            <input type="checkbox" id="chkMealSnack" class="w-4 h-4 text-amber-600 rounded">
+                            <span data-bn="চা ও স্ন্যাক্স +৳৪০" data-en="Tea & Snacks +৳40">চা ও স্ন্যাক্স +৳৪০</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Payment Method Selection -->
+                <div>
+                    <label id="lblPaymentMethod" class="block text-xs font-semibold text-gray-700 mb-1.5">Choose Payment Method</label>
+                    <div id="paymentOptionsGrid" class="grid grid-cols-2 gap-2">
+                        <label id="upiLabel" class="border p-2.5 rounded-xl flex items-center gap-2 cursor-pointer bg-red-50 border-red-500 font-semibold text-xs select-none">
+                            <input type="radio" name="paymentMode" value="UPI" checked onclick="togglePaymentUI('UPI')">
+                            <span id="lblUpiOpt">📱 Online UPI</span>
+                        </label>
+                        <label id="cashLabel" class="border p-2.5 rounded-xl flex items-center gap-2 cursor-pointer bg-gray-50 text-xs select-none">
+                            <input type="radio" name="paymentMode" value="Cash" onclick="togglePaymentUI('Cash')">
+                            <span id="lblCashOpt">💵 Pay on Bus</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- UPI Dynamic QR Code & Payment Box -->
+                <div id="upiPaymentBox" class="bg-gray-50 p-4 rounded-2xl border border-gray-200 text-center space-y-3.5">
+                    <div>
+                        <p id="lblScanQr" class="text-xs font-bold text-gray-700">QR কোড স্ক্যান করে বা UPI আইডি দিয়ে পেমেন্ট করুন</p>
+                        <div class="inline-flex items-center gap-1.5 bg-green-100 text-green-800 text-[11px] font-bold px-3 py-1 rounded-full mt-1 border border-green-300">
+                            <span>⚡ অটোমেটিক ফেয়ার:</span> <span class="font-extrabold text-xs">₹<span id="upiPayAmountDisplay">0</span></span>
+                            <span class="text-[10px] text-green-700 font-normal">(অ্যামাউন্ট টাইপ করতে হবে না)</span>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic QR Code Card -->
+                    <div class="relative inline-block bg-white p-3 rounded-2xl border-2 border-dashed border-gray-300 shadow-sm">
+                        <img id="busQrCodeImg" src="" class="w-40 h-40 mx-auto object-contain bg-white rounded-xl shadow-xs" alt="Dynamic UPI QR Code">
+                        <p class="text-[10px] text-gray-400 mt-1 font-medium">Google Pay • PhonePe • Paytm • BHIM</p>
+                    </div>
+
+                    <!-- UPI ID & Copy Section -->
+                    <div class="bg-white p-3 rounded-xl border border-gray-200 text-left space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="overflow-hidden">
+                                <span class="text-[10px] uppercase font-bold text-gray-400 block leading-tight">বিকাশ / UPI ID:</span>
+                                <strong id="busUpiIdText" class="text-gray-900 font-mono text-xs sm:text-sm font-black break-all select-all">busyatra@oksbi</strong>
+                            </div>
+                            <button type="button" onclick="copyBusUpiId()" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold px-3 py-1.5 rounded-lg transition shrink-0 flex items-center gap-1 shadow-xs active:scale-95" title="Copy UPI ID">
+                                📋 <span>কপি করুন</span>
+                            </button>
+                        </div>
+                        <a id="btnOpenUpiApp" href="#" class="block text-center bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs py-2 px-3 rounded-xl shadow-sm transition active:scale-95">
+                            📱 সরাসরি UPI অ্যাপ খুলুন (Pay <span id="lblUpiPayAmount">₹0</span>)
+                        </a>
+                    </div>
+                    
+                    <!-- Payment Screenshot Upload Section (Toggled by Admin per bus/owner) -->
+                    <div id="upiScreenshotSection" class="text-left bg-white p-3.5 rounded-xl border-2 border-dashed border-red-300 hover:border-red-500 transition">
+                        <label class="block text-xs font-bold text-red-700 mb-1 flex items-center justify-between">
+                            <span class="flex items-center gap-1.5">📸 পেমেন্ট স্ক্রিনশট আপলোড করুন</span>
+                            <span class="text-[10px] bg-red-100 text-red-800 px-1.5 py-0.5 rounded font-black tracking-wide">বাধ্যতামূলক / MANDATORY</span>
+                        </label>
+                        <p class="text-[11px] text-gray-500 mb-2">Google Pay, PhonePe বা Paytm-এ পেমেন্ট করার পর সফল পেমেন্টের স্ক্রিনশটটি এখানে আপলোড করুন।</p>
+                        
+                        <input type="file" id="upiScreenshotInput" accept="image/*" onchange="handlePaymentScreenshotUpload(this)" class="w-full text-xs text-gray-700 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 cursor-pointer">
+                        
+                        <!-- Screenshot Preview Box -->
+                        <div id="upiScreenshotPreviewBox" class="hidden mt-3 p-2 bg-gray-50 rounded-lg border flex items-center justify-between">
+                            <div class="flex items-center gap-2 overflow-hidden">
+                                <img id="upiScreenshotThumb" src="" class="w-12 h-12 object-cover rounded border bg-white" alt="Screenshot Preview">
+                                <div class="overflow-hidden">
+                                    <p id="upiScreenshotFileName" class="text-xs font-semibold text-gray-800 truncate">screenshot.jpg</p>
+                                    <p class="text-[10px] text-green-600 font-medium flex items-center gap-1">✓ আপলোড সম্পন্ন</p>
+                                </div>
+                            </div>
+                            <button type="button" onclick="removePaymentScreenshot()" class="text-xs text-red-600 hover:text-red-800 font-bold px-2 py-1 rounded bg-red-50 hover:bg-red-100 border border-red-200">
+                                ✕ বাতিল
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- UTR Number Section (Toggled by Admin per bus/owner) -->
+                    <div id="upiTransactionSection" class="hidden text-left bg-white p-3 rounded-xl border border-gray-200">
+                        <label class="block text-xs font-bold text-gray-700 mb-1 flex items-center justify-between">
+                            <span>UPI Transaction / UTR Number</span>
+                            <span class="text-[10px] text-gray-400 font-normal">(ঐচ্ছিক / Optional)</span>
+                        </label>
+                        <input type="text" id="upiTransactionInput" placeholder="e.g. 429381204812 (যদি থাকে)" class="w-full p-2 border rounded-lg text-sm font-mono tracking-wider" maxlength="20">
+                        <p class="text-[11px] text-gray-400 mt-1">আপনার ব্যাংকিং অ্যাপে প্রাপ্ত ১২-সংখ্যার রেফারেন্স নম্বরটি থাকলে লিখুন।</p>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="backToSeatSelection()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 py-3.5 px-4 rounded-xl font-bold text-xs transition">
+                        ← Back
+                    </button>
+                    <button id="btnConfirmBooking" onclick="confirmBooking()" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-3.5 rounded-xl font-bold shadow-md transition flex items-center justify-center gap-2 text-sm">
+                        ✓ Confirm Booking Request
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Step 3: Booking Success Confirmation -->
+        <section id="successSection" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-gray-200 text-center max-w-md mx-auto">
+            <div id="successIcon" class="text-orange-500 text-5xl mb-2">⏳</div>
+            <h3 id="lblBookingConfirmed" class="text-xl font-bold text-gray-800">Booking Request Submitted!</h3>
+            <p id="lblSuccessSub" class="text-xs text-gray-500 mb-4">Awaiting approval from Bus Owner & Captain. Once approved, your ticket is confirmed and downloadable below.</p>
+            
+            <!-- Real-time Approval Status Banner -->
+            <div id="bookingApprovalBanner" class="p-3 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-900 mb-4 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 text-left">
+                    <span id="bannerIcon" class="text-xl">⏳</span>
+                    <div>
+                        <strong id="bannerStatusTitle">Pending Owner & Captain Approval</strong>
+                        <p id="bannerStatusSub" class="text-[11px] text-amber-700">Official PDF ticket will unlock the moment your booking is approved.</p>
+                    </div>
+                </div>
+                <button type="button" onclick="checkBookingApprovalStatus()" class="bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1.5 rounded-lg font-bold text-[11px] whitespace-nowrap shadow-sm transition flex items-center gap-1">
+                    🔄 Check Status
+                </button>
+            </div>
+
+            <div id="ticketDetails" class="bg-gray-50 p-4 rounded-xl text-left text-xs space-y-2 mb-4 border border-gray-200">
+                <!-- Populated dynamically -->
+            </div>
+
+            <!-- Branded Ticket Download Button (Locked until Approved) -->
+            <button type="button" onclick="openActiveBookingTicketModal()" id="btnDownloadBrandedTicket" class="w-full bg-gray-200 text-gray-500 py-3 rounded-xl font-bold text-xs mb-2 flex items-center justify-center gap-2 shadow-sm transition border border-gray-300 cursor-not-allowed">
+                <span>🔒 PDF Ticket Locked (Awaiting Approval)</span>
+            </button>
+            <button onclick="shareTicketWhatsApp()" id="btnShareWhatsApp" class="w-full bg-green-600 text-white py-2.5 rounded-xl font-semibold hover:bg-green-700 mb-2 flex items-center justify-center gap-2 shadow-sm text-xs transition">
+                💬 Share Details on WhatsApp
+            </button>
+            <button id="btnBookAnother" onclick="resetApp()" class="w-full bg-gray-800 hover:bg-black text-white py-2.5 rounded-xl font-semibold text-xs transition">
+                Book Another Ticket
+            </button>
+        </section>
+
+    </main>
+
+    <!-- Enterprise Footer -->
+    <footer class="mt-auto border-t border-gray-200 bg-white pt-6 pb-24 md:py-6 text-center text-xs text-gray-500 shadow-xs">
+        <div class="max-w-6xl mx-auto px-4 space-y-1">
+            <p class="font-bold text-gray-800 tracking-wide text-sm">
+                © <span class="footer-dynamic-year">2026</span> Bus Yatra. All Rights Reserved.
+            </p>
+            <p class="text-[11px] text-gray-400">
+                ভারতের যেকোনো রুটের নির্ভরযোগ্য অনলাইন বাস সার্ভিস • Safe, Comfortable &amp; Reliable Digital Ticketing
+            </p>
+        </div>
+    </footer>
+
+    <!-- Official Printable / Downloadable Branded Ticket Modal -->
+    <div id="brandedTicketModal" class="hidden fixed inset-0 bg-black/75 z-[100] flex items-center justify-center p-3 sm:p-4 backdrop-blur-sm overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-gray-300 my-auto flex flex-col">
+            <!-- Modal Actions Bar -->
+            <div class="bg-gray-900 text-white p-3 flex justify-between items-center print:hidden">
+                <span class="text-xs font-bold flex items-center gap-2">🎫 Official Bus Ticket Pass</span>
+                <div class="flex items-center gap-2">
+                    <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                        🖨️ Print / Save PDF
+                    </button>
+                    <button onclick="closeBrandedTicketModal()" class="text-gray-300 hover:text-white px-2 text-lg font-bold">✕</button>
+                </div>
+            </div>
+
+            <!-- The Printable Ticket Sheet -->
+            <div id="printableTicketSheet" class="p-6 bg-white text-gray-900 space-y-4 font-sans text-xs">
+                <!-- Ticket Top Header -->
+                <div class="flex justify-between items-start border-b-2 border-red-600 pb-3">
+                    <div class="flex items-center gap-3">
+                        <img src="icons/logo-customer.png" class="w-12 h-12 rounded-full border border-gray-200" alt="Logo">
+                        <div>
+                            <h2 id="tktCompanyName" class="font-black text-base md:text-lg text-gray-900 leading-tight">Bus Yatra Express</h2>
+                            <p class="text-[10px] text-gray-500">Official Daily Bus Travel Ticket</p>
+                            <p id="tktGstNumber" class="text-[11px] font-mono font-bold text-gray-700">GSTIN: Not registered</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span id="tktStatusBadge" class="bg-green-100 text-green-800 text-[11px] font-black px-2.5 py-1 rounded-full border border-green-300 uppercase">
+                            BOOKING DONE
+                        </span>
+                        <div class="text-[10px] text-gray-400 mt-1">PNR / ID:</div>
+                        <div id="tktBookingId" class="font-mono font-black text-xs text-red-600">BK_XXXXXXX</div>
+                    </div>
+                </div>
+
+                <!-- Passenger & Journey Grid -->
+                <div class="grid grid-cols-2 gap-3 bg-gray-50 p-3.5 rounded-xl border border-gray-200">
+                    <div>
+                        <div class="text-gray-400 text-[10px] uppercase font-bold">Passenger Name</div>
+                        <div id="tktPassengerName" class="font-bold text-sm text-gray-900">Name</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-[10px] uppercase font-bold">Mobile (WhatsApp)</div>
+                        <div id="tktPassengerPhone" class="font-bold text-sm text-gray-900 font-mono">Phone</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-[10px] uppercase font-bold">Bus Model & Registration</div>
+                        <div id="tktBusInfo" class="font-semibold text-gray-800">Bus Name (WB-XX-XXXX)</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-[10px] uppercase font-bold">Journey Date & Time</div>
+                        <div id="tktDateTime" class="font-bold text-gray-900">Date • Time</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-[10px] uppercase font-bold">Boarding Point</div>
+                        <div id="tktBoarding" class="font-bold text-green-700 text-sm">Pingla</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-[10px] uppercase font-bold">Dropping Point</div>
+                        <div id="tktDropping" class="font-bold text-red-700 text-sm">Kolkata</div>
+                    </div>
+                </div>
+
+                <!-- Seats & Fare Banner -->
+                <div class="flex justify-between items-center bg-red-50 p-3.5 rounded-xl border border-red-200">
+                    <div>
+                        <span class="text-[10px] text-gray-500 uppercase font-bold block">Reserved Seat(s)</span>
+                        <span id="tktSeats" class="text-lg font-black text-red-600 tracking-wide">S1, S2</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] text-gray-500 uppercase font-bold block">Total Fare Paid</span>
+                        <span id="tktFare" class="text-lg font-black text-gray-900">₹399</span>
+                        <div id="tktPaymentInfo" class="text-[10px] text-gray-500">Online UPI</div>
+                    </div>
+                </div>
+
+                <!-- Smart Boarding Countdown & Live Weather (Only active if enabled by Super Admin) -->
+                <div id="tktNextgenWidget" class="hidden flex-col sm:flex-row items-center justify-between gap-2 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 p-2.5 rounded-xl print:hidden">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base">⏳</span>
+                        <div>
+                            <span class="text-[10px] text-purple-700 font-bold uppercase tracking-wider block">বোর্ডিং কাউন্টডাউন (Boarding Status)</span>
+                            <span id="tktBoardingCountdown" class="text-xs font-black text-purple-950">বাস ছাড়তে বাকি: হিসাব করা হচ্ছে...</span>
+                        </div>
+                    </div>
+                    <div id="tktWeatherPill" class="flex items-center gap-1.5 bg-white/90 border border-purple-200 px-2 py-0.5 rounded-lg text-[10px] font-bold text-gray-800 shadow-xs">
+                        <span>🌤️</span>
+                        <span id="tktWeatherText">গন্তব্য আবহাওয়া: ২৮°C মনোরম</span>
+                    </div>
+                </div>
+
+                <!-- Drop-Off Wake-Up Alarm & Bengali Stop Announcer Card (Only active if enabled by Super Admin) -->
+                <div id="tktNextgenTravelAssist" class="hidden flex-col sm:flex-row items-center justify-between gap-2 bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl print:hidden">
+                    <div id="tktWakeupAlarmWrapper" class="hidden items-center gap-2">
+                        <span class="text-base">⏰</span>
+                        <div>
+                            <span class="text-[10px] text-emerald-800 font-bold uppercase tracking-wider block">ওয়েক-আপ অ্যালার্ম</span>
+                            <span class="text-[10px] text-emerald-950">গন্তব্যের ১ কিমি আগে অ্যালার্ম</span>
+                        </div>
+                        <button type="button" id="btnToggleWakeupAlarm" onclick="toggleDropoffAlarm(event)" class="ml-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold transition">🔔 অন করুন</button>
+                    </div>
+                    <div id="tktStopAnnouncerWrapper" class="hidden items-center gap-2">
+                        <span class="text-base">🔊</span>
+                        <div>
+                            <span class="text-[10px] text-blue-800 font-bold uppercase tracking-wider block">বাংলা অ্যানাউন্সার</span>
+                            <span class="text-[10px] text-blue-950">ভয়েসে স্টপেজ ঘোষণা</span>
+                        </div>
+                        <button type="button" id="btnToggleStopAnnouncer" onclick="toggleStopAnnouncer(event)" class="ml-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold transition">📢 সক্রিয়</button>
+                    </div>
+                </div>
+
+                <!-- QR Code & Helpline Verification Section -->
+                <div class="flex items-center justify-between border-t border-b py-3 px-1">
+                    <div>
+                        <div class="font-bold text-gray-900 text-xs">Conductor Boarding Pass</div>
+                        <p class="text-[10px] text-gray-500">Scan QR upon boarding the coach.</p>
+                        <p class="text-[11px] font-bold text-blue-600 mt-1">
+                            Helpline: <span id="tktHelpline" class="font-mono">8768447312</span>
+                        </p>
+                    </div>
+                    <img id="tktQrImg" src="" class="w-20 h-20 border rounded-lg p-1 bg-white" alt="Verification QR">
+                </div>
+
+                <!-- Terms & Conditions Footer -->
+                <div>
+                    <div class="font-bold text-[10px] text-gray-600 uppercase mb-1">Boarding Terms & Luggage Rules:</div>
+                    <p id="tktTerms" class="text-[10px] text-gray-500 leading-tight">
+                        Please arrive 15 minutes prior to departure. Valid government ID proof mandatory.
+                    </p>
+                </div>
+
+                <div class="text-center text-[9px] text-gray-400 pt-1">
+                    Issued via Bus Yatra Cloud Ticketing System • https://busyatra.pages.dev
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Tracking Modal -->
+    <div id="liveTrackingModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl border flex flex-col max-h-[90vh]">
+            <div class="bg-red-600 text-white p-4 flex justify-between items-center">
+                <h3 class="font-bold text-lg flex items-center gap-2">📍 <span id="lblTrackingHeader">Live Bus Tracking</span> — <span id="trackingBusTitle" class="text-yellow-200 font-semibold text-sm"></span></h3>
+                <button onclick="closeLiveTracking()" id="lblCloseTracking" class="text-white hover:bg-red-700 p-1.5 rounded-lg text-sm font-bold">✕ Close</button>
+            </div>
+            <div class="p-3 sm:p-4 bg-gray-50 border-b flex flex-wrap justify-between items-center text-xs gap-2">
+                <div class="flex items-center gap-1.5">
+                    <span id="lblTrackingStatusLabel">Status</span>: 
+                    <span id="trackingStatus" class="font-bold text-emerald-600 flex items-center gap-1">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping inline-block"></span>
+                        <span>🟢 Live GPS Active</span>
+                    </span>
+                </div>
+                <div><span id="lblTrackingUpdatedLabel">Last Updated</span>: <span id="trackingTime" class="font-bold text-gray-700">Just now ⚡</span></div>
+            </div>
+            <!-- Telemetry Bar: Speed & Accuracy & Live Stoppage -->
+            <div id="trackingTelemetryBar" class="bg-blue-50/80 border-b px-4 py-2 flex flex-wrap items-center justify-between text-xs text-blue-900 gap-2">
+                <div class="flex items-center gap-3">
+                    <span id="trackingSpeedBadge" class="font-bold flex items-center gap-1">⚡ <span id="trackingSpeedVal">-- km/h</span></span>
+                    <span id="trackingAccuracyBadge" class="font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full text-[11px] flex items-center gap-1">🎯 <span id="trackingAccuracyVal">±-- m</span></span>
+                </div>
+                <div id="trackingStopBadge" class="text-[11px] font-semibold text-gray-700 truncate max-w-[220px]">
+                    📍 <span id="trackingStopVal">On Route</span>
+                </div>
+            </div>
+            <div class="relative w-full h-96 bg-gray-100">
+                <div id="mapContainer" class="w-full h-full relative z-0"></div>
+                <!-- Floating Recenter Map Button -->
+                <button type="button" onclick="recenterTrackingMap()" title="বাসের সঠিক অবস্থানে যান" class="absolute bottom-4 right-4 z-[400] bg-white hover:bg-gray-50 text-gray-800 p-2.5 rounded-full shadow-lg border border-gray-300 flex items-center gap-1.5 text-xs font-bold active:scale-95 transition">
+                    <span>🎯</span> <span data-bn="বাসের অবস্থান" data-en="Recenter Bus">বাসের অবস্থান</span>
+                </button>
+            </div>
+            <div id="lblMapFooter" class="p-3 sm:p-4 bg-white border-t text-center text-xs text-gray-500">
+                Map updates automatically in real-time with GPS coordinates.
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer App Install & QR Modal -->
+    <div id="customerAppQrModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm select-none">
+        <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border flex flex-col text-center animate-fade-in">
+            <div class="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white p-4 flex justify-between items-center shadow-sm">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <img src="/icons/logo-customer.png" class="w-6 h-6 rounded-full shadow" alt="Bus Yatra">
+                    <span>অ্যাপ শেয়ার ও ইনস্টল</span>
+                </h3>
+                <button onclick="closeCustomerAppQrModal()" class="text-white hover:bg-black/20 w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm">✕</button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div class="space-y-1">
+                    <h4 class="font-black text-gray-900 text-base">মোবাইলে স্ক্যান করে ইনস্টল করুন</h4>
+                    <p class="text-xs text-gray-500">ফোনের ক্যামেরা দিয়ে নিচের QR কোডটি স্ক্যান করলেই সরাসরি Bus Yatra অ্যাপ ওপেন ও ইনস্টল হবে।</p>
+                </div>
+                
+                <div class="flex justify-center">
+                    <div class="p-3 bg-red-50 border-2 border-red-200 rounded-2xl shadow-sm">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=https%3A%2F%2Fbusyatra.pages.dev%2F%3Finstall%3D1" alt="Customer App QR Code" class="w-48 h-48 rounded-xl object-contain bg-white">
+                    </div>
+                </div>
+
+                <!-- 1-Click WhatsApp & Mobile Share Buttons -->
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" onclick="shareCustomerAppWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-3 rounded-xl font-bold text-xs shadow transition flex items-center justify-center gap-1.5 active:scale-95">
+                        <span>💬</span> <span>হোয়াটসঅ্যাপে শেয়ার</span>
+                    </button>
+                    <button type="button" onclick="shareCustomerAppNative()" class="bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-3 rounded-xl font-bold text-xs shadow transition flex items-center justify-center gap-1.5 active:scale-95">
+                        <span>↗️</span> <span>বন্ধুদের শেয়ার</span>
+                    </button>
+                </div>
+
+                <div class="space-y-2">
+                    <button type="button" onclick="triggerPwaInstall('Bus Yatra')" class="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-black text-xs shadow-md transition flex items-center justify-center gap-2 active:scale-95">
+                        <span>📲</span> <span data-bn="এই ডিভাইসে অ্যাপ ইনস্টল করুন" data-en="Install App on this Device">এই ডিভাইসে অ্যাপ ইনস্টল করুন</span>
+                    </button>
+                    <div class="flex items-center justify-between gap-2 p-2 bg-gray-50 border rounded-xl text-xs">
+                        <span class="font-mono text-gray-600 truncate text-[11px]">https://busyatra.pages.dev/?install=1</span>
+                        <button type="button" onclick="copyCustomerAppLink()" class="shrink-0 bg-white hover:bg-gray-100 text-gray-800 font-bold px-2.5 py-1 rounded-lg border shadow-xs text-[11px] transition">
+                            📋 Copy
+                        </button>
+                    </div>
+                </div>
+
+                <div class="text-[11px] text-gray-500 bg-gray-50 p-2.5 rounded-xl text-left space-y-1 border">
+                    <p><strong>💡 টিপস:</strong> যে কাউকেই এই লিঙ্ক পাঠালে তিনি সরাসরি ১-ক্লিকে অ্যাপ ইনস্টল করতে পারবেন।</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Feedback QR Modal -->
+    <div id="customerFeedbackQrModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border flex flex-col text-center">
+            <div class="bg-amber-500 text-gray-900 p-4 flex justify-between items-center">
+                <h3 class="font-black text-base flex items-center gap-2">⭐ <span>যাত্রী ফিডব্যাক ও রেটিং QR</span></h3>
+                <button onclick="closeCustomerFeedbackQrModal()" class="text-gray-900 hover:bg-amber-600/20 w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm">✕</button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div class="space-y-1">
+                    <h4 class="font-black text-gray-900 text-base">বাসযাত্রার অভিজ্ঞতা ও রেটিং দিন</h4>
+                    <p class="text-xs text-gray-500">বাসে বসে বা যেকোনো সময় স্ক্যান করে আপনার মতামত, স্টার রেটিং (১-৫) এবং মন্তব্য জানান।</p>
+                </div>
+                
+                <div class="flex justify-center">
+                    <div class="p-3 bg-amber-50 border-2 border-amber-300 rounded-2xl shadow-sm">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=https%3A%2F%2Fbusyatra.pages.dev%2Ffeedback.html" alt="Feedback QR Code" class="w-48 h-48 rounded-xl object-contain bg-white">
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <a href="/feedback.html" class="block w-full bg-amber-500 hover:bg-amber-600 text-gray-900 py-3 rounded-xl font-black text-xs shadow-md transition flex items-center justify-center gap-2">
+                        <span>📝</span> <span data-bn="অনলাইনে ফিডব্যাক ফর্ম খুলুন" data-en="Open Online Feedback Form">অনলাইনে ফিডব্যাক ফর্ম খুলুন</span>
+                    </a>
+                    <a href="https://busyatra.pages.dev/feedback.html" target="_blank" class="block text-xs font-mono text-gray-500 hover:text-amber-600 truncate">
+                        https://busyatra.pages.dev/feedback.html
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enterprise Corporate & Legal Modal (Google Approval Compliant - English) -->
+    <div id="corporateLegalModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-gray-200 flex flex-col max-h-[92vh]">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-red-600 via-red-700 to-gray-900 text-white p-4 sm:p-5 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-3">
+                    <img src="icons/logo-customer.png" class="w-9 h-9 rounded-full bg-white p-0.5 shadow-sm" alt="Bus Yatra">
+                    <div>
+                        <h3 class="font-black text-base sm:text-lg leading-tight flex items-center gap-2">
+                            <span>Bus Yatra Corporate &amp; Legal</span>
+                            <span class="bg-yellow-400 text-gray-950 text-[10px] uppercase font-black px-2 py-0.5 rounded-full">Official</span>
+                        </h3>
+                        <p class="text-[11px] text-red-100 font-medium">Founder &amp; MD: Gopal Chandra Jana • West Bengal, India</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeCorporateModal()" class="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 w-8 h-8 rounded-full flex items-center justify-center font-bold text-base transition">✕</button>
+            </div>
+
+            <!-- Tab Switcher Navigation (Mobile Horizontally Scrollable) -->
+            <div class="flex overflow-x-auto no-scrollbar bg-gray-100 p-1.5 border-b border-gray-200 gap-1 text-xs shrink-0 select-none">
+                <button type="button" id="corpTabBtn-about" onclick="switchCorporateTab('about')" class="flex-1 min-w-[90px] py-2 px-2.5 rounded-xl font-bold bg-white text-red-600 shadow-sm transition whitespace-nowrap text-center">
+                    🏢 About Us
+                </button>
+                <button type="button" id="corpTabBtn-terms" onclick="switchCorporateTab('terms')" class="flex-1 min-w-[120px] py-2 px-2.5 rounded-xl font-semibold text-gray-600 hover:text-gray-900 hover:bg-white/60 transition whitespace-nowrap text-center">
+                    📜 Terms &amp; Conditions
+                </button>
+                <button type="button" id="corpTabBtn-privacy" onclick="switchCorporateTab('privacy')" class="flex-1 min-w-[100px] py-2 px-2.5 rounded-xl font-semibold text-gray-600 hover:text-gray-900 hover:bg-white/60 transition whitespace-nowrap text-center">
+                    🛡️ Privacy Policy
+                </button>
+                <button type="button" id="corpTabBtn-refund" onclick="switchCorporateTab('refund')" class="flex-1 min-w-[110px] py-2 px-2.5 rounded-xl font-semibold text-gray-600 hover:text-gray-900 hover:bg-white/60 transition whitespace-nowrap text-center">
+                    💳 Refund Policy
+                </button>
+                <button type="button" id="corpTabBtn-contact" onclick="switchCorporateTab('contact')" class="flex-1 min-w-[120px] py-2 px-2.5 rounded-xl font-semibold text-gray-600 hover:text-gray-900 hover:bg-white/60 transition whitespace-nowrap text-center">
+                    📞 Contact &amp; Grievance
+                </button>
+            </div>
+
+            <!-- Scrollable Content Body -->
+            <div class="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4 text-xs sm:text-sm text-gray-700 leading-relaxed" id="corporateModalBody">
+                
+                <!-- 1. About Us Pane -->
+                <div id="corpPane-about" class="space-y-4">
+                    <div class="bg-red-50 border border-red-200 p-4 rounded-2xl">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-extrabold uppercase tracking-wider text-red-700">Company Leadership &amp; Genesis</span>
+                            <span class="text-[11px] bg-red-600 text-white font-bold px-2 py-0.5 rounded-full">Est. 2026</span>
+                        </div>
+                        <h4 class="text-base sm:text-lg font-black text-gray-900 mt-1">Founder &amp; Managing Director: Gopal Chandra Jana</h4>
+                        <p class="text-xs text-gray-600 mt-1.5">
+                            Under the leadership of <strong>Gopal Chandra Jana</strong>, Bus Yatra was built to revolutionize daily rural-urban intercity passenger transit across South Bengal through modern digital ticketing, real-time GPS fleet tracking, and passenger empowerment.
+                        </p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h5 class="font-black text-gray-900 text-sm flex items-center gap-2">
+                            <span>🚀</span> <span>Our Mission &amp; Purpose</span>
+                        </h5>
+                        <p>
+                            Bus Yatra (operated by Bus Yatra Passenger Mobility Solutions) is an integrated digital transit enterprise. We bridge the critical connectivity divide between growing sub-divisional towns—such as Pingla, Debra, Kharagpur, and Midnapore—and the metropolitan hub of Kolkata (Esplanade &amp; Babughat).
+                        </p>
+                        <p>
+                            Our platform empowers commuters to locate scheduled services, reserve seats transparently, track bus locations via live telemetry, and receive verified digital passes directly on their smartphone with zero counter waiting time.
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                        <div class="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                            <h6 class="font-bold text-gray-900 text-xs mb-1">📍 Core Operational Route</h6>
+                            <p class="text-[11px] text-gray-600">Pingla ➔ Debra ➔ Kharagpur ➔ Medinipur ➔ Mechogram ➔ Kolaghat ➔ Bagnan ➔ Uluberia ➔ Santragachi ➔ Kolkata (Esplanade / Babughat).</p>
+                        </div>
+                        <div class="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                            <h6 class="font-bold text-gray-900 text-xs mb-1">📡 Smart Telemetry &amp; Safety</h6>
+                            <p class="text-[11px] text-gray-600">Sub-minute GPS telemetry, conductor verifier QR scanners, digital manifests, and automated cloud sync for 100% schedule reliability.</p>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-gray-100 rounded-xl text-[11px] text-gray-500 flex justify-between items-center">
+                        <span>Corporate Office: Naranga Dighi, Pingla, Paschim Medinipur, WB - 721155</span>
+                        <span class="font-semibold text-gray-700">support.busyatra@gmail.com</span>
+                    </div>
+                </div>
+
+                <!-- 2. Terms & Conditions Pane -->
+                <div id="corpPane-terms" class="space-y-3.5 hidden">
+                    <div class="border-b pb-2">
+                        <h4 class="font-black text-gray-900 text-sm sm:text-base">Terms and Conditions of Passenger Carriage</h4>
+                        <p class="text-[11px] text-gray-500">Effective Date: January 1, 2026 • Valid for all digital passes and services</p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h5 class="font-bold text-gray-900 text-xs">1. Digital Ticketing &amp; Boarding Requirement</h5>
+                        <p>
+                            Every passenger must possess a valid Bus Yatra digital pass with a verified Booking ID and dynamic QR code. Passengers are required to present the digital pass (or printout) along with a Government-recognized photo identification card (Aadhaar, Voter ID, PAN, Passport, or Driving License) upon boarding.
+                        </p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h5 class="font-bold text-gray-900 text-xs">2. Reporting &amp; Boarding Discipline</h5>
+                        <p>
+                            Passengers must arrive at their designated boarding stage at least 10 minutes prior to scheduled departure. Buses adhere to strict stage-dispatch schedules. Bus Yatra and partner operators bear no liability for passengers who arrive late (classified as a No-Show).
+                        </p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h5 class="font-bold text-gray-900 text-xs">3. Seat Occupancy &amp; Allocation</h5>
+                        <p>
+                            Passengers are assigned numbered seats upon booking confirmation and must occupy only their designated seat. Seat reassignments without the bus captain's express authorization are prohibited.
+                        </p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h5 class="font-bold text-gray-900 text-xs">4. Luggage &amp; Baggage Guidelines</h5>
+                        <p>
+                            Each passenger is entitled to carry up to 15 kg of personal luggage free of charge. Hazardous, combustible, explosive, flammable, toxic, offensive-smelling, or contraband materials prohibited under Indian law (including the Motor Vehicles Act) are strictly prohibited onboard.
+                        </p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h5 class="font-bold text-gray-900 text-xs">5. Code of Passenger Conduct</h5>
+                        <p>
+                            Smoking, consumption of alcohol or narcotics, and disruptive behavioral conduct are strictly forbidden onboard. Any verbal or physical harassment of fellow passengers or crew members will result in immediate removal from the coach and reporting to law enforcement authorities.
+                        </p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h5 class="font-bold text-gray-900 text-xs">6. Platform Role &amp; Limitation of Liability</h5>
+                        <p>
+                            Bus Yatra acts as an authorized technology aggregator connecting commuters with certified local bus operators. While we enforce stringent vehicle health and punctuality covenants, unforeseen highway disruptions, floods, strikes, or sudden police diversions are governed under force majeure principles.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 3. Privacy Policy Pane -->
+                <div id="corpPane-privacy" class="space-y-3.5 hidden">
+                    <div class="border-b pb-2">
+                        <h4 class="font-black text-gray-900 text-sm sm:text-base">Privacy Policy &amp; Data Protection Standards</h4>
+                        <p class="text-[11px] text-gray-500">In compliance with Indian IT Act 2000, SPDI Rules 2011, and Google Publisher Policies</p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h5 class="font-bold text-gray-900 text-xs">1. Scope &amp; Commitment to Privacy</h5>
+                        <p>
+                            Bus Yatra respects and protects your digital privacy. This policy outlines how we collect, process, safeguard, and retain user information across our web portal, Progressive Web App (PWA), and digital ticketing interfaces.
+                        </p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h5 class="font-bold text-gray-900 text-xs">2. Personal Information Collected</h5>
+                        <p>
+                            We collect personal information necessary to deliver transit services, specifically: Full Name, 10-digit Mobile Number, Gender, Age, Boarding Stage, Dropping Stage, Payment Reference ID, and temporary device GPS location (accessed strictly upon user consent when viewing live bus tracking).
+                        </p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h5 class="font-bold text-gray-900 text-xs">3. Use of Personal Information</h5>
+                        <p>
+                            Information collected is utilized exclusively to:
+                        </p>
+                        <ul class="list-disc pl-5 space-y-1 text-gray-600">
+                            <li>Generate, deliver, and cryptographically verify digital bus tickets.</li>
+                            <li>Send travel updates, gate notifications, and departure reminders.</li>
+                            <li>Calculate real-time bus distance and dynamic passenger pickup ETA.</li>
+                            <li>Provide passenger manifests to authorized conductors for safety.</li>
+                            <li>Prevent fraud, enforce access control, and comply with state transport regulations.</li>
+                        </ul>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h5 class="font-bold text-gray-900 text-xs">4. Zero Data Selling Guarantee</h5>
+                        <p>
+                            We maintain an unequivocal policy: <strong>Bus Yatra does NOT sell, rent, monetize, or lease your personal data to any third-party advertisers, marketing firms, or data brokers.</strong> Data is shared only with verified trip operators and encrypted cloud infrastructure providers (Cloudflare, Google Cloud Firebase).
+                        </p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h5 class="font-bold text-gray-900 text-xs">5. Security, Cookies &amp; Google Standards</h5>
+                        <p>
+                            All network communications are secured with 256-bit SSL encryption. We utilize local storage strictly for maintaining user sessions, language preferences, and offline PWA reliability in accordance with Google Ads and Webmaster standards.
+                        </p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h5 class="font-bold text-gray-900 text-xs">6. Data Rights &amp; Deletion</h5>
+                        <p>
+                            Users have the statutory right to request access to their booking records or request permanent deletion of their customer account by sending an email to <strong class="font-mono text-gray-900">support.busyatra@gmail.com</strong>.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 4. Cancellation & Refund Policy Pane (Operator-Discretionary & Direct Helpline) -->
+                <div id="corpPane-refund" class="space-y-3.5 hidden">
+                    <div class="border-b pb-2">
+                        <h4 class="font-black text-gray-900 text-sm sm:text-base">Cancellation &amp; Refund Policy</h4>
+                        <p class="text-[11px] text-gray-500">Bus Operator-Driven Cancellation Policy &amp; Direct Owner Helpline Support</p>
+                    </div>
+
+                    <div class="bg-amber-50 border border-amber-300 p-4 rounded-2xl space-y-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">🚌</span>
+                            <h5 class="font-black text-amber-950 text-xs sm:text-sm">
+                                রিফান্ড ও টিকিট বাতিল সরাসরি বাস মালিকের নিয়মানুযায়ী সম্পন্ন হয়
+                            </h5>
+                        </div>
+                        <p class="text-xs text-amber-900 leading-relaxed">
+                            Bus Yatra একটি ডিজিটাল টিকেট বুকিং প্ল্যাটফর্ম। <strong>যাত্রী যে নির্দিষ্ট বাসের টিকিট বুক করেছেন, সেই বাসের মালিক ও কর্তৃপক্ষের নিজস্ব নিয়মানুযায়ী এবং তাদের সিদ্ধান্তের ওপর রিফান্ড বা ট্রিপ পরিবর্তন সম্পূর্ণরূপে নির্ভরশীল।</strong> 
+                        </p>
+                        <p class="text-xs text-amber-900 leading-relaxed font-bold">
+                            👉 টিকিট বাতিল বা রিফান্ডের জন্য যাত্রীকে অবশ্যই তার ডিজিটাল টিকিটে উল্লেখিত <u>নির্দিষ্ট বাস মালিক / কন্ডাক্টরের হেল্পলাইন নম্বরে সরাসরি কল করতে হবে</u>।
+                        </p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h5 class="font-bold text-gray-900 text-xs">1. Operator-Discretionary Cancellation &amp; Refund Framework</h5>
+                        <p>
+                            All ticket cancellations, seat reassignments, and refund requests depend strictly on the individual bus owner / fleet operator operating the scheduled journey. Because different private bus operators have distinct operating schedules and stage routes, each bus operator enforces their own cancellation timeframe and refund rules.
+                        </p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h5 class="font-bold text-gray-900 text-xs">2. How to Request Cancellation &amp; Refund</h5>
+                        <p>
+                            To cancel a booking or claim a refund, <strong>passengers must directly call the respective Bus Owner / Conductor Helpline Number</strong> printed on their digital ticket pass, SMS confirmation, or booking receipt. The bus operator will verify your Booking ID, travel date, and seat number to assist you with the cancellation or rescheduling.
+                        </p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h5 class="font-bold text-gray-900 text-xs">3. Trip Cancellation or Mechanical Breakdown</h5>
+                        <p>
+                            In the event a scheduled trip is cancelled by the respective bus operator due to unforeseen mechanical breakdown or road hurdles and no alternate transport is provided, passengers should immediately contact the bus owner's helpline to receive their full refund as per operator terms.
+                        </p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h5 class="font-bold text-gray-900 text-xs">4. Platform Assistance &amp; Central Escalation</h5>
+                        <p>
+                            If you face any difficulty contacting your assigned bus operator or need help obtaining the operator's direct phone number, please contact Bus Yatra central support at <strong class="text-gray-900 font-bold">+91 87684 47312</strong> or email <strong class="font-mono text-gray-900">support.busyatra@gmail.com</strong> with your Booking ID.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 5. Contact Us & Grievance Pane -->
+                <div id="corpPane-contact" class="space-y-3.5 hidden">
+                    <div class="border-b pb-2">
+                        <h4 class="font-black text-gray-900 text-sm sm:text-base">Contact Us &amp; Statutory Grievance Redressal Cell</h4>
+                        <p class="text-[11px] text-gray-500">Corporate communication channels &amp; regulatory escalation mechanism</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="p-3.5 bg-gray-50 rounded-2xl border border-gray-200 space-y-1">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-gray-500">Corporate Headquarters</span>
+                            <h5 class="font-bold text-gray-900 text-xs">Bus Yatra Mobility Services</h5>
+                            <p class="text-xs text-gray-600">Naranga Dighi, Pingla</p>
+                            <p class="text-xs text-gray-600">Paschim Medinipur, West Bengal – 721155, India</p>
+                        </div>
+                        <div class="p-3.5 bg-gray-50 rounded-2xl border border-gray-200 space-y-1">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-gray-500">Founder &amp; Managing Director</span>
+                            <h5 class="font-bold text-gray-900 text-xs">Gopal Chandra Jana</h5>
+                            <p class="text-xs text-gray-600">Chief Executive &amp; Operations Head</p>
+                            <p class="text-xs font-semibold text-red-600">Bus Yatra Platform Network</p>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-blue-50 border border-blue-200 rounded-2xl space-y-2">
+                        <h5 class="font-bold text-blue-900 text-xs flex items-center gap-2">
+                            <span>📞</span> <span>Direct Support &amp; Passenger Helpdesk</span>
+                        </h5>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                            <p><span class="text-gray-500">Email:</span> <a href="mailto:support.busyatra@gmail.com" class="font-bold text-blue-800 hover:underline">support.busyatra@gmail.com</a></p>
+                            <p><span class="text-gray-500">Helpline:</span> <strong class="font-bold text-gray-800">+91 87684 47312</strong></p>
+                            <p><span class="text-gray-500">Operating Hours:</span> <span class="font-medium text-gray-700">06:00 AM – 10:00 PM IST (Daily)</span></p>
+                            <p><span class="text-gray-500">Official Web:</span> <a href="https://busyatra.pages.dev" target="_blank" class="font-bold text-blue-800 hover:underline">busyatra.pages.dev</a></p>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
+                        <div class="flex items-center justify-between">
+                            <h5 class="font-black text-amber-950 text-xs flex items-center gap-1.5">
+                                <span>⚖️</span> <span>Statutory Grievance Redressal Officer</span>
+                            </h5>
+                            <span class="text-[10px] bg-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded-full">IT Rules 2021</span>
+                        </div>
+                        <p class="text-xs text-gray-700">
+                            In accordance with the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, the grievance redressal officer details are provided below:
+                        </p>
+                        <div class="text-xs space-y-1 bg-white p-3 rounded-xl border border-amber-300">
+                            <p><strong>Grievance Officer:</strong> Gopal Chandra Jana</p>
+                            <p><strong>Designation:</strong> Chief Grievance &amp; Compliance Officer</p>
+                            <p><strong>Email:</strong> <a href="mailto:support.busyatra@gmail.com?subject=GRIEVANCE%20REDRESSAL" class="font-bold text-red-600 hover:underline">support.busyatra@gmail.com</a></p>
+                            <p class="text-[11px] text-gray-500 italic mt-1">
+                                Acknowledgement guaranteed within 24 hours. Formal dispute resolution completed within 48 to 72 business hours.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Footer -->
+            <div class="p-3.5 bg-gray-50 border-t border-gray-200 flex flex-wrap justify-between items-center gap-2 shrink-0">
+                <span class="text-[11px] text-gray-500">
+                    © <span id="corpModalYear">2026</span> Bus Yatra • Founder: Gopal Chandra Jana
+                </span>
+                <button type="button" onclick="closeCorporateModal()" class="bg-gray-800 hover:bg-black text-white px-5 py-2 rounded-xl text-xs font-bold transition shadow-xs">
+                    Close Window
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Firebase App & Firestore Compat SDKs for Real-Time Live Bus Tracking -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="common.js?v=10.37"></script>
+    <script src="app.js?v=10.37"></script>
+    <script>
+        if (typeof initFestivalThemeSync === 'function') {
+            initFestivalThemeSync('customer');
+        }
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js?v=10.37', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+        }
+    </script>
+
+    <!-- Customer Notification & Notice Modal -->
+    <div id="customerNotificationModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-gray-200 flex flex-col max-h-[90vh]">
+            <div class="bg-gradient-to-r from-red-600 to-red-700 text-white p-4 flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <span>🔔</span> <span id="lblNoticeModalTitle" data-bn="নোটিফিকেশন ও ঘোষণা" data-en="Notifications & Notices">নোটিফিকেশন ও ঘোষণা</span>
+                </h3>
+                <button onclick="closeCustomerNotificationModal()" class="text-white hover:bg-red-800 w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm">✕</button>
+            </div>
+            <div class="p-4 space-y-3 overflow-y-auto flex-1">
+                <div class="flex items-center justify-between border-b pb-2">
+                    <span id="lblNoticeModalSub" class="text-xs text-gray-500 font-medium">অ্যাডমিন ও বাস কর্তৃপক্ষের বার্তা</span>
+                    <button type="button" onclick="loadCustomerNotifications()" class="text-xs text-red-600 font-bold hover:underline flex items-center gap-1">
+                        🔄 Refresh
+                    </button>
+                </div>
+                <div id="customerNotificationList" class="space-y-3">
+                    <div class="text-center text-gray-400 py-6 text-xs">নোটিফিকেশন লোড হচ্ছে...</div>
+                </div>
+            </div>
+            <div class="p-3 bg-gray-50 border-t text-center">
+                <button type="button" id="btnNoticeModalClose" onclick="closeCustomerNotificationModal()" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2.5 rounded-xl text-xs font-bold transition">
+                    <span data-bn="বন্ধ করুন" data-en="Close">বন্ধ করুন</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Passenger Emergency SOS Safety Modal -->
+    <div id="customerSosModal" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md">
+        <div class="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-red-200 flex flex-col max-h-[92vh]">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-red-700 via-rose-700 to-red-800 text-white p-4 sm:p-5 flex justify-between items-center relative overflow-hidden">
+                <div class="flex items-center gap-3 relative z-10">
+                    <div class="w-11 h-11 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center shadow-inner">
+                        <span class="text-2xl animate-pulse">🚨</span>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-base sm:text-lg leading-tight flex items-center gap-2">
+                            <span>জরুরি সহায়তা ও এসওএস (SOS)</span>
+                        </h3>
+                        <p class="text-[11px] text-red-100 font-medium mt-0.5">বাস কন্ট্রোল রুম ও পুলিশকে তাত্ক্ষণিক বিপদ সংকেত পাঠান</p>
+                    </div>
+                </div>
+                <button onclick="closeCustomerSosModal()" class="text-white hover:bg-white/20 w-8 h-8 rounded-full flex items-center justify-center font-bold text-base transition relative z-10" aria-label="Close">✕</button>
+                <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1">
+                <!-- GPS Location Live Status Box -->
+                <div id="sosGpsStatusBox" class="p-3 bg-red-50/70 border border-red-200 rounded-2xl flex items-start gap-3">
+                    <span class="text-2xl mt-0.5">📍</span>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between gap-2">
+                            <h4 class="text-xs font-bold text-gray-900" id="sosGpsTitle">লাইভ জিপিএস লোকেশন নেওয়া হচ্ছে...</h4>
+                            <span id="sosGpsBadge" class="text-[9px] font-black bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">সন্ধান চলছে</span>
+                        </div>
+                        <p id="sosGpsCoords" class="text-[11px] text-gray-500 font-mono mt-0.5">আপনার বর্তমান অক্ষাংশ ও দ্রাঘিমাংশ সংগ্রহ করা হচ্ছে</p>
+                        <button type="button" onclick="detectCustomerSosLocation(true)" class="text-[11px] text-red-600 hover:underline font-bold mt-1 inline-flex items-center gap-1 cursor-pointer">
+                            <span>🔄 আবার লোকেশন রিফ্রেশ করুন</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Emergency Type Selector (One-Tap Pills) -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5">বিপদের ধরন নির্বাচন করুন (Select Emergency Type):</label>
+                    <div class="grid grid-cols-2 gap-2" id="sosTypeOptions">
+                        <button type="button" onclick="selectSosEmergencyType('🚑 চিকিৎসা জরুরি (Medical)', this)" class="sos-type-btn p-2.5 rounded-xl border-2 border-red-600 bg-red-50 text-red-700 font-bold text-xs text-left flex items-center gap-2 transition active:scale-95 shadow-2xs">
+                            <span class="text-lg">🚑</span> <span>চিকিৎসা জরুরি</span>
+                        </button>
+                        <button type="button" onclick="selectSosEmergencyType('🛡️ নিরাপত্তা / হয়রানি (Safety)', this)" class="sos-type-btn p-2.5 rounded-xl border border-gray-200 hover:border-red-300 bg-white text-gray-700 font-bold text-xs text-left flex items-center gap-2 transition active:scale-95">
+                            <span class="text-lg">🛡️</span> <span>নিরাপত্তা / হয়রানি</span>
+                        </button>
+                        <button type="button" onclick="selectSosEmergencyType('💥 দুর্ঘটনা / ব্রেকডাউন (Accident)', this)" class="sos-type-btn p-2.5 rounded-xl border border-gray-200 hover:border-red-300 bg-white text-gray-700 font-bold text-xs text-left flex items-center gap-2 transition active:scale-95">
+                            <span class="text-lg">💥</span> <span>দুর্ঘটনা / ব্রেকডাউন</span>
+                        </button>
+                        <button type="button" onclick="selectSosEmergencyType('🎒 লাগেজ চুরি / হারানো (Lost)', this)" class="sos-type-btn p-2.5 rounded-xl border border-gray-200 hover:border-red-300 bg-white text-gray-700 font-bold text-xs text-left flex items-center gap-2 transition active:scale-95">
+                            <span class="text-lg">🎒</span> <span>লাগেজ চুরি / হারানো</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Passenger Input Form -->
+                <div class="space-y-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div>
+                            <label class="block text-[11px] font-bold text-gray-600 mb-1">আপনার নাম (Name):</label>
+                            <input type="text" id="sosCustomerNameInput" placeholder="আপনার নাম লিখুন" class="w-full text-xs p-2.5 rounded-xl border border-gray-300 focus:border-red-500 focus:outline-none bg-gray-50 focus:bg-white transition">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-gray-600 mb-1">মোবাইল নম্বর (Phone):</label>
+                            <input type="tel" id="sosCustomerPhoneInput" placeholder="১০ ডিজিট মোবাইল নম্বর" class="w-full text-xs p-2.5 rounded-xl border border-gray-300 focus:border-red-500 focus:outline-none bg-gray-50 focus:bg-white transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-600 mb-1">বর্তমান জায়গা বা ল্যান্ডমার্ক (Current Place / Landmark):</label>
+                        <input type="text" id="sosLocationTextInput" placeholder="যেমন: কোলাঘাট ব্রিজ পার হয়ে ২ কিমি দূরে / বাসের নাম" class="w-full text-xs p-2.5 rounded-xl border border-gray-300 focus:border-red-500 focus:outline-none bg-gray-50 focus:bg-white transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-600 mb-1">সমস্যার সংক্ষিপ্ত বিবরণ (Optional Message):</label>
+                        <textarea id="sosDescriptionInput" rows="2" placeholder="কী সমস্যা হচ্ছে সংক্ষেপে লিখুন (ঐচ্ছিক)..." class="w-full text-xs p-2.5 rounded-xl border border-gray-300 focus:border-red-500 focus:outline-none bg-gray-50 focus:bg-white transition"></textarea>
+                    </div>
+                </div>
+
+                <!-- Big Red High-Priority Submit Button -->
+                <button type="button" id="btnSubmitSosAlert" onclick="submitCustomerSosAlert()" class="w-full bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-700 hover:to-rose-800 text-white py-3.5 px-4 rounded-2xl font-black text-sm shadow-lg shadow-red-600/30 flex items-center justify-center gap-2 active:scale-98 transition cursor-pointer">
+                    <span class="text-lg animate-pulse">🚨</span>
+                    <span>কন্ট্রোল রুমে এসওএস অ্যালার্ট পাঠান</span>
+                </button>
+
+                <!-- Direct Emergency Helplines Speed Dial -->
+                <div class="pt-2 border-t border-gray-200">
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">জরুরি হেল্পলাইন নম্বর (Direct Helpline Call):</p>
+                    <div class="grid grid-cols-3 gap-2 text-center">
+                        <a href="tel:112" class="p-2 rounded-xl bg-gray-100 hover:bg-red-50 border border-gray-200 hover:border-red-200 text-gray-800 hover:text-red-600 transition flex flex-col items-center justify-center">
+                            <span class="text-base">👮</span>
+                            <span class="text-[11px] font-black mt-0.5">112 (পুলিশ)</span>
+                        </a>
+                        <a href="tel:102" class="p-2 rounded-xl bg-gray-100 hover:bg-red-50 border border-gray-200 hover:border-red-200 text-gray-800 hover:text-red-600 transition flex flex-col items-center justify-center">
+                            <span class="text-base">🚑</span>
+                            <span class="text-[11px] font-black mt-0.5">102 (অ্যাম্বুলেন্স)</span>
+                        </a>
+                        <a href="tel:8768447312" class="p-2 rounded-xl bg-gray-100 hover:bg-red-50 border border-gray-200 hover:border-red-200 text-gray-800 hover:text-red-600 transition flex flex-col items-center justify-center" title="Bus Yatra Helpline: 8768447312">
+                            <span class="text-base">🚌</span>
+                            <span class="text-[11px] font-black mt-0.5">8768447312 (Bus Yatra)</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Promotional Popup Banner Ad Modal for Customer -->
+    <!-- Offline Tickets & QR Modal (Works 100% without internet) -->
+    <div id="offlineTicketModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-gray-200 flex flex-col max-h-[90vh]">
+            <div class="bg-gradient-to-r from-purple-700 to-indigo-800 text-white p-4 flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <span>📱</span> <span data-bn="অফলাইন সংরক্ষিত টিকিট" data-en="Offline Saved Tickets">অফলাইন সংরক্ষিত টিকিট</span>
+                </h3>
+                <button onclick="closeCustomerOfflineTicketModal()" class="text-white hover:bg-purple-900 w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm">✕</button>
+            </div>
+            <div class="p-4 space-y-3 overflow-y-auto flex-1">
+                <div class="bg-purple-50 p-3 rounded-xl border border-purple-200 text-xs text-purple-900 flex items-center gap-2">
+                    <span class="text-lg">⚡</span>
+                    <span>ফোনে ইন্টারনেট বা নেটওয়ার্ক না থাকলেও আপনার পূর্বে বুক করা টিকিট ও QR কোড এখানে দেখতে পারবেন।</span>
+                </div>
+                <div id="offlineTicketsList" class="space-y-3">
+                    <div class="text-center text-gray-400 py-6 text-xs">কোনো অফলাইন টিকিট সেভ করা নেই। টিকিট বুকিং বা সার্চ করলে স্বয়ংক্রিয়ভাবে এখানে সেভ থাকবে।</div>
+                </div>
+            </div>
+            <div class="p-3 bg-gray-50 border-t text-center">
+                <button type="button" onclick="closeCustomerOfflineTicketModal()" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2.5 rounded-xl text-xs font-bold transition">
+                    <span data-bn="বন্ধ করুন" data-en="Close">বন্ধ করুন</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bus Parcel & Luggage Booking Modal -->
+    <div id="customerParcelModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-gray-200 flex flex-col max-h-[90vh]">
+            <div class="bg-gradient-to-r from-amber-600 to-amber-700 text-white p-4 flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <span>📦</span> <span data-bn="বাস পার্সেল ও লাগেজ বুকিং" data-en="Bus Parcel & Luggage Booking">বাস পার্সেল ও লাগেজ বুকিং</span>
+                </h3>
+                <button onclick="closeCustomerParcelModal()" class="text-white hover:bg-amber-800 w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm">✕</button>
+            </div>
+            <div class="p-4 space-y-3 overflow-y-auto flex-1">
+                <p class="text-xs text-gray-600">বাসের ডিকিতে নিরাপদে পার্সেল বা বাড়তি লাগেজ পাঠাতে নিচের ফর্মটি পূরণ করুন:</p>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="কোথা থেকে" data-en="Origin">কোথা থেকে</label>
+                    <input type="text" id="parcelFromCity" placeholder="যেমন: কলকাতা / মেচেদা / কাঁথি" class="w-full p-2.5 border rounded-xl text-xs bg-gray-50">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="কোথায় যাবে" data-en="Destination">কোথায় যাবে</label>
+                    <input type="text" id="parcelToCity" placeholder="যেমন: দীঘা / নন্দকুমার / হলদিয়া" class="w-full p-2.5 border rounded-xl text-xs bg-gray-50">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="পার্সেলের বিবরণ ও আনুমানিক ওজন" data-en="Parcel Description & Weight">পার্সেলের বিবরণ ও আনুমানিক ওজন</label>
+                    <input type="text" id="parcelDesc" placeholder="যেমন: ২টি কার্টন বক্স, প্রায় ১০ কেজি" class="w-full p-2.5 border rounded-xl text-xs bg-gray-50">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="হোয়াটসঅ্যাপ মোবাইল নম্বর" data-en="WhatsApp Mobile Number">হোয়াটসঅ্যাপ মোবাইল নম্বর</label>
+                    <input type="tel" id="parcelContactPhone" maxlength="10" placeholder="১০ সংখ্যার মোবাইল নম্বর" class="w-full p-2.5 border rounded-xl text-xs bg-gray-50">
+                </div>
+                <button type="button" onclick="submitCustomerParcelRequest()" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold text-xs shadow-md transition flex items-center justify-center gap-2">
+                    <span>💬</span> হোয়াটসঅ্যাপে পার্সেল বুকিং পাঠান
+                </button>
+            </div>
+            <div class="p-3 bg-gray-50 border-t text-center">
+                <button type="button" onclick="closeCustomerParcelModal()" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded-xl text-xs font-bold transition">
+                    <span data-bn="বন্ধ করুন" data-en="Close">বন্ধ করুন</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Promotional Popup Banner Ad Modal for Customer -->
+    <div id="promoAdModal" class="hidden fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm transition-opacity duration-300">
+        <div class="relative w-full max-w-[340px] sm:max-w-[380px] bg-white rounded-3xl shadow-2xl overflow-visible border border-white/20">
+            <!-- Circular (X) close button on top-right, matching user screenshot -->
+            <button type="button" onclick="closePromoAdModal()" class="absolute -top-3.5 -right-3.5 w-9 h-9 rounded-full bg-black/90 hover:bg-black text-white text-base font-black flex items-center justify-center shadow-2xl border-2 border-white hover:scale-110 active:scale-95 transition-all z-30 cursor-pointer" title="বিজ্ঞাপন বন্ধ করুন">
+                ✕
+            </button>
+            <!-- Clickable Ad Photo Container -->
+            <div id="promoAdClickable" onclick="handlePromoAdClick()" class="overflow-hidden rounded-3xl group cursor-pointer bg-gray-100 flex items-center justify-center">
+                <img id="promoAdImage" src="" alt="Promotional Offer" class="w-full max-h-[65vh] object-cover rounded-3xl transition-transform duration-300 group-hover:scale-[1.02] block select-none">
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Mobile Bottom Navigation Bar (Visible strictly on mobile screens, hidden on desktop/laptop) -->
+    <nav id="mobileBottomNav" class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] px-2 py-1.5 flex justify-around items-center text-center">
+        <!-- 1. Home -->
+        <button type="button" onclick="resetApp(); window.scrollTo({top: 0, behavior: 'smooth'});" class="flex flex-col items-center justify-center flex-1 py-1 text-red-600 active:scale-95 transition" title="Home">
+            <span class="text-xl leading-none">🏠</span>
+            <span id="lblNavHome" class="text-[10px] font-black mt-1">Home</span>
+        </button>
+        <!-- 2. My Bookings -->
+        <button type="button" onclick="openMyBookingsModal()" class="flex flex-col items-center justify-center flex-1 py-1 text-gray-600 hover:text-red-600 active:scale-95 transition" title="My Bookings">
+            <span class="text-xl leading-none">🎟️</span>
+            <span id="lblNavBookings" class="text-[10px] font-bold mt-1">My Bookings</span>
+        </button>
+        <!-- 3. Passenger Emergency SOS Button -->
+        <button type="button" onclick="openCustomerSosModal()" class="relative flex flex-col items-center justify-center flex-1 py-1 active:scale-95 transition group" title="Emergency SOS Safety">
+            <div class="relative w-8 h-8 rounded-full bg-gradient-to-tr from-red-600 via-rose-600 to-red-700 text-white flex items-center justify-center shadow-md shadow-red-500/35 group-hover:scale-110 transition-transform">
+                <span class="text-sm leading-none animate-pulse">🚨</span>
+                <span class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-400 rounded-full animate-ping"></span>
+            </div>
+            <span id="lblNavSos" class="text-[10px] font-black mt-0.5 text-red-600 tracking-tight">SOS</span>
+        </button>
+        <!-- 4. Virtual AI Agent Support -->
+        <button type="button" id="btnBottomNavAiSupport" onclick="if(typeof openCustomerAiSupportModal==='function'){openCustomerAiSupportModal();}else{var m=document.getElementById('customerAiSupportModal');if(m){m.classList.remove('hidden');m.style.display='flex';}}" class="relative flex flex-col items-center justify-center flex-1 py-0.5 group active:scale-95 transition" title="Bus Yatra AI Agent">
+            <div class="relative w-8 h-8 rounded-full p-[1.5px] bg-gradient-to-tr from-red-600 via-rose-500 to-amber-400 shadow-md transition-transform group-hover:scale-110">
+                <img src="assets/ai-agent-avatar.jpg" alt="Bus Yatra AI Agent" class="w-full h-full rounded-full object-cover object-top border-2 border-white">
+                <span class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full animate-pulse shadow-xs"></span>
+            </div>
+            <span id="lblNavAiSupport" class="text-[10px] font-black mt-0.5 text-red-700 group-hover:text-red-900 truncate max-w-[68px]" data-bn="ভার্চুয়াল AI" data-en="AI Agent">ভার্চুয়াল AI</span>
+        </button>
+        <!-- 5. Profile / Login -->
+        <button type="button" onclick="openCustomerAuthModal()" class="flex flex-col items-center justify-center flex-1 py-1 text-gray-600 hover:text-red-600 active:scale-95 transition" title="Profile">
+            <span class="text-xl leading-none">👤</span>
+            <span id="mobileBottomCustomerName" class="text-[10px] font-bold mt-1 truncate max-w-[64px]">Login</span>
+        </button>
+    </nav>
+
+    <!-- Bus Fullscreen Image Lightbox Modal for Customer -->
+    <div id="busImageLightboxModal" class="hidden fixed inset-0 bg-black/95 z-[300] flex flex-col justify-between p-3 sm:p-6 backdrop-blur-md transition-opacity">
+        <div class="flex items-center justify-between text-white z-20">
+            <div class="flex items-center gap-2">
+                <span class="text-base sm:text-lg font-bold" id="lightboxBusTitle">Bus Photos</span>
+                <span id="lightboxPhotoCounter" class="bg-white/20 text-white text-xs px-2.5 py-0.5 rounded-full font-bold">1 / 1</span>
+            </div>
+            <button type="button" onclick="closeBusImageLightbox()" class="text-white hover:text-red-400 bg-white/10 hover:bg-white/20 w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition cursor-pointer" title="Close (ESC)">✕</button>
+        </div>
+        <div class="relative flex-1 flex items-center justify-center overflow-hidden my-2">
+            <button type="button" id="lightboxPrevBtn" onclick="slideLightbox(-1)" class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/70 hover:bg-black text-white w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold shadow-2xl transition z-20 cursor-pointer">❮</button>
+            <img id="lightboxMainImage" src="" alt="Full Bus View" class="max-h-[80vh] max-w-[95vw] object-contain rounded-xl shadow-2xl transition-all duration-300">
+            <button type="button" id="lightboxNextBtn" onclick="slideLightbox(1)" class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/70 hover:bg-black text-white w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold shadow-2xl transition z-20 cursor-pointer">❯</button>
+        </div>
+        <div class="flex items-center justify-center gap-2 overflow-x-auto py-2 z-20" id="lightboxThumbsContainer"></div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- Enterprise Bus Yatra Virtual AI Support Desk Modal -->
+    <!-- ========================================== -->
+    <div id="customerAiSupportModal" class="hidden fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity" style="display: none;">
+        <div class="bg-white w-full sm:max-w-lg h-[90vh] sm:h-[82vh] rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-200">
+            
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-red-600 via-rose-600 to-indigo-700 text-white p-3.5 sm:p-4 flex items-center justify-between shrink-0 shadow-md">
+                <div class="flex items-center gap-3">
+                    <div class="relative w-10 h-10 rounded-full p-0.5 bg-gradient-to-tr from-amber-300 to-white shadow-md shrink-0">
+                        <img src="assets/ai-agent-avatar.jpg" alt="AI Agent" class="w-full h-full rounded-full object-cover object-top border-2 border-white">
+                        <span class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 border-2 border-white rounded-full animate-pulse"></span>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-black text-sm sm:text-base leading-tight" data-bn="বাস যাত্রা ভার্চুয়াল AI" data-en="Bus Yatra AI Agent">বাস যাত্রা ভার্চুয়াল AI</h3>
+                            <span class="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">24x7 Live</span>
+                        </div>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <span id="aiActiveTicketBadge" class="text-[11px] font-semibold text-yellow-200">টিকেট: লোড হচ্ছে...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <!-- Dynamic Lang Toggle for AI Assistant -->
+                    <button type="button" onclick="toggleCustomerAiModalLang()" id="btnAiModalLangToggle" class="text-[11px] bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full font-bold transition flex items-center gap-1" title="Language Switch">
+                        🌐 <span id="lblAiModalLang">English</span>
+                    </button>
+                    <button type="button" onclick="startNewAiSupportTicket()" class="text-[11px] bg-white/20 hover:bg-white/30 text-white px-2.5 py-1 rounded-full font-bold transition" title="Start New Ticket">
+                        + নতুন বিষয়
+                    </button>
+                    <button type="button" onclick="closeCustomerAiSupportModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center font-bold text-lg transition" aria-label="Close">✕</button>
+                </div>
+            </div>
+
+            <!-- Quick FAQ / Suggested Questions Chips -->
+            <div class="bg-gray-50 border-b border-gray-200 px-3 py-2 shrink-0 overflow-x-auto no-scrollbar">
+                <div class="flex items-center gap-1.5 text-xs whitespace-nowrap">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider shrink-0" data-bn="প্রশ্নাবলী:" data-en="FAQs:">প্রশ্নাবলী:</span>
+                    <button type="button" onclick="handleAiQuickQuery('timings')" class="bg-white hover:bg-red-50 text-gray-700 hover:text-red-600 px-2.5 py-1 rounded-full border border-gray-200 font-medium transition shadow-xs text-xs">
+                        🚌 সময়সূচী ও রুট
+                    </button>
+                    <button type="button" onclick="handleAiQuickQuery('payment_issue')" class="bg-white hover:bg-red-50 text-gray-700 hover:text-red-600 px-2.5 py-1 rounded-full border border-gray-200 font-medium transition shadow-xs text-xs">
+                        💳 পেমেন্ট কেটেছে টিকিট হয়নি
+                    </button>
+                    <button type="button" onclick="handleAiQuickQuery('cancellation')" class="bg-white hover:bg-red-50 text-gray-700 hover:text-red-600 px-2.5 py-1 rounded-full border border-gray-200 font-medium transition shadow-xs text-xs">
+                        ❌ টিকিট বাতিল ও রিফান্ড
+                    </button>
+                    <button type="button" onclick="handleAiQuickQuery('tracking')" class="bg-white hover:bg-red-50 text-gray-700 hover:text-red-600 px-2.5 py-1 rounded-full border border-gray-200 font-medium transition shadow-xs text-xs">
+                        📍 লাইভ বাস ট্র্যাকিং
+                    </button>
+                    <button type="button" onclick="handleAiQuickQuery('luggage')" class="bg-white hover:bg-red-50 text-gray-700 hover:text-red-600 px-2.5 py-1 rounded-full border border-gray-200 font-medium transition shadow-xs text-xs">
+                        🧳 লাগেজ ও মালামালের নিয়ম
+                    </button>
+                    <button type="button" onclick="handleAiQuickQuery('seat_selection')" class="bg-white hover:bg-red-50 text-gray-700 hover:text-red-600 px-2.5 py-1 rounded-full border border-gray-200 font-medium transition shadow-xs text-xs">
+                        💺 সিট নির্বাচন ও বুকিং
+                    </button>
+                    <button type="button" onclick="handleAiQuickQuery('helpline')" class="bg-white hover:bg-red-50 text-gray-700 hover:text-red-600 px-2.5 py-1 rounded-full border border-gray-200 font-medium transition shadow-xs text-xs">
+                        📞 হেল্পলাইন ও কন্টাক্ট
+                    </button>
+                    <button type="button" onclick="handleAiQuickQuery('offline_tickets')" class="bg-white hover:bg-red-50 text-gray-700 hover:text-red-600 px-2.5 py-1 rounded-full border border-gray-200 font-medium transition shadow-xs text-xs">
+                        📱 অফলাইন সংরক্ষিত টিকিট
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chat Messages Container -->
+            <div id="aiSupportChatMessages" class="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 bg-gray-100/60 touch-pan-y">
+                <!-- Welcome Bubble -->
+                <div class="flex items-start gap-2 max-w-[88%]">
+                    <img src="icons/ai-support-avatar.jpg" class="w-7 h-7 rounded-full object-cover shrink-0 border border-indigo-400 mt-1" alt="AI Assistant">
+                    <div class="bg-white text-gray-800 p-3 rounded-2xl rounded-tl-xs shadow-xs border border-gray-200 text-xs sm:text-sm leading-relaxed">
+                        <p class="font-bold text-indigo-900 mb-1 flex items-center gap-1.5">
+                            <span>🤖 Bus Yatra AI Assistant</span>
+                            <span class="text-[10px] text-gray-400 font-normal">Active</span>
+                        </p>
+                        <p>নমস্কার! 🙏 আমি বাস যাত্রা ভার্চুয়াল এআই অ্যাসিস্ট্যান্ট। বাস বুকিং, সময়সূচী, পেমেন্ট বা যেকোনো সমস্যায় আপনাকে সাহায্য করতে প্রস্তুত। আপনি লিখে প্রশ্ন করতে পারেন বা নিচে মাইক 🎙️ বাটনে চেপে মুখেও বলতে পারেন!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Voice Recording Indicator (Appears when listening) -->
+            <div id="aiVoiceActiveBanner" class="hidden bg-red-600 text-white px-3 py-2 flex items-center justify-between text-xs font-bold">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 bg-white rounded-full animate-ping"></span>
+                    <span id="aiVoiceActiveStatus">শুনছি... আপনার প্রশ্ন মুখে বলুন (Listening...)</span>
+                </div>
+                <button type="button" onclick="stopAiVoiceRecognition()" class="bg-white text-red-600 text-xs px-2.5 py-0.5 rounded-full font-black">Stop</button>
+            </div>
+
+            <!-- Attachment Preview Bar (Appears when photo is selected) -->
+            <div id="aiAttachmentPreviewBar" class="hidden bg-gray-50 border-t border-gray-200 px-3 py-2 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <img id="aiAttachmentPreviewImg" src="" alt="Attachment" class="w-10 h-10 rounded-lg object-cover border border-gray-300 shadow-xs">
+                    <div class="text-left">
+                        <p class="text-xs font-bold text-gray-800 truncate max-w-[200px]" id="aiAttachmentFileName">attachment.jpg</p>
+                        <p class="text-[10px] text-emerald-600 font-bold">সংযুক্ত ছবি (Ready to send)</p>
+                    </div>
+                </div>
+                <button type="button" onclick="clearAiAttachment()" class="text-gray-400 hover:text-red-600 p-1 rounded-full font-bold text-base" title="Remove attachment">✕</button>
+            </div>
+
+            <!-- Input Bar -->
+            <form id="aiSupportForm" onsubmit="submitCustomerAiMessage(event)" class="bg-white border-t border-gray-200 p-2 sm:p-3 flex items-center gap-2 shrink-0">
+                <input type="file" id="aiSupportFileInput" accept="image/*" class="hidden" onchange="handleAiFileSelected(event)">
+                
+                <!-- Attachment Button -->
+                <button type="button" onclick="document.getElementById('aiSupportFileInput').click()" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition shrink-0 cursor-pointer" title="Attach Photo / Screenshot">
+                    <span class="text-base">📎</span>
+                </button>
+
+                <!-- Voice Mic Button -->
+                <button type="button" id="btnAiVoiceInput" onclick="toggleAiVoiceRecognition()" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-red-50 text-gray-700 hover:text-red-600 flex items-center justify-center transition shrink-0 cursor-pointer" title="Voice Input (Bangla / English)">
+                    <span class="text-base">🎙️</span>
+                </button>
+
+                <!-- Text Input Field -->
+                <input type="text" id="aiSupportTextInput" placeholder="আপনার প্রশ্ন বা সমস্যা লিখুন (Type here)..." autocomplete="off" class="flex-1 bg-gray-100 hover:bg-gray-50 focus:bg-white border border-gray-200 focus:border-red-500 rounded-full px-3.5 py-2 text-xs sm:text-sm text-gray-900 focus:outline-none transition">
+
+                <!-- Send Button -->
+                <button type="submit" id="btnAiSendMessage" class="w-9 h-9 rounded-full bg-gradient-to-r from-red-600 to-indigo-600 hover:opacity-95 text-white flex items-center justify-center shadow-md active:scale-95 transition shrink-0 cursor-pointer" title="Send Message">
+                    <span class="text-sm font-bold">➤</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,38 @@
+{
+  "id": "/owner",
+  "name": "Bus Yatra - Bus Owner",
+  "short_name": "Bus Owner",
+  "description": "Bus Yatra Operator, Ticketing & Fleet Portal",
+  "start_url": "/owner?source=owner_pwa",
+  "scope": "/owner",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#f59e0b",
+  "icons": [
+    {
+      "src": "/icons/owner-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/owner-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/owner-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/owner-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

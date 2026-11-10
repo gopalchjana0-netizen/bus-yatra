@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bus Yatra - যাত্রী মতামত ও ফিডব্যাক (Passenger Feedback &amp; Review)</title>
+    <meta name="description" content="Bus Yatra যাত্রী মতামত ও রিভিউ পোর্টাল। আপনার বাস সফরের অভিজ্ঞতা কেমন ছিল জানান এবং রেটিং দিন।">
+    <link rel="icon" type="image/png" href="icons/favicon.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#dc2626">
+    <!-- High-Speed DNS Prefetch & Preconnect for Sub-Second CDN Loading -->
+    <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
+    <link rel="preload" href="common.js?v=10.9" as="script">
+
+    <link rel="stylesheet" href="style.css?v=10.9">
+    <script src="tailwind.js?v=10.9" defer></script>
+    <style>
+        .hidden { display: none !important; }
+        img { max-width: 100%; height: auto; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f3f4f6; margin: 0; }
+        .star-item {
+            transition: transform 0.15s ease, filter 0.15s ease;
+        }
+        .star-item:hover, .star-item:active {
+            transform: scale(1.25);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col font-sans antialiased selection:bg-red-500 selection:text-white">
+
+    <!-- Header -->
+    <header class="bg-red-600 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-3xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <a href="/" class="flex items-center gap-2 hover:opacity-95 transition">
+                    <img src="icons/logo-customer.png" alt="Bus Yatra" class="w-9 h-9 rounded-full shadow-sm border border-white/30 object-cover">
+                    <div>
+                        <h1 class="text-lg font-black tracking-tight leading-tight">Bus Yatra</h1>
+                        <p class="text-[10px] text-red-100 font-medium">Passenger Feedback &amp; Review</p>
+                    </div>
+                </a>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="/" class="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1.5 rounded-full transition flex items-center gap-1">
+                    🏠 <span>হোম / টিকিট</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-xl w-full mx-auto p-4 md:py-8 space-y-6">
+
+        <!-- Banner Card -->
+        <div class="bg-gradient-to-r from-red-600 to-rose-700 text-white rounded-3xl p-6 shadow-lg relative overflow-hidden">
+            <div class="relative z-10 space-y-2">
+                <span class="bg-white/20 text-white text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                    ⭐ সরাসরি মতামত
+                </span>
+                <h2 class="text-xl md:text-2xl font-black">আপনার বাস যাত্রা কেমন ছিল?</h2>
+                <p class="text-xs text-red-100 leading-relaxed">
+                    বাসযাত্রা আরও আরামদায়ক ও নিরাপদ করতে আপনার মূল্যবান মতামত এবং রেটিং দিন। আপনার প্রতিটি মতামত সরাসরি বাস মালিক ও কর্তৃপক্ষের কাছে পৌঁছাবে।
+                </p>
+            </div>
+            <div class="absolute -right-4 -bottom-4 text-7xl opacity-15 select-none pointer-events-none">⭐</div>
+        </div>
+
+        <!-- Feedback Form Card -->
+        <div class="bg-white rounded-3xl shadow-sm border border-gray-200 p-6 md:p-8 space-y-5">
+            <form id="feedbackForm" onsubmit="submitFeedbackForm(event)" class="space-y-4">
+                
+                <!-- Passenger Name -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">
+                        যাত্রীর পূর্ণ নাম (Passenger Name) <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="fbName" required maxlength="80" placeholder="যেমন: গোপাল চন্দ্র জানা" class="w-full p-3 border rounded-xl text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-red-500 focus:outline-none transition">
+                </div>
+
+                <!-- Passenger Phone -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">
+                        ১০-ডিজিটের মোবাইল নম্বর (Mobile Number) <span class="text-red-500">*</span>
+                    </label>
+                    <input type="tel" id="fbPhone" required inputmode="numeric" maxlength="10" placeholder="যেমন: 9876543210" class="w-full p-3 border rounded-xl text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-red-500 focus:outline-none font-bold tracking-wider transition">
+                    <span class="text-[11px] text-gray-400">প্রয়োজনে বাস কর্তৃপক্ষ আপনার সাথে যোগাযোগ করতে পারে।</span>
+                </div>
+
+                <!-- Bus Selection -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">
+                        কোন বাসে যাত্রা করেছিলেন? (Select Bus / Route) <span class="text-red-500">*</span>
+                    </label>
+                    <select id="fbBusSelect" required class="w-full p-3 border rounded-xl text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-red-500 focus:outline-none font-medium transition">
+                        <option value="">-- বাস নির্বাচন করুন (Choose Bus) --</option>
+                    </select>
+                </div>
+
+                <!-- Star Rating -->
+                <div class="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl text-center space-y-2">
+                    <label class="block text-xs font-black text-amber-900 uppercase tracking-wider">
+                        যাত্রার অভিজ্ঞতা রেটিং (Rate Your Journey) <span class="text-red-500">*</span>
+                    </label>
+                    
+                    <div class="flex justify-center items-center gap-2 py-2" id="starsContainer">
+                        <button type="button" onclick="setRating(1)" class="star-item text-4xl cursor-pointer focus:outline-none transition" data-rating="1" aria-label="1 star">⭐</button>
+                        <button type="button" onclick="setRating(2)" class="star-item text-4xl cursor-pointer focus:outline-none transition" data-rating="2" aria-label="2 stars">⭐</button>
+                        <button type="button" onclick="setRating(3)" class="star-item text-4xl cursor-pointer focus:outline-none transition" data-rating="3" aria-label="3 stars">⭐</button>
+                        <button type="button" onclick="setRating(4)" class="star-item text-4xl cursor-pointer focus:outline-none transition" data-rating="4" aria-label="4 stars">⭐</button>
+                        <button type="button" onclick="setRating(5)" class="star-item text-4xl cursor-pointer focus:outline-none transition" data-rating="5" aria-label="5 stars">⭐</button>
+                    </div>
+
+                    <div id="ratingTextBadge" class="inline-block bg-amber-200 text-amber-900 text-xs font-black px-3 py-1 rounded-full">
+                        🌟 অসাধারণ ও চমৎকার! (5 / 5 Stars - Excellent)
+                    </div>
+                </div>
+
+                <!-- Feedback Note / Comment -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">
+                        আপনার মন্তব্য বা পরামর্শ (Feedback Notes / Remarks)
+                    </label>
+                    <textarea id="fbComment" rows="4" maxlength="500" placeholder="বাসের পরিচ্ছন্নতা, চালক ও কন্ডাক্টরের ব্যবহার, সময়ানুবর্তিতা বা কোনো অসুবিধা থাকলে বিস্তারিত লিখুন..." class="w-full p-3 border rounded-xl text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-red-500 focus:outline-none transition"></textarea>
+                    <div class="flex justify-between items-center text-[11px] text-gray-400 mt-1">
+                        <span>সর্বোচ্চ ৫০০ অক্ষর (Max 500 characters)</span>
+                        <span id="charCount">0/500</span>
+                    </div>
+                </div>
+
+                <div id="fbErrorMsg" class="hidden p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-bold"></div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="btnSubmitFeedback" class="w-full bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white py-3.5 rounded-2xl font-black text-sm shadow-md transition flex items-center justify-center gap-2">
+                    <span>✓ মতামত জমা দিন (Submit Feedback)</span>
+                </button>
+            </form>
+        </div>
+
+    </main>
+
+    <!-- Success Modal -->
+    <div id="feedbackSuccessModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl animate-bounce-short">
+            <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto text-3xl shadow-inner">
+                ✓
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-xl font-black text-gray-900">ধন্যবাদ!</h3>
+                <p class="text-xs text-gray-600">
+                    আপনার মূল্যবান মতামত ও রেটিং সফলভাবে জমা হয়েছে এবং বাস পরিচালকদের কাছে পাঠানো হয়েছে।
+                </p>
+            </div>
+            <div class="pt-2">
+                <button type="button" onclick="closeFeedbackSuccess()" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold text-xs shadow-md transition">
+                    ঠিক আছে / হোম পেজে যান
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-6 mt-8 border-t border-gray-800 text-center text-xs text-gray-400">
+        <div class="max-w-3xl mx-auto px-4 space-y-2">
+            <div class="flex items-center justify-center gap-2">
+                <img src="icons/logo-customer.png" class="w-5 h-5 rounded-full" alt="Bus Yatra">
+                <span class="font-black text-white text-sm">Bus Yatra</span>
+            </div>
+            <p>© <span class="footer-dynamic-year">2026</span> Bus Yatra. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <script src="common.js?v=10.9"></script>
+    <script>
+        let selectedRating = 5;
+        const ratingLabels = {
+            1: "😡 খুব খারাপ (1 / 5 Stars - Poor)",
+            2: "😕 সন্তোষজনক নয় (2 / 5 Stars - Fair)",
+            3: "😐 সাধারণ (3 / 5 Stars - Average)",
+            4: "😊 ভালো (4 / 5 Stars - Good)",
+            5: "🌟 অসাধারণ ও চমৎকার! (5 / 5 Stars - Excellent)"
+        };
+
+        function setRating(val) {
+            selectedRating = val;
+            const buttons = document.querySelectorAll('#starsContainer button');
+            buttons.forEach((btn, idx) => {
+                if (idx < val) {
+                    btn.style.filter = "grayscale(0%) opacity(1)";
+                    btn.style.transform = "scale(1.1)";
+                } else {
+                    btn.style.filter = "grayscale(100%) opacity(0.35)";
+                    btn.style.transform = "scale(0.9)";
+                }
+            });
+            const badge = document.getElementById('ratingTextBadge');
+            if (badge) {
+                badge.innerText = ratingLabels[val] || `${val} Stars`;
+            }
+        }
+
+        async function loadBusesForFeedback() {
+            try {
+                const res = await apiRequest('/api/buses');
+                const select = document.getElementById('fbBusSelect');
+                if (!select) return;
+                const buses = res.buses || [];
+                select.innerHTML = '<option value="">-- বাস নির্বাচন করুন (Choose Bus) --</option>';
+                buses.forEach(b => {
+                    const opt = document.createElement('option');
+                    opt.value = b.id;
+                    opt.dataset.busName = b.name;
+                    opt.innerText = `${b.name} (${b.busNumber || 'Express'}) - ${b.route || 'Pingla to Kolkata'}`;
+                    select.appendChild(opt);
+                });
+            } catch (err) {
+                console.warn("Could not fetch buses for feedback:", err);
+            }
+        }
+
+        async function submitFeedbackForm(e) {
+            e.preventDefault();
+            const errorDiv = document.getElementById('fbErrorMsg');
+            errorDiv.classList.add('hidden');
+
+            const name = document.getElementById('fbName').value.trim();
+            const phone = document.getElementById('fbPhone').value.trim();
+            const select = document.getElementById('fbBusSelect');
+            const busId = select.value;
+            const busName = select.options[select.selectedIndex]?.dataset.busName || select.options[select.selectedIndex]?.text || '';
+            const comment = document.getElementById('fbComment').value.trim();
+
+            if (!name || name.length < 2) {
+                errorDiv.innerText = "অনুগ্রহ করে আপনার সঠিক নাম লিখুন।";
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            if (!/^[6-9]\d{9}$/.test(phone)) {
+                errorDiv.innerText = "অনুগ্রহ করে বৈধ ১০ ডিজিটের মোবাইল নম্বর লিখুন।";
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            if (!busId) {
+                errorDiv.innerText = "অনুগ্রহ করে কোন বাসে যাত্রা করেছিলেন তা নির্বাচন করুন।";
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            const btn = document.getElementById('btnSubmitFeedback');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span> জমা হচ্ছে...`;
+
+            try {
+                await apiRequest('/api/feedback', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        passengerName: name,
+                        passengerPhone: phone,
+                        busId,
+                        busName,
+                        rating: selectedRating,
+                        comment
+                    })
+                });
+
+                document.getElementById('feedbackSuccessModal').classList.remove('hidden');
+                document.getElementById('feedbackForm').reset();
+                setRating(5);
+            } catch (err) {
+                errorDiv.innerText = err.message || "মতামত জমা দিতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।";
+                errorDiv.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        function closeFeedbackSuccess() {
+            document.getElementById('feedbackSuccessModal').classList.add('hidden');
+            window.location.href = '/';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setRating(5);
+            loadBusesForFeedback();
+
+            // Pre-fill customer details if logged in
+            try {
+                const customer = JSON.parse(localStorage.getItem('busyatra_customer') || sessionStorage.getItem('busyatra_customer') || 'null');
+                if (customer) {
+                    if (customer.name && document.getElementById('fbName')) document.getElementById('fbName').value = customer.name;
+                    if (customer.phone && document.getElementById('fbPhone')) document.getElementById('fbPhone').value = customer.phone;
+                }
+            } catch {}
+
+            const commentArea = document.getElementById('fbComment');
+            const countSpan = document.getElementById('charCount');
+            if (commentArea && countSpan) {
+                commentArea.addEventListener('input', () => {
+                    countSpan.innerText = `${commentArea.value.length}/500`;
+                });
+            }
+
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js?v=10.9', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+            }
+        });
+    </script>
+</body>
+</html>
+

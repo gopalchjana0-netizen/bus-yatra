@@ -1,0 +1,16 @@
+{
+  "name": "bus-yatra",
+  "version": "1.0.0",
+  "description": "Before a production migration, check the remote migration history and confirm the live schema matches the existing migrations. Back up the production database first; do not apply migrations blindly to an existing deployment:",
+  "main": "app-admin.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}

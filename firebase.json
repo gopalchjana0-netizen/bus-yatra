@@ -1,0 +1,19 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "hosting": {
+    "public": ".",
+    "cleanUrls": true,
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "migrations/**",
+      "functions/**",
+      "*.sql",
+      "wrangler.jsonc",
+      "README.md"
+    ]
+  }
+}

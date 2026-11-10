@@ -1,0 +1,7 @@
+.idea
+.artifacts
+.wrangler
+.backup_functions
+.backup_migrations
+.firebase
+migrations

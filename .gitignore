@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+.wrangler/
+.firebase/
+.backup_functions/
+.backup_migrations/
+.artifacts/
+brain/
+scratch/
+.idea/
+*.log
+
+# Android Build Outputs
+.gradle/
+android/.gradle/
+android/**/build/
+build/
+app/build/
+release-apks/
+*.apk
+*.aab

@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "busyatra",
+  "compatibility_date": "2024-09-23",
+  "pages_build_output_dir": ".",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "busyatra-db",
+      "database_id": "6bf6d994-19df-498b-bd92-03d51e95e781",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

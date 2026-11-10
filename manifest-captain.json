@@ -1,0 +1,38 @@
+{
+  "id": "/captain",
+  "name": "Bus Yatra - Bus Captain & Conductor",
+  "short_name": "Bus Captain",
+  "description": "Bus Yatra Captain, Conductor & Real-time Live Tracking Portal",
+  "start_url": "/captain?source=captain_pwa",
+  "scope": "/captain",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#1e40af",
+  "icons": [
+    {
+      "src": "/icons/captain-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/captain-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/captain-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/captain-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

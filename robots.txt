@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Allow: /index.html
+Allow: /owner.html
+Allow: /captain.html
+Allow: /manifest.json
+Allow: /manifest-owner.json
+Allow: /manifest-captain.json
+Allow: /icons/
+Allow: /googleb7dc0ba45d9f55b1.html
+Disallow: /admin.html
+Disallow: /admin
+
+Sitemap: https://busyatra.pages.dev/sitemap.xml

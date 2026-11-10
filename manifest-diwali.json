@@ -1,0 +1,38 @@
+{
+  "id": "/?festival=diwali",
+  "name": "Bus Yatra 🪔 শুভ দীপাবলি",
+  "short_name": "Bus Yatra 🪔",
+  "description": "Bus Yatra - শুভ দীপাবলি ও শ্যামাপূজা! আনন্দময় ও নিরাপদ যাত্রার শুভেচ্ছা।",
+  "start_url": "/?source=pwa_diwali",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#ea580c",
+  "icons": [
+    {
+      "src": "/icons/icon-diwali-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-diwali-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-diwali-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-diwali-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

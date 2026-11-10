@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Real-Time Bus Live Tracking (Ultra-Fast <100ms WebSocket updates with zero server load)
+    match /bus_locations/{busId} {
+      allow read: if true;
+      // Write allowed only with valid GPS coordinates & schema validation
+      allow create, update: if request.resource.data.lat is number
+                            && request.resource.data.lng is number
+                            && request.resource.data.lat >= 6.0 && request.resource.data.lat <= 38.0
+                            && request.resource.data.lng >= 68.0 && request.resource.data.lng <= 98.0
+                            && request.resource.data.keys().hasOnly(['busId', 'busName', 'busNumber', 'lat', 'lng', 'speed', 'accuracy', 'heading', 'stopName', 'updated_at']);
+      // Prevent unauthorized deletion of real-time tracking data
+      allow delete: if false;
+    }
+
+    // Public cached configuration and fallback data (read-only)
+    match /public_cache/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Public Festival Theme and Real-Time System Config (Read-only for all portals, secure write with schema validation)
+    match /system_config/festivalTheme {
+      allow read: if true;
+      allow write: if request.resource.data.keys().hasOnly(['enabled', 'festival', 'targets', 'greeting', 'updated_at'])
+                   && request.resource.data.enabled is bool
+                   && request.resource.data.festival is string;
+    }
+
+    // Internal Cloudflare D1 outbox replica (fully protected)
+    match /busyatra_replica/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Default deny all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

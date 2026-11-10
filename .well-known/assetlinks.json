@@ -1,0 +1,43 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.busyatra.customer",
+      "sha256_cert_fingerprints": [
+        "14:6D:E9:7D:0F:52:AB:E0:83:13:B6:75:A8:84:8F:D4:58:65:F4:77:8C:F1:C9:83:8B:BC:E1:92:02:6F:E1:A2"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.busyatra.owner",
+      "sha256_cert_fingerprints": [
+        "14:6D:E9:7D:0F:52:AB:E0:83:13:B6:75:A8:84:8F:D4:58:65:F4:77:8C:F1:C9:83:8B:BC:E1:92:02:6F:E1:A2"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.busyatra.captain",
+      "sha256_cert_fingerprints": [
+        "14:6D:E9:7D:0F:52:AB:E0:83:13:B6:75:A8:84:8F:D4:58:65:F4:77:8C:F1:C9:83:8B:BC:E1:92:02:6F:E1:A2"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.busyatra.admin",
+      "sha256_cert_fingerprints": [
+        "14:6D:E9:7D:0F:52:AB:E0:83:13:B6:75:A8:84:8F:D4:58:65:F4:77:8C:F1:C9:83:8B:BC:E1:92:02:6F:E1:A2"
+      ]
+    }
+  }
+]
+
