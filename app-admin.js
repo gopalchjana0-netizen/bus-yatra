@@ -8380,7 +8380,7 @@ async function loadAdminSosAlerts(isSilent = false) {
             }
 
             // Audio alert if new active alert arrives while admin is on the tab
-            const newHash = adminSosAlertsData.map(a => `${a.id}:${a.status}`).join('|');
+            const newHash = adminSosAlertsData.map(a => `${a.id}:${a.status}:${a.camera_active ? 1 : 0}:${a.camera_updated_at || ''}`).join('|');
             const hasNew = newHash !== adminLastSosHash;
             if (hasNew && active > 0 && isSilent) {
                 playSosNotificationSound();
@@ -8564,7 +8564,15 @@ function renderAdminSosAlertsList() {
                         </a>` : ''}
                     </div>
 
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        ${Boolean(alert.camera_consent && alert.camera_active && !isResolved) ? `
+                        <button type="button" onclick="openAdminSosCameraModal('${escapeHtml(alert.id)}')" class="bg-rose-600 hover:bg-rose-700 text-white font-black text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm animate-pulse cursor-pointer">
+                            <span>📺</span> <span>লাইভ ক্যামেরা দেখুন (LIVE)</span>
+                        </button>` : (Boolean(alert.camera_consent) ? `
+                        <span class="text-[11px] font-bold px-2.5 py-1.5 rounded-xl bg-slate-100 text-slate-600 border border-slate-200">
+                            📷 ক্যামেরা সেশন সমাপ্ত
+                        </span>` : '')}
+
                         <!-- Mark Solved Button -->
                         ${!isResolved ? `
                         <button type="button" onclick="resolveAdminSosAlert('${alert.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer">
@@ -8668,6 +8676,136 @@ function formatSosTimeAgoOrDate(dtString) {
         return dtString;
     }
 }
+
+// --- Admin Consent-Based SOS Live Camera Viewer ---
+let adminActiveSosCameraId = null;
+let adminSosCameraPollTimer = null;
+
+async function pollAdminSosCameraFrame() {
+    if (!adminActiveSosCameraId) return;
+    try {
+        const res = await apiRequest(`/api/admin/emergency/sos/${encodeURIComponent(adminActiveSosCameraId)}/camera`);
+        if (!res || !res.ok) return;
+
+        const alertBadge = document.getElementById('adminSosCamAlertBadge');
+        const statusBadge = document.getElementById('adminSosCamStatusBadge');
+        const passName = document.getElementById('adminSosCamPassengerName');
+        const img = document.getElementById('adminSosCamImg');
+        const emptyState = document.getElementById('adminSosCamEmptyState');
+        const emptyText = document.getElementById('adminSosCamEmptyText');
+        const updatedAtEl = document.getElementById('adminSosCamUpdatedAt');
+        const mapLink = document.getElementById('adminSosCamMapLink');
+
+        if (alertBadge) alertBadge.innerText = res.alertNumber || '#SOS';
+        if (passName) passName.innerText = `${res.customerName || 'Passenger'} (${res.customerPhone || ''})`;
+        if (mapLink) {
+            if (res.mapsUrl) {
+                mapLink.href = res.mapsUrl;
+                mapLink.classList.remove('hidden');
+            } else {
+                mapLink.classList.add('hidden');
+            }
+        }
+
+        if (res.cameraActive && res.frame) {
+            if (statusBadge) {
+                statusBadge.innerText = '🔴 LIVE CAMERA';
+                statusBadge.className = 'text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500 text-white animate-pulse';
+            }
+            if (img) {
+                img.src = res.frame;
+                img.classList.remove('hidden');
+                img.style.display = 'block';
+            }
+            if (emptyState) emptyState.classList.add('hidden');
+            if (updatedAtEl) {
+                const ts = res.cameraUpdatedAt ? new Date(res.cameraUpdatedAt).toLocaleTimeString('bn-IN') : 'এইমাত্র';
+                updatedAtEl.innerText = `সর্বশেষ লাইভ আপডেট: ${ts}`;
+            }
+        } else if (res.cameraActive) {
+            if (statusBadge) {
+                statusBadge.innerText = '⏳ সংযোগ হচ্ছে';
+                statusBadge.className = 'text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500 text-white';
+            }
+            if (img) { img.classList.add('hidden'); img.style.display = 'none'; }
+            if (emptyState) emptyState.classList.remove('hidden');
+            if (emptyText) emptyText.innerText = 'কাস্টমারের ক্যামেরা থেকে প্রথম লাইভ ফ্রেমের জন্য অপেক্ষা করা হচ্ছে...';
+        } else {
+            if (statusBadge) {
+                statusBadge.innerText = '⏹️ সেশন বন্ধ';
+                statusBadge.className = 'text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-600 text-white';
+            }
+            if (img) { img.classList.add('hidden'); img.style.display = 'none'; img.src = ''; }
+            if (emptyState) emptyState.classList.remove('hidden');
+            if (emptyText) emptyText.innerText = 'কাস্টমার ক্যামেরা বন্ধ করেছেন অথবা SOS সেশনটি শেষ হয়েছে।';
+            if (updatedAtEl) updatedAtEl.innerText = 'ক্যামেরা ফিড বন্ধ আছে';
+            if (adminSosCameraPollTimer) {
+                clearInterval(adminSosCameraPollTimer);
+                adminSosCameraPollTimer = null;
+            }
+            loadAdminSosAlerts(true);
+        }
+    } catch (err) {
+        console.warn('Admin SOS camera poll error:', err);
+    }
+}
+
+function openAdminSosCameraModal(alertId) {
+    const modal = document.getElementById('adminSosLiveCameraModal');
+    if (!modal || !alertId) return;
+    adminActiveSosCameraId = alertId;
+
+    const img = document.getElementById('adminSosCamImg');
+    const emptyState = document.getElementById('adminSosCamEmptyState');
+    const emptyText = document.getElementById('adminSosCamEmptyText');
+    if (img) { img.src = ''; img.classList.add('hidden'); img.style.display = 'none'; }
+    if (emptyState) emptyState.classList.remove('hidden');
+    if (emptyText) emptyText.innerText = 'কাস্টমারের লাইভ ক্যামেরা ফ্রেম লোড হচ্ছে...';
+
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+    pollAdminSosCameraFrame();
+    if (adminSosCameraPollTimer) clearInterval(adminSosCameraPollTimer);
+    adminSosCameraPollTimer = setInterval(() => pollAdminSosCameraFrame(), 1800);
+}
+window.openAdminSosCameraModal = openAdminSosCameraModal;
+
+function closeAdminSosCameraModal() {
+    if (adminSosCameraPollTimer) {
+        clearInterval(adminSosCameraPollTimer);
+        adminSosCameraPollTimer = null;
+    }
+    adminActiveSosCameraId = null;
+    const modal = document.getElementById('adminSosLiveCameraModal');
+    const img = document.getElementById('adminSosCamImg');
+    if (img) { img.src = ''; img.classList.add('hidden'); img.style.display = 'none'; }
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+    }
+}
+window.closeAdminSosCameraModal = closeAdminSosCameraModal;
+
+async function adminStopSosCamera(alertId) {
+    if (!alertId) return;
+    try {
+        await apiRequest(`/api/admin/emergency/sos/${encodeURIComponent(alertId)}/stop-camera`, { method: 'POST' });
+        alert('⏹️ কাস্টমারের লাইভ ক্যামেরা সেশন বন্ধ করা হয়েছে।');
+        closeAdminSosCameraModal();
+        loadAdminSosAlerts();
+    } catch (err) {
+        alert(err.message || 'ক্যামেরা বন্ধ করতে সমস্যা হয়েছে।');
+    }
+}
+window.adminStopSosCamera = adminStopSosCamera;
+
+async function adminResolveFromCameraModal() {
+    const targetId = adminActiveSosCameraId;
+    if (!targetId) return;
+    await resolveAdminSosAlert(targetId);
+    closeAdminSosCameraModal();
+}
+window.adminResolveFromCameraModal = adminResolveFromCameraModal;
 
 
 

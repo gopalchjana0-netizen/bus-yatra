@@ -68,6 +68,7 @@ function parseJson(value, fallback) {
     }
 }
 
+let _sosColsEnsured = false;
 async function ensureSosTable(db) {
     if (!db) return;
     try {
@@ -89,15 +90,56 @@ async function ensureSosTable(db) {
                 resolved_at TEXT,
                 resolved_by TEXT,
                 resolution_notes TEXT,
+                camera_consent INTEGER NOT NULL DEFAULT 0,
+                camera_active INTEGER NOT NULL DEFAULT 0,
+                camera_frame TEXT DEFAULT '',
+                camera_updated_at TEXT,
+                camera_expires_at TEXT,
+                camera_session_token TEXT DEFAULT '',
                 created_at TEXT,
                 updated_at TEXT
             )
         `).run();
         await db.prepare('CREATE INDEX IF NOT EXISTS idx_sos_alerts_status ON emergency_sos_alerts(status)').run();
         await db.prepare('CREATE INDEX IF NOT EXISTS idx_sos_alerts_created ON emergency_sos_alerts(created_at)').run();
+        if (!_sosColsEnsured) {
+            const info = await db.prepare('PRAGMA table_info(emergency_sos_alerts)').all();
+            const cols = new Set((info.results || []).map(c => String(c.name || '').toLowerCase()));
+            if (!cols.has('camera_consent')) {
+                try { await db.prepare('ALTER TABLE emergency_sos_alerts ADD COLUMN camera_consent INTEGER NOT NULL DEFAULT 0').run(); } catch (_) {}
+            }
+            if (!cols.has('camera_active')) {
+                try { await db.prepare('ALTER TABLE emergency_sos_alerts ADD COLUMN camera_active INTEGER NOT NULL DEFAULT 0').run(); } catch (_) {}
+            }
+            if (!cols.has('camera_frame')) {
+                try { await db.prepare("ALTER TABLE emergency_sos_alerts ADD COLUMN camera_frame TEXT DEFAULT ''").run(); } catch (_) {}
+            }
+            if (!cols.has('camera_updated_at')) {
+                try { await db.prepare('ALTER TABLE emergency_sos_alerts ADD COLUMN camera_updated_at TEXT').run(); } catch (_) {}
+            }
+            if (!cols.has('camera_expires_at')) {
+                try { await db.prepare('ALTER TABLE emergency_sos_alerts ADD COLUMN camera_expires_at TEXT').run(); } catch (_) {}
+            }
+            if (!cols.has('camera_session_token')) {
+                try { await db.prepare("ALTER TABLE emergency_sos_alerts ADD COLUMN camera_session_token TEXT DEFAULT ''").run(); } catch (_) {}
+            }
+            _sosColsEnsured = true;
+        }
     } catch (e) {
         console.warn('ensureSosTable notice:', e);
     }
+}
+
+function sanitizeSosCameraFrame(rawFrame) {
+    const clean = String(rawFrame || '').trim();
+    if (!clean) return { ok: false, error: 'Camera frame missing.' };
+    if (!/^data:image\/(jpeg|jpg|webp|png);base64,[A-Za-z0-9+/=]+$/i.test(clean)) {
+        return { ok: false, error: 'Only safe JPEG/WebP/PNG camera frames are permitted.' };
+    }
+    if (clean.length > 240000) {
+        return { ok: false, error: 'Camera frame payload too large.' };
+    }
+    return { ok: true, value: clean };
 }
 
 let _clientAnalyticsTableEnsured = false;
@@ -2951,14 +2993,67 @@ async function handleGet(context) {
         });
     }
 
+    // GET /api/admin/emergency/sos/:id/camera (Admin view opt-in live SOS camera frame)
+    const adminSosCamMatch = path.match(/^\/api\/admin\/emergency\/sos\/([^/]+)\/camera$/);
+    if (adminSosCamMatch) {
+        if (auth?.role !== 'admin') return jsonError(403, 'Unauthorized.');
+        await ensureSosTable(env.DB);
+        const alertId = decodeURIComponent(adminSosCamMatch[1]);
+        const sos = await env.DB.prepare(
+            `SELECT id, alert_number, customer_name, customer_phone, emergency_type, status, maps_url,
+                    current_location_text, camera_consent, camera_active, camera_frame,
+                    camera_updated_at, camera_expires_at
+             FROM emergency_sos_alerts WHERE id = ? OR alert_number = ?`
+        ).bind(alertId, alertId).first();
+        if (!sos) return jsonError(404, 'SOS Alert not found.');
+
+        const nowIso = new Date().toISOString();
+        const isExpired = Boolean(sos.camera_expires_at && sos.camera_expires_at <= nowIso);
+        const stillLive = Boolean(sos.camera_consent && sos.camera_active && sos.status === 'Active' && !isExpired);
+
+        if (sos.camera_active && !stillLive) {
+            await env.DB.prepare(
+                "UPDATE emergency_sos_alerts SET camera_active = 0, camera_frame = '', camera_session_token = '', updated_at = ? WHERE id = ?"
+            ).bind(nowIso, sos.id).run();
+        }
+
+        return jsonResponse({
+            ok: true,
+            alertId: sos.id,
+            alertNumber: sos.alert_number,
+            customerName: sos.customer_name || 'Passenger',
+            customerPhone: sos.customer_phone || '',
+            emergencyType: sos.emergency_type || '',
+            status: sos.status || 'Active',
+            mapsUrl: sos.maps_url || '',
+            currentLocationText: sos.current_location_text || '',
+            cameraConsent: Boolean(sos.camera_consent),
+            cameraActive: stillLive,
+            cameraUpdatedAt: sos.camera_updated_at || null,
+            cameraExpiresAt: sos.camera_expires_at || null,
+            frame: stillLive ? (sos.camera_frame || '') : ''
+        });
+    }
+
     // GET /api/admin/emergency/sos (Admin list all emergency SOS alerts)
     if (path === '/api/admin/emergency/sos') {
         if (auth?.role !== 'admin') return jsonError(403, 'Unauthorized.');
         await ensureSosTable(env.DB);
+        const nowIso = new Date().toISOString();
+        await env.DB.prepare(
+            "UPDATE emergency_sos_alerts SET camera_active = 0, camera_frame = '', camera_session_token = '' WHERE camera_active = 1 AND (status != 'Active' OR (camera_expires_at IS NOT NULL AND camera_expires_at <= ?))"
+        ).bind(nowIso).run();
+
         const statusFilter = (url.searchParams.get('status') || 'all').trim();
         const search = (url.searchParams.get('search') || '').trim().toLowerCase();
 
-        let query = 'SELECT * FROM emergency_sos_alerts';
+        let query = `SELECT id, alert_number, customer_phone, customer_name, emergency_type, description,
+                            latitude, longitude, maps_url, current_location_text, bus_id, bus_name,
+                            status, resolved_at, resolved_by, resolution_notes,
+                            camera_consent, camera_active, camera_updated_at, camera_expires_at,
+                            CASE WHEN camera_frame IS NOT NULL AND camera_frame != '' THEN 1 ELSE 0 END AS has_live_frame,
+                            created_at, updated_at
+                     FROM emergency_sos_alerts`;
         const conditions = [];
         const params = [];
 
@@ -2973,7 +3068,7 @@ async function handleGet(context) {
         if (conditions.length > 0) {
             query += ' WHERE ' + conditions.join(' AND ');
         }
-        query += ' ORDER BY CASE WHEN status = "Active" THEN 0 ELSE 1 END, created_at DESC LIMIT 100';
+        query += " ORDER BY CASE WHEN status = 'Active' THEN 0 ELSE 1 END, created_at DESC LIMIT 100";
 
         const { results } = await env.DB.prepare(query).bind(...params).all();
 
@@ -7956,17 +8051,40 @@ async function handlePost(context) {
         const alertNumber = '#SOS-' + Math.floor(100000 + Math.random() * 900000);
         const now = new Date().toISOString();
 
+        const cameraConsent = body.camera_consent === true ? 1 : 0;
+        let cameraActive = 0;
+        let cameraFrame = '';
+        let cameraUpdatedAt = null;
+        let cameraExpiresAt = null;
+        let cameraSessionToken = '';
+        if (cameraConsent === 1) {
+            cameraActive = 1;
+            cameraSessionToken = 'sosc_' + secureRandomHex(16);
+            cameraExpiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+            if (body.initial_frame) {
+                const fc = sanitizeSosCameraFrame(body.initial_frame);
+                if (fc.ok) {
+                    cameraFrame = fc.value;
+                    cameraUpdatedAt = now;
+                }
+            }
+        }
+
         await env.DB.prepare(`
             INSERT INTO emergency_sos_alerts (
                 id, alert_number, customer_phone, customer_name,
                 emergency_type, description, latitude, longitude,
                 maps_url, current_location_text, bus_id, bus_name,
+                camera_consent, camera_active, camera_frame,
+                camera_updated_at, camera_expires_at, camera_session_token,
                 status, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active', ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active', ?, ?)
         `).bind(
             alertId, alertNumber, customerPhone, customerName,
             emergencyType, description, lat, lng,
             mapsUrl, locationText, busId, busName,
+            cameraConsent, cameraActive, cameraFrame,
+            cameraUpdatedAt, cameraExpiresAt, cameraSessionToken,
             now, now
         ).run();
 
@@ -7975,8 +8093,73 @@ async function handlePost(context) {
             alertId,
             alertNumber,
             mapsUrl,
+            cameraConsent: Boolean(cameraConsent),
+            cameraActive: Boolean(cameraActive),
+            cameraSessionToken: cameraSessionToken || null,
+            cameraExpiresAt,
             message: 'আপনার জরুরি এসওএস সিগন্যাল বাস কন্ট্রোল রুমে সফলভাবে পৌঁছেছে।'
         }, 201);
+    }
+
+    // POST /api/emergency/sos/:id/camera-frame (Opt-in customer live camera frame relay or stop)
+    const sosCamFrameMatch = path.match(/^\/api\/emergency\/sos\/([^/]+)\/camera-frame$/);
+    if (sosCamFrameMatch) {
+        await ensureSosTable(env.DB);
+        const alertId = decodeURIComponent(sosCamFrameMatch[1]);
+        const body = await readJson(request);
+        const token = String(body?.token || request.headers.get('X-Sos-Camera-Token') || '').trim();
+        if (!token) return jsonError(403, 'Camera session token required.');
+
+        const sos = await env.DB.prepare(
+            'SELECT id, status, camera_consent, camera_active, camera_expires_at, camera_session_token FROM emergency_sos_alerts WHERE id = ? OR alert_number = ?'
+        ).bind(alertId, alertId).first();
+        if (!sos || !sos.camera_session_token || sos.camera_session_token !== token) {
+            return jsonError(403, 'Invalid or expired SOS camera session token.');
+        }
+
+        const now = new Date().toISOString();
+        if (body?.action === 'stop') {
+            await env.DB.prepare(
+                "UPDATE emergency_sos_alerts SET camera_active = 0, camera_frame = '', camera_session_token = '', updated_at = ? WHERE id = ?"
+            ).bind(now, sos.id).run();
+            return jsonResponse({ ok: true, stopped: true, message: 'লাইভ ক্যামেরা শেয়ারিং নিরাপদে বন্ধ করা হয়েছে।' });
+        }
+
+        const isExpired = Boolean(sos.camera_expires_at && sos.camera_expires_at <= now);
+        if (sos.status !== 'Active' || !sos.camera_consent || !sos.camera_active || isExpired) {
+            await env.DB.prepare(
+                "UPDATE emergency_sos_alerts SET camera_active = 0, camera_frame = '', camera_session_token = '', updated_at = ? WHERE id = ?"
+            ).bind(now, sos.id).run();
+            return jsonResponse({
+                ok: false,
+                stopped: true,
+                reason: sos.status !== 'Active' ? 'resolved' : 'expired_or_stopped'
+            });
+        }
+
+        const frameCheck = sanitizeSosCameraFrame(body?.frame);
+        if (!frameCheck.ok) {
+            return jsonError(400, frameCheck.error);
+        }
+
+        await env.DB.prepare(
+            'UPDATE emergency_sos_alerts SET camera_frame = ?, camera_updated_at = ?, updated_at = ? WHERE id = ?'
+        ).bind(frameCheck.value, now, now, sos.id).run();
+
+        return jsonResponse({ ok: true, stopped: false, updatedAt: now, expiresAt: sos.camera_expires_at });
+    }
+
+    // POST /api/admin/emergency/sos/:id/stop-camera (Admin stops live camera feed anytime)
+    const adminSosStopCamMatch = path.match(/^\/api\/admin\/emergency\/sos\/([^/]+)\/stop-camera$/);
+    if (adminSosStopCamMatch) {
+        if (auth?.role !== 'admin') return jsonError(403, 'Unauthorized.');
+        await ensureSosTable(env.DB);
+        const alertId = decodeURIComponent(adminSosStopCamMatch[1]);
+        const now = new Date().toISOString();
+        await env.DB.prepare(
+            "UPDATE emergency_sos_alerts SET camera_active = 0, camera_frame = '', camera_session_token = '', updated_at = ? WHERE id = ? OR alert_number = ?"
+        ).bind(now, alertId, alertId).run();
+        return jsonResponse({ ok: true, message: 'কাস্টমারের লাইভ ক্যামেরা সেশন বন্ধ করা হয়েছে।' });
     }
 
     // POST /api/admin/emergency/sos/:id/resolve (Admin marks SOS as solved / resolved)
@@ -7986,14 +8169,17 @@ async function handlePost(context) {
         await ensureSosTable(env.DB);
         const alertId = decodeURIComponent(adminSosResolveMatch[1]);
         const body = await readJson(request);
-        const notes = typeof body?.notes === 'string' ? body.notes.trim() : 'সমস্যা সমাধান সম্পন্ন';
+        const notes = typeof body?.notes === 'string'
+            ? body.notes.trim()
+            : (typeof body?.resolution_notes === 'string' ? body.resolution_notes.trim() : 'সমস্যা সমাধান সম্পন্ন');
         const now = new Date().toISOString();
 
         await env.DB.prepare(`
             UPDATE emergency_sos_alerts
-            SET status = 'Resolved', resolved_at = ?, resolved_by = ?, resolution_notes = ?, updated_at = ?
+            SET status = 'Resolved', resolved_at = ?, resolved_by = ?, resolution_notes = ?,
+                camera_active = 0, camera_frame = '', camera_session_token = '', updated_at = ?
             WHERE id = ? OR alert_number = ?
-        `).bind(now, auth.identifier || 'admin', notes, now, alertId, alertId).run();
+        `).bind(now, auth.identifier || 'admin', notes || 'সমস্যা সমাধান সম্পন্ন', now, alertId, alertId).run();
 
         return jsonResponse({
             ok: true,

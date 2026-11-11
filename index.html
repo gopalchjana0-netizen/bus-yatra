@@ -57,8 +57,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preload" href="common.js?v=10.50" as="script">
-    <link rel="preload" href="app.js?v=10.50" as="script">
+    <link rel="preload" href="common.js?v=10.51" as="script">
+    <link rel="preload" href="app.js?v=10.51" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
     <script src="tailwind.js?v=10.37" defer></script>
@@ -1660,7 +1660,7 @@
                     <div class="space-y-2">
                         <h5 class="font-bold text-gray-900 text-xs">2. Personal Information Collected</h5>
                         <p>
-                            We collect personal information necessary to deliver transit services, specifically: Full Name, 10-digit Mobile Number, Gender, Age, Boarding Stage, Dropping Stage, Payment Reference ID, and temporary device GPS location (accessed strictly upon user consent when viewing live bus tracking).
+                            We collect personal information necessary to deliver transit services, specifically: Full Name, 10-digit Mobile Number, Gender, Age, Boarding Stage, Dropping Stage, Payment Reference ID, temporary device GPS location (accessed strictly upon user consent when viewing live bus tracking or triggering SOS), and optional SOS emergency live camera frames (captured solely when explicitly permitted by the user during an active SOS alert and automatically wiped upon resolution or stop).
                         </p>
                     </div>
 
@@ -1824,14 +1824,14 @@
     <!-- Firebase App & Firestore Compat SDKs for Real-Time Live Bus Tracking -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="common.js?v=10.50"></script>
-    <script src="app.js?v=10.50"></script>
+    <script src="common.js?v=10.51"></script>
+    <script src="app.js?v=10.51"></script>
     <script>
         if (typeof initFestivalThemeSync === 'function') {
             initFestivalThemeSync('customer');
         }
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js?v=10.50', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+            navigator.serviceWorker.register('/sw.js?v=10.51', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
         }
     </script>
 
@@ -1940,6 +1940,41 @@
                     <div>
                         <label class="block text-[11px] font-bold text-gray-600 mb-1">সমস্যার সংক্ষিপ্ত বিবরণ (Optional Message):</label>
                         <textarea id="sosDescriptionInput" rows="2" placeholder="কী সমস্যা হচ্ছে সংক্ষেপে লিখুন (ঐচ্ছিক)..." class="w-full text-xs p-2.5 rounded-xl border border-gray-300 focus:border-red-500 focus:outline-none bg-gray-50 focus:bg-white transition"></textarea>
+                    </div>
+
+                    <!-- Optional Opt-In Live Camera Assistance Box (STRICT USER CONSENT REQUIRED) -->
+                    <div id="sosLiveCameraOptInBox" class="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                                <span>📹</span>
+                                <span>জরুরি লাইভ ক্যামেরা সহায়তা (ঐচ্ছিক)</span>
+                            </span>
+                            <span id="sosCameraBadgeState" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">বন্ধ আছে</span>
+                        </div>
+                        <button type="button" id="btnEnableSosCamera" onclick="enableCustomerSosCamera()" class="w-full py-2 px-3 rounded-xl bg-white hover:bg-rose-50 border border-rose-300 text-rose-700 font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-2xs">
+                            <span>📷</span>
+                            <span>ক্যামেরা পারমিশন দিন ও লাইভ দেখান (Optional)</span>
+                        </button>
+                        <div id="sosCameraPreviewWrap" class="hidden space-y-2">
+                            <div class="relative rounded-xl overflow-hidden bg-black border border-red-400/50">
+                                <span class="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-black flex items-center gap-1 shadow">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+                                    <span>LIVE READY</span>
+                                </span>
+                                <video id="sosCameraPreviewVideo" autoplay muted playsinline style="width:100%;max-height:190px;object-fit:contain;background:#000;display:block;"></video>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" id="btnSwitchSosCamera" onclick="switchCustomerSosCameraFacing()" class="flex-1 py-1.5 px-2.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-800 text-[11px] font-bold transition cursor-pointer">
+                                    🔄 Front / Back বদলান
+                                </button>
+                                <button type="button" id="btnStopSosCamera" onclick="stopCustomerSosCamera(true)" class="py-1.5 px-3 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold transition cursor-pointer">
+                                    ⏹️ বন্ধ করুন
+                                </button>
+                            </div>
+                        </div>
+                        <p id="sosCameraStatusMsg" class="text-[10px] text-slate-500 leading-relaxed">
+                            🔒 সম্পূর্ণ ঐচ্ছিক: আপনি অনুমতি দিলে কেবল জরুরি SOS চলাকালীন কন্ট্রোল রুম (Admin) লাইভ ছবি দেখতে পাবে। আপনি বা অ্যাডমিন যেকোনো সময় বন্ধ করতে পারবেন।
+                        </p>
                     </div>
                 </div>
 
@@ -2111,6 +2146,13 @@
             <span id="mobileBottomCustomerName" class="text-[10px] font-bold mt-0.5 truncate max-w-[64px]">Login</span>
         </button>
     </nav>
+
+    <!-- Visible Floating Indicator Whenever Customer Opt-In SOS Camera Is Active -->
+    <button type="button" id="customerSosLiveCameraPill" onclick="stopCustomerSosCamera(true)" class="hidden fixed top-16 right-3 z-[960] bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-full text-[11px] font-black shadow-2xl border-2 border-white flex items-center gap-1.5 cursor-pointer animate-pulse" title="ট্যাপ করলে SOS লাইভ ক্যামেরা বন্ধ হয়ে যাবে">
+        <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
+        <span>SOS Camera Live • বন্ধ করুন (Stop)</span>
+    </button>
+    <video id="sosHiddenCaptureVideo" autoplay muted playsinline style="position:fixed;right:0;bottom:0;width:2px;height:2px;opacity:0.01;pointer-events:none;z-index:-1;"></video>
 
     <!-- Bus Fullscreen Image Lightbox Modal for Customer -->
     <div id="busImageLightboxModal" class="hidden fixed inset-0 bg-black/95 z-[300] flex flex-col justify-between p-3 sm:p-6 backdrop-blur-md transition-opacity">

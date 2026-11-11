@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preload" href="common.js?v=10.50" as="script">
-    <link rel="preload" href="app-admin.js?v=10.50" as="script">
+    <link rel="preload" href="common.js?v=10.51" as="script">
+    <link rel="preload" href="app-admin.js?v=10.51" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
     <script src="tailwind.js?v=10.37" defer></script>
@@ -3638,6 +3638,39 @@
         </div>
     </div>
 
+    <!-- Admin SOS Live Camera Control-Room Viewer Modal (Consent-Based) -->
+    <div id="adminSosLiveCameraModal" class="hidden fixed inset-0 bg-black/80 z-[130] flex items-center justify-center p-3 sm:p-4 backdrop-blur-sm">
+        <div class="bg-slate-950 text-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-red-500/40 flex flex-col max-h-[92vh]">
+            <div class="p-4 bg-gradient-to-r from-red-700 to-rose-800 flex items-center justify-between gap-2 shrink-0">
+                <div class="min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span id="adminSosCamAlertBadge" class="text-[11px] font-black font-mono px-2.5 py-0.5 rounded-full bg-black/40 border border-white/25">#SOS</span>
+                        <span id="adminSosCamStatusBadge" class="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500 text-white">🔴 LIVE CAMERA</span>
+                    </div>
+                    <h3 id="adminSosCamPassengerName" class="font-bold text-sm mt-1 truncate">Passenger Live SOS Feed</h3>
+                </div>
+                <button type="button" onclick="closeAdminSosCameraModal()" class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold flex items-center justify-center transition cursor-pointer shrink-0">✕</button>
+            </div>
+
+            <div class="p-3 sm:p-4 bg-black flex-1 flex flex-col items-center justify-center min-h-[240px] relative overflow-hidden">
+                <img id="adminSosCamImg" src="" alt="Live SOS Camera Feed" class="hidden rounded-2xl border border-white/10" style="width:100%;height:auto;max-height:60vh;object-fit:contain;margin:0 auto;">
+                <div id="adminSosCamEmptyState" class="text-center py-10 px-4 space-y-2">
+                    <span class="text-4xl block animate-pulse">📹</span>
+                    <p id="adminSosCamEmptyText" class="text-xs text-slate-300 font-semibold">কাস্টমারের লাইভ ক্যামেরা ফ্রেম লোড হচ্ছে...</p>
+                </div>
+            </div>
+
+            <div class="p-3.5 bg-slate-900 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs shrink-0">
+                <div id="adminSosCamUpdatedAt" class="text-[11px] text-slate-300 font-mono">আপডেট: অপেক্ষা করা হচ্ছে...</div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <a id="adminSosCamMapLink" href="#" target="_blank" class="hidden px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition">🗺️ ম্যাপ দেখুন</a>
+                    <button type="button" id="btnAdminStopSosCam" onclick="adminStopSosCamera(adminActiveSosCameraId)" class="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition cursor-pointer">⏹️ ক্যামেরা বন্ধ করুন</button>
+                    <button type="button" id="btnAdminResolveSosCam" onclick="adminResolveFromCameraModal()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition cursor-pointer">✅ SOS সমাধান করুন</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Admin Feedback Poster Modal -->
     <div id="adminFeedbackPosterModal" class="hidden fixed inset-0 bg-black/60 z-[120] flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border flex flex-col text-center">
@@ -4177,8 +4210,8 @@
     <!-- Firebase App & Firestore Compat SDKs for Real-Time Live Bus Tracking -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="common.js?v=10.50"></script>
-    <script src="app-admin.js?v=10.50"></script>
+    <script src="common.js?v=10.51"></script>
+    <script src="app-admin.js?v=10.51"></script>
     <script>
         function toggleAdminSidebar() {
             const sb = document.getElementById('adminSidebar');
@@ -4194,7 +4227,7 @@
             initFestivalThemeSync('admin');
         }
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js?v=10.50', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+            navigator.serviceWorker.register('/sw.js?v=10.51', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
         }
     </script>
 </body>

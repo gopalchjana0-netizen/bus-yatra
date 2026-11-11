@@ -5788,6 +5788,200 @@ window.submitCustomerAiMessage = submitCustomerAiMessage;
 // ==========================================
 let customerSosSelectedType = '🚑 চিকিৎসা জরুরি (Medical)';
 let customerSosCoords = null; // { latitude, longitude, accuracy }
+let sosCameraStream = null;
+let sosCameraFacing = 'environment';
+let sosCameraRelayTimer = null;
+let sosActiveCameraAlertId = null;
+let sosActiveCameraToken = null;
+let sosCameraExpiresAtMs = 0;
+let sosCameraFrameBusy = false;
+
+function updateSosCameraUiState() {
+    const enableBtn = document.getElementById('btnEnableSosCamera');
+    const previewWrap = document.getElementById('sosCameraPreviewWrap');
+    const badge = document.getElementById('sosCameraBadgeState');
+    const pill = document.getElementById('customerSosLiveCameraPill');
+    const hasStream = Boolean(sosCameraStream);
+    const isRelaying = Boolean(hasStream && sosActiveCameraAlertId && sosActiveCameraToken);
+
+    if (enableBtn) enableBtn.classList.toggle('hidden', hasStream);
+    if (previewWrap) previewWrap.classList.toggle('hidden', !hasStream);
+    if (badge) {
+        if (isRelaying) {
+            badge.innerText = '🔴 LIVE কন্ট্রোল রুম';
+            badge.className = 'text-[10px] font-black px-2 py-0.5 rounded-full bg-red-600 text-white animate-pulse';
+        } else if (hasStream) {
+            badge.innerText = '🟢 ক্যামেরা প্রস্তুত';
+            badge.className = 'text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700';
+        } else {
+            badge.innerText = 'বন্ধ আছে';
+            badge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700';
+        }
+    }
+    if (pill) {
+        pill.classList.toggle('hidden', !isRelaying);
+    }
+}
+
+async function enableCustomerSosCamera() {
+    const statusMsg = document.getElementById('sosCameraStatusMsg');
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        if (statusMsg) statusMsg.innerText = '⚠️ এই ব্রাউজারে ক্যামেরা সাপোর্ট করে না। তবে সাধারণ SOS অ্যালার্ট পাঠাতে কোনো সমস্যা নেই।';
+        return false;
+    }
+    try {
+        if (sosCameraStream) {
+            sosCameraStream.getTracks().forEach(t => t.stop());
+            sosCameraStream = null;
+        }
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: sosCameraFacing, width: { ideal: 640 }, height: { ideal: 480 } },
+            audio: false
+        });
+        sosCameraStream = stream;
+
+        const previewVid = document.getElementById('sosCameraPreviewVideo');
+        const hiddenVid = document.getElementById('sosHiddenCaptureVideo');
+        if (previewVid) {
+            previewVid.srcObject = stream;
+            previewVid.play().catch(() => {});
+        }
+        if (hiddenVid) {
+            hiddenVid.srcObject = stream;
+            hiddenVid.play().catch(() => {});
+        }
+        if (statusMsg) {
+            statusMsg.innerText = '✅ ক্যামেরা চালু হয়েছে! SOS অ্যালার্ট পাঠালে কন্ট্রোল রুম লাইভ ছবি দেখতে পাবে। আপনি চাইলে যেকোনো সময় বন্ধ করতে পারবেন।';
+        }
+        updateSosCameraUiState();
+        setTimeout(() => document.getElementById('sosCameraPreviewWrap')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 120);
+        return true;
+    } catch (err) {
+        console.warn('SOS camera permission denied or unavailable:', err);
+        if (statusMsg) {
+            statusMsg.innerText = '⚠️ ক্যামেরা পারমিশন দেওয়া হয়নি। চিন্তার কারণ নেই — ক্যামেরা ছাড়াই আপনি জরুরি SOS ও GPS লোকেশন পাঠাতে পারেন।';
+        }
+        updateSosCameraUiState();
+        return false;
+    }
+}
+window.enableCustomerSosCamera = enableCustomerSosCamera;
+
+async function switchCustomerSosCameraFacing() {
+    sosCameraFacing = sosCameraFacing === 'environment' ? 'user' : 'environment';
+    await enableCustomerSosCamera();
+}
+window.switchCustomerSosCameraFacing = switchCustomerSosCameraFacing;
+
+function captureSosCameraJpegFrame() {
+    const hiddenVid = document.getElementById('sosHiddenCaptureVideo');
+    const previewVid = document.getElementById('sosCameraPreviewVideo');
+    const vid = (hiddenVid && hiddenVid.videoWidth > 0) ? hiddenVid : previewVid;
+    if (!vid || !vid.videoWidth || !vid.videoHeight) return '';
+
+    const maxDim = 480;
+    const scale = Math.min(1, maxDim / Math.max(vid.videoWidth, vid.videoHeight));
+    const w = Math.max(160, Math.round(vid.videoWidth * scale));
+    const h = Math.max(120, Math.round(vid.videoHeight * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return '';
+    ctx.drawImage(vid, 0, 0, w, h);
+
+    let dataUrl = canvas.toDataURL('image/jpeg', 0.62);
+    if (dataUrl.length > 200000) {
+        dataUrl = canvas.toDataURL('image/jpeg', 0.45);
+    }
+    return dataUrl;
+}
+
+function stopCustomerSosCamera(notifyServer = true) {
+    if (sosCameraRelayTimer) {
+        clearInterval(sosCameraRelayTimer);
+        sosCameraRelayTimer = null;
+    }
+    const prevAlertId = sosActiveCameraAlertId;
+    const prevToken = sosActiveCameraToken;
+    sosActiveCameraAlertId = null;
+    sosActiveCameraToken = null;
+    sosCameraExpiresAtMs = 0;
+
+    if (sosCameraStream) {
+        sosCameraStream.getTracks().forEach(t => { try { t.stop(); } catch (_) {} });
+        sosCameraStream = null;
+    }
+    const previewVid = document.getElementById('sosCameraPreviewVideo');
+    const hiddenVid = document.getElementById('sosHiddenCaptureVideo');
+    if (previewVid) previewVid.srcObject = null;
+    if (hiddenVid) hiddenVid.srcObject = null;
+
+    const statusMsg = document.getElementById('sosCameraStatusMsg');
+    if (statusMsg) {
+        statusMsg.innerText = '🔒 সম্পূর্ণ ঐচ্ছিক: আপনি অনুমতি দিলে কেবল জরুরি SOS চলাকালীন কন্ট্রোল রুম (Admin) লাইভ ছবি দেখতে পাবে। আপনি বা অ্যাডমিন যেকোনো সময় বন্ধ করতে পারবেন।';
+    }
+    updateSosCameraUiState();
+
+    if (notifyServer && prevAlertId && prevToken) {
+        fetch(`/api/emergency/sos/${encodeURIComponent(prevAlertId)}/camera-frame`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            keepalive: true,
+            body: JSON.stringify({ token: prevToken, action: 'stop' })
+        }).catch(() => {});
+    }
+}
+window.stopCustomerSosCamera = stopCustomerSosCamera;
+
+async function relaySingleSosCameraFrame() {
+    if (!sosActiveCameraAlertId || !sosActiveCameraToken || !sosCameraStream || sosCameraFrameBusy) return;
+    if (sosCameraExpiresAtMs && Date.now() >= sosCameraExpiresAtMs) {
+        stopCustomerSosCamera(true);
+        return;
+    }
+    const frame = captureSosCameraJpegFrame();
+    if (!frame) return;
+
+    sosCameraFrameBusy = true;
+    try {
+        const res = await fetch(`/api/emergency/sos/${encodeURIComponent(sosActiveCameraAlertId)}/camera-frame`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: sosActiveCameraToken, frame })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (data && data.stopped) {
+            stopCustomerSosCamera(false);
+            if (typeof showDropDownToast === 'function') {
+                showDropDownToast('কন্ট্রোল রুম বা সিস্টেম দ্বারা SOS লাইভ ক্যামেরা বন্ধ করা হয়েছে।', 'info', 'ক্যামেরা বন্ধ হয়েছে');
+            }
+        }
+    } catch (_) {} finally {
+        sosCameraFrameBusy = false;
+    }
+}
+
+function startSosCameraRelayLoop(alertId, token, expiresAtIso) {
+    if (sosCameraRelayTimer) {
+        clearInterval(sosCameraRelayTimer);
+        sosCameraRelayTimer = null;
+    }
+    sosActiveCameraAlertId = alertId;
+    sosActiveCameraToken = token;
+    sosCameraExpiresAtMs = expiresAtIso ? new Date(expiresAtIso).getTime() : (Date.now() + 15 * 60 * 1000);
+    updateSosCameraUiState();
+
+    // Immediate first frame + 2-second lightweight live CCTV relay
+    setTimeout(() => relaySingleSosCameraFrame(), 250);
+    sosCameraRelayTimer = setInterval(() => relaySingleSosCameraFrame(), 2000);
+}
+
+window.addEventListener('pagehide', () => {
+    if (sosActiveCameraAlertId && sosActiveCameraToken) {
+        stopCustomerSosCamera(true);
+    }
+});
 
 function openCustomerSosModal() {
     const modal = document.getElementById('customerSosModal');
@@ -5806,6 +6000,7 @@ function openCustomerSosModal() {
         if (phoneInput && phone && !phoneInput.value) phoneInput.value = phone;
     } catch (_) {}
 
+    updateSosCameraUiState();
     // Show modal
     modal.classList.remove('hidden');
     modal.style.display = 'flex';
@@ -5820,6 +6015,10 @@ function closeCustomerSosModal() {
     if (!modal) return;
     modal.classList.add('hidden');
     modal.style.display = 'none';
+    // Release preview hardware immediately if customer closes modal without active submitted SOS relay
+    if (sosCameraStream && !sosActiveCameraAlertId) {
+        stopCustomerSosCamera(false);
+    }
 }
 window.closeCustomerSosModal = closeCustomerSosModal;
 
@@ -5942,6 +6141,8 @@ async function submitCustomerSosAlert() {
     }
 
     try {
+        const hasCameraConsent = Boolean(sosCameraStream);
+        const initialFrame = hasCameraConsent ? captureSosCameraJpegFrame() : '';
         const payload = {
             customer_name: name || 'Passenger',
             customer_phone: phone,
@@ -5949,7 +6150,9 @@ async function submitCustomerSosAlert() {
             description: desc,
             latitude: customerSosCoords ? customerSosCoords.latitude : null,
             longitude: customerSosCoords ? customerSosCoords.longitude : null,
-            current_location_text: locationText || (customerSosCoords ? `GPS (${customerSosCoords.latitude.toFixed(5)}, ${customerSosCoords.longitude.toFixed(5)})` : '')
+            current_location_text: locationText || (customerSosCoords ? `GPS (${customerSosCoords.latitude.toFixed(5)}, ${customerSosCoords.longitude.toFixed(5)})` : ''),
+            camera_consent: hasCameraConsent,
+            initial_frame: initialFrame || undefined
         };
 
         const res = await fetch('/api/emergency/sos', {
@@ -5960,7 +6163,10 @@ async function submitCustomerSosAlert() {
 
         const data = await res.json();
         if (res.ok && data && data.ok) {
-            const alertNum = data.alert?.alert_number || 'SOS Alert';
+            const alertNum = data.alert?.alert_number || data.alertNumber || 'SOS Alert';
+            if (hasCameraConsent && data.cameraSessionToken && data.alertId) {
+                startSosCameraRelayLoop(data.alertId, data.cameraSessionToken, data.cameraExpiresAt);
+            }
             closeCustomerSosModal();
 
             if (typeof showDropDownToast === 'function') {
