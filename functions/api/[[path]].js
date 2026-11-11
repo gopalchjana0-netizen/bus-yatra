@@ -217,10 +217,42 @@ async function ensureEnterpriseSegmentTables(db) {
         `).run();
         await db.prepare('CREATE INDEX IF NOT EXISTS idx_shl_expiry ON seat_hold_legs (expires_at)').run();
         await db.prepare('CREATE INDEX IF NOT EXISTS idx_shl_session ON seat_hold_legs (bus_id, journey_date, session_id)').run();
+        await ensureCustomerPhotoColumns(db);
         _enterpriseSegmentTablesEnsured = true;
     } catch (e) {
         console.warn('ensureEnterpriseSegmentTables notice:', e);
     }
+}
+
+let _customerPhotoColsEnsured = false;
+async function ensureCustomerPhotoColumns(db) {
+    if (!db || _customerPhotoColsEnsured) return;
+    try {
+        const info = await db.prepare('PRAGMA table_info(customers)').all();
+        const cols = new Set((info.results || []).map(c => String(c.name || '').toLowerCase()));
+        if (!cols.has('profile_photo')) {
+            try { await db.prepare("ALTER TABLE customers ADD COLUMN profile_photo TEXT NOT NULL DEFAULT ''").run(); } catch (_) {}
+        }
+        if (!cols.has('avatar_preference')) {
+            try { await db.prepare("ALTER TABLE customers ADD COLUMN avatar_preference TEXT NOT NULL DEFAULT 'auto'").run(); } catch (_) {}
+        }
+        _customerPhotoColsEnsured = true;
+    } catch (e) {
+        console.warn('ensureCustomerPhotoColumns notice:', e);
+    }
+}
+
+function sanitizeProfilePhotoInput(raw) {
+    if (raw === undefined || raw === null) return { ok: true, value: '' };
+    const clean = String(raw).trim();
+    if (!clean) return { ok: true, value: '' };
+    if (clean.length > 350000) {
+        return { ok: false, error: 'ছবি অনেক বড়! অনুগ্রহ করে ছোট সাইজের ছবি (৩৫০ KB-র কম) আপলোড করুন।' };
+    }
+    if (!/^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+$/i.test(clean)) {
+        return { ok: false, error: 'শুধুমাত্র বৈধ JPEG, PNG বা WebP ছবি অনুমোদিত।' };
+    }
+    return { ok: true, value: clean };
 }
 
 function sanitizeStoppageFaresInput(raw) {
@@ -1382,7 +1414,7 @@ async function handleRequest(context) {
         if (role === 'owner-recovery' && request.method !== 'POST') {
             return jsonError(405, 'Method not allowed.');
         }
-        if (path === '/api/customer/me' || path === '/api/customer/logout') {
+        if (path === '/api/customer/me' || path === '/api/customer/logout' || path === '/api/customer/profile-photo') {
             const identity = await getCustomerIdentity(request, context.env.DB);
             if (!identity) return jsonError(401, 'Please sign in to access your customer account.');
             return request.method === 'GET'
@@ -1983,8 +2015,9 @@ async function handleGet(context) {
     }
 
     if (path === '/api/customer/me') {
+        await ensureCustomerPhotoColumns(env.DB);
         const customer = await env.DB.prepare(
-            "SELECT phone, name, email, features, status, created_at FROM customers WHERE phone = ?"
+            "SELECT phone, name, email, features, status, created_at, profile_photo, avatar_preference FROM customers WHERE phone = ?"
         ).bind(auth.identifier).first();
         if (!customer) return jsonError(404, 'Customer account not found.');
         if (customer.status !== 'active') {
@@ -2016,6 +2049,8 @@ async function handleGet(context) {
                 phone: customer.phone,
                 name: customer.name,
                 email: customer.email || '',
+                profilePhoto: customer.profile_photo || '',
+                avatarPreference: customer.avatar_preference || 'auto',
                 created_at: customer.created_at,
                 features: customerFeatures
             }
@@ -2149,8 +2184,10 @@ async function handleGet(context) {
 
     // GET /api/admin/customers
     if (path === '/api/admin/customers') {
+        await ensureCustomerPhotoColumns(env.DB);
         const q = (url.searchParams.get('query') || '').trim().toLowerCase();
         let sql = `SELECT c.phone, c.name, c.email, c.pin, c.security_question, c.security_answer,
+                          c.profile_photo, c.avatar_preference,
                           COALESCE(acl.status, c.status, 'active') AS status,
                           acl.reason AS acl_reason,
                           c.features, c.pin_requested_at, c.created_at, c.updated_at,
@@ -2181,6 +2218,8 @@ async function handleGet(context) {
         };
         const customers = (results || []).map(c => ({
             ...c,
+            profilePhoto: c.profile_photo || '',
+            avatarPreference: c.avatar_preference || 'auto',
             last_device: c.device_brand ? {
                 deviceType: c.device_type,
                 deviceBrand: c.device_brand,
@@ -3155,6 +3194,7 @@ async function handlePost(context) {
 
     // POST /api/customer/register
     if (path === '/api/customer/register') {
+        await ensureCustomerPhotoColumns(env.DB);
         const body = await readJson(request);
         const name = String((body && body.name) || '').trim();
         const phone = String((body && body.phone) || '').trim();
@@ -3221,12 +3261,20 @@ async function handlePost(context) {
             status: 'active',
             token: session.token,
             expiresAt: session.expiresAt,
-            customer: { phone, name, email: email || null, features: defaultCustomerFeatures }
+            customer: {
+                phone,
+                name,
+                email: email || null,
+                profilePhoto: '',
+                avatarPreference: 'auto',
+                features: defaultCustomerFeatures
+            }
         });
     }
 
     // POST /api/customer/login
     if (path === '/api/customer/login') {
+        await ensureCustomerPhotoColumns(env.DB);
         const body = await readJson(request);
         const phone = String((body && body.phone) || '').trim();
         const pin = String((body && body.pin) || '').trim();
@@ -3295,7 +3343,64 @@ async function handlePost(context) {
             ok: true,
             token: session.token,
             expiresAt: session.expiresAt,
-            customer: { phone: customer.phone, name: customer.name, features: customerFeatures }
+            customer: {
+                phone: customer.phone,
+                name: customer.name,
+                email: customer.email || '',
+                profilePhoto: customer.profile_photo || '',
+                avatarPreference: customer.avatar_preference || 'auto',
+                features: customerFeatures
+            }
+        });
+    }
+
+    // POST /api/customer/profile-photo (Customer self-upload, change, or preference switch)
+    if (path === '/api/customer/profile-photo') {
+        if (!auth || auth.role !== 'customer' || !auth.identifier) {
+            return jsonError(401, 'Please sign in to update your profile photo.');
+        }
+        await ensureCustomerPhotoColumns(env.DB);
+        const body = await readJson(request);
+        if (!body || typeof body !== 'object') {
+            return jsonError(400, 'Invalid request body.');
+        }
+
+        const existing = await env.DB.prepare(
+            'SELECT phone, name, email, features, profile_photo, avatar_preference FROM customers WHERE phone = ?'
+        ).bind(auth.identifier).first();
+        if (!existing) return jsonError(404, 'Customer account not found.');
+
+        const clearPhoto = Boolean(body.clearPhoto);
+        let nextPhoto = existing.profile_photo || '';
+        if (clearPhoto) {
+            nextPhoto = '';
+        } else if (body.profilePhoto !== undefined) {
+            const check = sanitizeProfilePhotoInput(body.profilePhoto);
+            if (!check.ok) return jsonError(400, check.error);
+            nextPhoto = check.value;
+        }
+
+        const rawPref = String(body.avatarPreference || (body.profilePhoto ? 'custom' : (clearPhoto ? 'auto' : (existing.avatar_preference || 'auto')))).trim().toLowerCase();
+        const allowedPrefs = new Set(['auto', 'male', 'female', 'custom']);
+        let nextPref = allowedPrefs.has(rawPref) ? rawPref : 'auto';
+        if (nextPref === 'custom' && !nextPhoto) nextPref = 'auto';
+
+        const now = new Date().toISOString();
+        await env.DB.prepare(
+            'UPDATE customers SET profile_photo = ?, avatar_preference = ?, updated_at = ? WHERE phone = ?'
+        ).bind(nextPhoto, nextPref, now, auth.identifier).run();
+
+        return jsonResponse({
+            ok: true,
+            message: clearPhoto ? 'প্রোফাইল ফটো মুছে ফেলা হয়েছে।' : 'প্রোফাইল ফটো সফলভাবে আপডেট হয়েছে!',
+            customer: {
+                phone: existing.phone,
+                name: existing.name,
+                email: existing.email || '',
+                profilePhoto: nextPhoto,
+                avatarPreference: nextPref,
+                features: parseJson(existing.features, {})
+            }
         });
     }
 
@@ -3890,7 +3995,8 @@ async function handlePost(context) {
             return jsonError(400, 'Customer phone number required.');
         }
 
-        let customer = await env.DB.prepare('SELECT phone, name, email FROM customers WHERE phone = ?').bind(customerPhone).first();
+        await ensureCustomerPhotoColumns(env.DB);
+        let customer = await env.DB.prepare('SELECT phone, name, email, profile_photo, avatar_preference FROM customers WHERE phone = ?').bind(customerPhone).first();
         if (!customer) {
             const bk = await env.DB.prepare('SELECT passenger_name, passenger_phone FROM bookings WHERE passenger_phone = ? ORDER BY created_at DESC LIMIT 1').bind(customerPhone).first();
             if (bk) {
@@ -3923,8 +4029,62 @@ async function handlePost(context) {
                 phone: customer.phone,
                 name: customer.name,
                 email: customer.email || '',
+                profilePhoto: customer.profile_photo || '',
+                avatarPreference: customer.avatar_preference || 'auto',
                 impersonatedByAdmin: true
             }
+        });
+    }
+
+    // POST /api/admin/customers/photo (Admin view/upload/change/reset customer profile photo)
+    if (path === '/api/admin/customers/photo') {
+        if (!auth || auth.role !== 'admin') {
+            return jsonError(403, 'Administrator access required.');
+        }
+        await ensureCustomerPhotoColumns(env.DB);
+        const body = await readJson(request);
+        const phone = String(body?.phone || '').trim();
+        if (!/^[6-9]\d{9}$/.test(phone)) {
+            return jsonError(400, 'বৈধ ১০-সংখ্যার কাস্টমার মোবাইল নম্বর দিন।');
+        }
+        const existing = await env.DB.prepare(
+            'SELECT phone, name, profile_photo, avatar_preference FROM customers WHERE phone = ?'
+        ).bind(phone).first();
+        if (!existing) return jsonError(404, 'কাস্টমার অ্যাকাউন্ট খুঁজে পাওয়া যায়নি।');
+
+        const clearPhoto = Boolean(body?.clearPhoto);
+        let nextPhoto = existing.profile_photo || '';
+        if (clearPhoto) {
+            nextPhoto = '';
+        } else if (body?.profilePhoto !== undefined) {
+            const check = sanitizeProfilePhotoInput(body.profilePhoto);
+            if (!check.ok) return jsonError(400, check.error);
+            nextPhoto = check.value;
+        }
+
+        const rawPref = String(body?.avatarPreference || (body?.profilePhoto ? 'custom' : (clearPhoto ? 'auto' : (existing.avatar_preference || 'auto')))).trim().toLowerCase();
+        const allowedPrefs = new Set(['auto', 'male', 'female', 'custom']);
+        let nextPref = allowedPrefs.has(rawPref) ? rawPref : 'auto';
+        if (nextPref === 'custom' && !nextPhoto) nextPref = 'auto';
+
+        const now = new Date().toISOString();
+        await env.DB.prepare(
+            'UPDATE customers SET profile_photo = ?, avatar_preference = ?, updated_at = ? WHERE phone = ?'
+        ).bind(nextPhoto, nextPref, now, phone).run();
+
+        try {
+            await logAdminAudit(env.DB, auth.identifier, 'CUSTOMER_PHOTO_UPDATE', phone, {
+                hasCustomPhoto: Boolean(nextPhoto),
+                avatarPreference: nextPref
+            });
+        } catch (_) {}
+
+        return jsonResponse({
+            ok: true,
+            phone,
+            profilePhoto: nextPhoto,
+            avatarPreference: nextPref,
+            message: clearPhoto ? 'কাস্টমারের কাস্টম ফটো মুছে ফেলা হয়েছে।' : 'কাস্টমারের প্রোফাইল ফটো সফলভাবে আপডেট হয়েছে!'
         });
     }
 

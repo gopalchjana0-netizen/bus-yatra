@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preload" href="common.js?v=10.48" as="script">
-    <link rel="preload" href="app-admin.js?v=10.48" as="script">
+    <link rel="preload" href="common.js?v=10.49" as="script">
+    <link rel="preload" href="app-admin.js?v=10.49" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
     <script src="tailwind.js?v=10.37" defer></script>
@@ -4076,6 +4076,46 @@
         </div>
     </div>
 
+    <!-- Admin Customer Photo Viewer & Manager Modal -->
+    <div id="adminCustomerPhotoModal" class="hidden fixed inset-0 z-[125] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden border border-gray-200">
+            <div class="flex items-center justify-between p-4 border-b bg-gradient-to-r from-gray-900 to-purple-900 text-white">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="text-lg">📸</span>
+                    <div class="min-w-0">
+                        <h3 id="adminCustPhotoModalName" class="font-bold text-sm truncate">Customer Photo</h3>
+                        <p id="adminCustPhotoModalPhone" class="text-[11px] text-purple-200 font-mono">+91 --</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAdminCustomerPhotoModal()" class="text-white/80 hover:text-white text-lg font-bold p-1">✕</button>
+            </div>
+            <div class="p-5 space-y-4 text-center text-xs">
+                <input type="hidden" id="adminCustPhotoModalTargetPhone">
+                <input type="file" id="adminCustPhotoFileInput" accept="image/*" class="hidden" onchange="handleAdminCustomerPhotoUpload(this)">
+                <div class="flex flex-col items-center gap-2">
+                    <div class="w-36 h-36 sm:w-40 sm:h-40 rounded-full p-1 bg-gradient-to-tr from-red-600 via-amber-500 to-emerald-500 shadow-lg">
+                        <img id="adminCustPhotoModalPreviewImg" src="assets/avatar-customer-male.jpg" alt="Customer Avatar" class="w-full h-full rounded-full object-cover object-top border-4 border-white bg-gray-100">
+                    </div>
+                    <span id="adminCustPhotoModalBadge" class="px-3 py-1 rounded-full text-[11px] font-black bg-purple-50 text-purple-800 border border-purple-200">Auto Avatar</span>
+                </div>
+                <div class="space-y-2">
+                    <button type="button" id="btnAdminUploadCustPhoto" onclick="document.getElementById('adminCustPhotoFileInput')?.click()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 px-4 rounded-xl font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer">
+                        <span>📸</span> <span id="lblAdminUploadCustPhotoBtn" data-bn="নতুন ফটো আপলোড / পরিবর্তন করুন" data-en="Upload / Change Photo">Upload / Change Photo</span>
+                    </button>
+                    <div class="grid grid-cols-3 gap-1.5 text-[11px] font-bold">
+                        <button type="button" id="btnAdminAvatarAuto" onclick="adminSetCustomerAvatarMode('auto')" class="py-1.5 px-2 rounded-lg border transition">✨ Auto</button>
+                        <button type="button" id="btnAdminAvatarMale" onclick="adminSetCustomerAvatarMode('male')" class="py-1.5 px-2 rounded-lg border transition">👨 Male</button>
+                        <button type="button" id="btnAdminAvatarFemale" onclick="adminSetCustomerAvatarMode('female')" class="py-1.5 px-2 rounded-lg border transition">👩 Female</button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" id="btnAdminAvatarCustom" onclick="adminSetCustomerAvatarMode('custom')" class="hidden flex-1 py-1.5 px-2 rounded-lg border font-bold text-[11px] transition">📷 Use Custom</button>
+                        <button type="button" id="btnAdminClearCustPhoto" onclick="adminClearCustomerPhoto()" class="hidden flex-1 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 py-1.5 px-2 rounded-lg font-bold text-[11px] transition" data-bn="🗑️ কাস্টম মুছুন" data-en="🗑️ Remove Custom">🗑️ Remove Custom</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Payment Screenshot Lightbox Modal -->
     <div id="paymentScreenshotModal" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
@@ -4107,8 +4147,8 @@
     <!-- Firebase App & Firestore Compat SDKs for Real-Time Live Bus Tracking -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="common.js?v=10.48"></script>
-    <script src="app-admin.js?v=10.48"></script>
+    <script src="common.js?v=10.49"></script>
+    <script src="app-admin.js?v=10.49"></script>
     <script>
         function toggleAdminSidebar() {
             const sb = document.getElementById('adminSidebar');
@@ -4124,7 +4164,7 @@
             initFestivalThemeSync('admin');
         }
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js?v=10.48', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+            navigator.serviceWorker.register('/sw.js?v=10.49', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
         }
     </script>
 </body>

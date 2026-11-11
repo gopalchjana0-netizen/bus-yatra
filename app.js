@@ -935,106 +935,28 @@ async function validateCustomerSession() {
     }
 }
 
-const MALE_CUSTOMER_FIRST_NAMES = new Set([
-    'gopal', 'rahul', 'amit', 'subrata', 'ramesh', 'suresh', 'mahesh', 'ganesh', 'naresh', 'dinesh', 'rakesh', 'mukesh', 'lokesh', 'yogesh', 'paresh',
-    'krishna', 'rama', 'shiva', 'rudra', 'aditya', 'surya', 'chandra', 'indra', 'subhankar', 'subhash', 'subhajit', 'debabrata', 'satyabrata', 'siddhartha',
-    'partha', 'sarathi', 'mitra', 'biswajit', 'prosenjit', 'ranajit', 'sujit', 'ajit', 'bijoy', 'vijay', 'sanjay', 'sanjoy', 'sanjib', 'rajib', 'rajesh',
-    'prakash', 'bikash', 'vikas', 'dipak', 'deepak', 'alok', 'ashok', 'tarak', 'tapas', 'tapan', 'swapan', 'nayan', 'kalyan', 'aryan', 'ayush', 'piyush',
-    'ankush', 'pratyush', 'rohit', 'mohit', 'sumit', 'lalit', 'pulkit', 'ankit', 'mudit', 'harshit', 'arjun', 'karan', 'varun', 'tarun', 'arun', 'manoj',
-    'binod', 'vinod', 'pramod', 'subodh', 'prabodh', 'soumen', 'soumik', 'soumya', 'somen', 'sourav', 'gaurav', 'pranab', 'arnab', 'biplab', 'pallab',
-    'saurabh', 'rishabh', 'kaushik', 'koushik', 'koustav', 'ritwik', 'pratik', 'kartik', 'shamik', 'rohan', 'sohan', 'mohan', 'soham', 'shubham', 'shivam',
-    'satyam', 'uttam', 'gautam', 'pritam', 'anupam', 'salman', 'shahrukh', 'amir', 'imran', 'irfan', 'kamran', 'farhan', 'arhan', 'rehan', 'arman', 'danish',
-    'tarik', 'tariq', 'asif', 'arif', 'wasim', 'nasim', 'karim', 'rahim', 'salim', 'halim', 'sohel', 'shohel', 'rakib', 'sakib', 'tamim', 'habib', 'david',
-    'john', 'peter', 'samir', 'kabir', 'ranbir', 'ranvir', 'mahavir', 'raghav', 'madhav', 'keshav', 'keshab', 'prabhat', 'bharat', 'sharad', 'harish', 'girish',
-    'satish', 'manish', 'rajnish', 'ashish', 'debashis', 'subhasis', 'snehasis', 'abhijit', 'arijit', 'indrajit', 'chiranjeet', 'paramjit', 'amar', 'samar',
-    'tushar', 'sagar', 'bablu', 'bapi', 'bappa', 'raja', 'raju', 'sanju', 'gour', 'gourob', 'gobinda', 'arabinda', 'pabitra', 'sankha', 'parimal', 'shyamal',
-    'kamal', 'bimal', 'nirmal', 'amal', 'vimal', 'akmal', 'ajmal', 'faisal', 'jamil', 'nabil', 'sahil', 'nikhil', 'akhil', 'kapil', 'sunil', 'anil', 'susanta',
-    'prashanta', 'basanta', 'hemanta', 'jayanta', 'srimanta', 'sukanta', 'ananta', 'diganta', 'sumanta', 'srikanta', 'pradip', 'sandip', 'sudip', 'joydeep',
-    'abhishek', 'bibek', 'vivek', 'parvez', 'parvej', 'jabed', 'monirul', 'saiful', 'aminul', 'safiul', 'rakibul', 'ashraful', 'hasan', 'hossain', 'hussain',
-    'ali', 'rabi', 'hari', 'murali', 'murari', 'badri', 'chandan', 'nandan', 'kundan', 'madan', 'gagan', 'jagan', 'pavan', 'pawan', 'bhaskar', 'shekhar',
-    'shankar', 'sankar', 'dilip', 'ashutosh', 'paritosh', 'santosh', 'pintu', 'mintu', 'chintu', 'montu', 'jitu', 'bitu', 'santu', 'dipu', 'suman',
-    'গোপাল', 'রাহুল', 'অমিত', 'সুব্রত', 'রমেশ', 'সুরেশ', 'সুমন', 'সৌরভ', 'অর্জুন', 'বিকাশ', 'দীপক', 'সুজিত', 'বিজয়', 'সঞ্জয়', 'রাজু', 'তাপস', 'বিপ্লব'
-]);
-
-const FEMALE_CUSTOMER_FIRST_NAMES = new Set([
-    'priya', 'ananya', 'puja', 'pooja', 'riya', 'diya', 'jiya', 'siya', 'tiya', 'shreya', 'sneha', 'neha', 'rekha', 'shikha', 'sikha', 'lekha', 'sulekha',
-    'chandrima', 'purnima', 'pratima', 'susmita', 'smita', 'amrita', 'namita', 'mamata', 'mamta', 'sabita', 'kabita', 'babita', 'sunita', 'anita', 'sangeeta',
-    'sangita', 'rita', 'mita', 'gita', 'geeta', 'sita', 'seeta', 'nita', 'binita', 'arpita', 'ankita', 'nikita', 'ipsita', 'madhumita', 'paromita', 'debjani',
-    'indrani', 'shravani', 'sraboni', 'srabanti', 'barsha', 'varsha', 'soma', 'mou', 'mousumi', 'mausumi', 'tanushree', 'deboshree', 'rajashree', 'subhashree',
-    'padma', 'lakshmi', 'laxmi', 'saraswati', 'parvati', 'durga', 'kali', 'tara', 'asha', 'nisha', 'disha', 'trisha', 'isha', 'esha', 'tisha', 'krisha', 'aditi',
-    'smriti', 'kriti', 'priti', 'preeti', 'kirti', 'aarti', 'arti', 'bharti', 'shanti', 'jayanti', 'basanti', 'malati', 'bharati', 'swati', 'khyati', 'stuti',
-    'shruti', 'shristi', 'srishti', 'drishti', 'divya', 'kavya', 'navya', 'bhavya', 'saumya', 'priyanka', 'monika', 'monica', 'kanika', 'deepika', 'dipika',
-    'ritika', 'nitika', 'radhika', 'mallika', 'yashika', 'anushka', 'anwesha', 'tania', 'tanya', 'sonia', 'soniya', 'sonali', 'rupali', 'dipali', 'deepali',
-    'shilpa', 'silpa', 'roshni', 'rashmi', 'padmini', 'nandini', 'rohini', 'mohini', 'shalini', 'damini', 'kamini', 'yamini', 'mini', 'rani', 'vani', 'suhani',
-    'kalyani', 'shibani', 'shivani', 'ishani', 'bhavani', 'poulomi', 'paulomi', 'sohini', 'sayantani', 'rituparna', 'aparna', 'supriti', 'sujata', 'sanjukta',
-    'bandana', 'vandana', 'archana', 'kalpana', 'alpana', 'swarna', 'jharna', 'sapna', 'swapna', 'rupna', 'champa', 'shampa', 'rampa', 'rupa', 'krupa', 'shilpi',
-    'silpi', 'papia', 'piya', 'piu', 'kakali', 'banani', 'kaveri', 'kasturi', 'mayuri', 'gouri', 'gauri', 'mahua', 'kuhu', 'jhumka', 'jhumur', 'jhuma', 'ruma',
-    'uma', 'sucheta', 'suchitra', 'sunanda', 'nivedita', 'nibedita', 'sanghamitra', 'madhuri', 'kajari', 'koyel', 'doyel', 'payel', 'payal', 'tumpa', 'chumki',
-    'pinki', 'pinky', 'rinki', 'rinky', 'tina', 'rina', 'reena', 'meena', 'mina', 'hina', 'heena', 'rubina', 'sabina', 'shabina', 'sanjida', 'farida', 'fahmida',
-    'nasima', 'taslima', 'salma', 'halima', 'karima', 'rahima', 'fatima', 'fatema', 'ayesha', 'aisha', 'zoya', 'sana', 'huma', 'noor', 'anamika', 'parveen',
-    'parvin', 'nasreen', 'yasmin', 'jasmine', 'reshma', 'rakhi', 'sakhi', 'sarbani', 'sushama', 'sushma', 'manju', 'kiran', 'kajal', 'munmun', 'jui', 'bela',
-    'chameli', 'seuli', 'shiuli', 'laboni', 'tulsi', 'annapurna', 'devi', 'kumari', 'begum', 'khatun', 'bibi', 'sultana',
-    'প্রিয়া', 'রিয়া', 'অনন্যা', 'মমতা', 'পূজা', 'শ্রেয়া', 'সুমিতা', 'সুস্মিতা', 'অর্পিতা', 'মৌসুমী', 'কাকলি', 'সোমা', 'পায়েল', 'পিয়ালী', 'নীতা', 'মিতা'
-]);
-
-function getCustomerAvatarPrefKey(phone) {
-    return phone ? `busyatra_customer_avatar_pref_${String(phone).trim()}` : 'busyatra_customer_avatar_pref_default';
-}
-
-function getStoredCustomerAvatarPreference(phone) {
-    try {
-        const val = localStorage.getItem(getCustomerAvatarPrefKey(phone));
-        return (val === 'male' || val === 'female') ? val : 'auto';
-    } catch (_) {
-        return 'auto';
-    }
-}
-
-function detectCustomerGender(fullName, customerObj = null) {
-    const phone = customerObj?.phone || '';
-    const pref = getStoredCustomerAvatarPreference(phone);
-    if (pref === 'male' || pref === 'female') return pref;
-    const explicit = String(customerObj?.gender || '').trim().toLowerCase();
-    if (explicit === 'female' || explicit === 'f' || explicit === 'woman') return 'female';
-    if (explicit === 'male' || explicit === 'm' || explicit === 'man') return 'male';
-
-    const raw = String(fullName || '').trim().toLowerCase();
-    if (!raw) return 'male';
-    const tokens = raw.split(/[\s._\-()]+/).filter(Boolean);
-    const honorificFemale = new Set(['mrs', 'ms', 'miss', 'smt', 'kumari', 'begum', 'bibi', 'madam', 'maam']);
-    const honorificMale = new Set(['mr', 'shri', 'sri', 'md', 'sk', 'sheikh', 'syed', 'sir']);
-
-    for (const tok of tokens) {
-        if (honorificFemale.has(tok) || FEMALE_CUSTOMER_FIRST_NAMES.has(tok)) return 'female';
-        if (honorificMale.has(tok)) return 'male';
-    }
-
-    const first = tokens.find(t => t.length > 1) || tokens[0] || '';
-    if (MALE_CUSTOMER_FIRST_NAMES.has(first)) return 'male';
-    if (FEMALE_CUSTOMER_FIRST_NAMES.has(first)) return 'female';
-
-    // Suffix heuristics tailored to Indian/Bengali given names
-    if (/(ika|ita|shree|shri|priya|wati|mati|lata|lekha|mala|devi|rani|moni|nila|bina|tina|rina|lina|niya|miya|sree|kumari|begum|sultana|parvin|parveen|jahan)$/.test(first)) {
-        return 'female';
-    }
-    if (/(jit|deep|nath|lal|dev|das|paul|roy|sen|kumar|raj|kant|esh|endu|ananda|prasad|shankar|chandra)$/.test(first)) {
-        return 'male';
-    }
-    if (/(aa|ia|ee|ya)$/.test(first)) return 'female';
-    return 'male';
-}
-window.detectCustomerGender = detectCustomerGender;
-
 function getCustomerAvatarInfo(customer) {
-    if (!customer || !customer.phone) {
-        return { isLoggedIn: false, gender: 'guest', src: '' };
+    if (typeof resolveCustomerAvatarInfo === 'function') {
+        return resolveCustomerAvatarInfo(customer);
     }
-    const gender = detectCustomerGender(customer.name, customer);
-    return {
-        isLoggedIn: true,
-        gender,
-        src: gender === 'female' ? 'assets/avatar-customer-female.jpg' : 'assets/avatar-customer-male.jpg'
-    };
+    return { isLoggedIn: Boolean(customer && customer.phone), isCustom: false, hasUploadedPhoto: false, preference: 'auto', gender: 'male', src: 'assets/avatar-customer-male.jpg' };
+}
+
+function persistCustomerProfileLocally(updatedCustomer) {
+    if (!updatedCustomer) return;
+    try {
+        const str = JSON.stringify(updatedCustomer);
+        localStorage.setItem('busyatra_customer', str);
+        sessionStorage.setItem('busyatra_customer', str);
+        if (updatedCustomer.phone) {
+            const key = `busyatra_customer_avatar_pref_${String(updatedCustomer.phone).trim()}`;
+            if (updatedCustomer.avatarPreference && updatedCustomer.avatarPreference !== 'auto') {
+                localStorage.setItem(key, updatedCustomer.avatarPreference);
+            } else {
+                localStorage.removeItem(key);
+            }
+        }
+    } catch (_) {}
 }
 
 function renderCustomerAvatarSlots(customer) {
@@ -1107,15 +1029,22 @@ function syncLoggedInProfileCard(customer, info) {
     if (nameEl) nameEl.innerText = customer.name || 'Passenger';
     if (phoneEl) phoneEl.innerText = customer.phone ? `+91 ${customer.phone}` : '';
 
-    const pref = getStoredCustomerAvatarPreference(customer.phone);
+    const hasCustom = Boolean(info.hasUploadedPhoto);
+    const btnRemove = document.getElementById('btnCustomerRemovePhoto');
+    const btnCustom = document.getElementById('btnAvatarPrefCustom');
+    if (btnRemove) btnRemove.classList.toggle('hidden', !hasCustom);
+    if (btnCustom) btnCustom.classList.toggle('hidden', !hasCustom);
+
+    const activePref = info.preference || 'auto';
     const activeCls = 'px-2 py-1 rounded-lg border border-red-500 bg-red-50 text-red-700 font-black transition';
     const idleCls = 'px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition';
     const btnAuto = document.getElementById('btnAvatarPrefAuto');
     const btnMale = document.getElementById('btnAvatarPrefMale');
     const btnFemale = document.getElementById('btnAvatarPrefFemale');
-    if (btnAuto) btnAuto.className = pref === 'auto' ? activeCls : idleCls;
-    if (btnMale) btnMale.className = pref === 'male' ? activeCls : idleCls;
-    if (btnFemale) btnFemale.className = pref === 'female' ? activeCls : idleCls;
+    if (btnCustom && hasCustom) btnCustom.className = activePref === 'custom' ? activeCls : idleCls;
+    if (btnAuto) btnAuto.className = activePref === 'auto' ? activeCls : idleCls;
+    if (btnMale) btnMale.className = activePref === 'male' ? activeCls : idleCls;
+    if (btnFemale) btnFemale.className = activePref === 'female' ? activeCls : idleCls;
 }
 
 function toggleCustomerSwitchAccountForms() {
@@ -1126,20 +1055,93 @@ function toggleCustomerSwitchAccountForms() {
 }
 window.toggleCustomerSwitchAccountForms = toggleCustomerSwitchAccountForms;
 
-function setCustomerAvatarPreference(pref) {
+async function setCustomerAvatarPreference(pref) {
+    const customer = getLoggedInCustomer();
+    if (!customer || !customer.phone) return;
+    const nextPref = (pref === 'custom' && !(customer.profilePhoto || customer.profile_photo)) ? 'auto' : pref;
+    const updated = { ...customer, avatarPreference: nextPref };
+    persistCustomerProfileLocally(updated);
+    renderCustomerAvatarSlots(updated);
+    try {
+        const res = await apiRequest('/api/customer/profile-photo', {
+            method: 'POST',
+            body: JSON.stringify({ avatarPreference: nextPref })
+        });
+        if (res && res.customer) {
+            const merged = { ...updated, ...res.customer };
+            persistCustomerProfileLocally(merged);
+            renderCustomerAvatarSlots(merged);
+        }
+    } catch (e) {
+        console.warn('Preference sync warning:', e);
+    }
+}
+window.setCustomerAvatarPreference = setCustomerAvatarPreference;
+
+async function handleCustomerPhotoUpload(inputEl) {
+    const file = inputEl?.files?.[0];
+    if (!file) return;
+    const customer = getLoggedInCustomer();
+    if (!customer || !customer.phone) {
+        alert(currentLang === 'bn' ? 'প্রথমে লগইন করুন।' : 'Please login first.');
+        return;
+    }
+    const lblEl = document.getElementById('lblCustomerUploadPhotoBtn');
+    const btnEl = document.getElementById('btnCustomerUploadPhoto');
+    const origText = lblEl ? lblEl.innerText : '';
+    try {
+        if (btnEl) btnEl.disabled = true;
+        if (lblEl) lblEl.innerText = currentLang === 'bn' ? 'আপলোড হচ্ছে...' : 'Uploading...';
+        const dataUrl = await compressSquareAvatarImage(file, 256, 0.86);
+        const res = await apiRequest('/api/customer/profile-photo', {
+            method: 'POST',
+            body: JSON.stringify({ profilePhoto: dataUrl, avatarPreference: 'custom' })
+        });
+        const merged = {
+            ...customer,
+            ...(res?.customer || {}),
+            profilePhoto: res?.customer?.profilePhoto || dataUrl,
+            avatarPreference: res?.customer?.avatarPreference || 'custom'
+        };
+        persistCustomerProfileLocally(merged);
+        renderCustomerAvatarSlots(merged);
+        if (typeof showDropDownToast === 'function') {
+            showDropDownToast(currentLang === 'bn' ? '✅ আপনার প্রোফাইল ফটো সেভ হয়েছে!' : '✅ Profile photo updated!', 'success');
+        }
+    } catch (err) {
+        alert(err.message || (currentLang === 'bn' ? 'ছবি আপলোড ব্যর্থ হয়েছে।' : 'Failed to upload photo.'));
+    } finally {
+        if (btnEl) btnEl.disabled = false;
+        if (lblEl && origText) lblEl.innerText = origText;
+        if (inputEl) inputEl.value = '';
+    }
+}
+window.handleCustomerPhotoUpload = handleCustomerPhotoUpload;
+
+async function removeCustomerCustomPhoto() {
     const customer = getLoggedInCustomer();
     if (!customer || !customer.phone) return;
     try {
-        const key = getCustomerAvatarPrefKey(customer.phone);
-        if (pref === 'male' || pref === 'female') {
-            localStorage.setItem(key, pref);
-        } else {
-            localStorage.removeItem(key);
+        const res = await apiRequest('/api/customer/profile-photo', {
+            method: 'POST',
+            body: JSON.stringify({ clearPhoto: true, avatarPreference: 'auto' })
+        });
+        const merged = {
+            ...customer,
+            ...(res?.customer || {}),
+            profilePhoto: '',
+            avatarPreference: 'auto'
+        };
+        persistCustomerProfileLocally(merged);
+        renderCustomerAvatarSlots(merged);
+        if (typeof showDropDownToast === 'function') {
+            showDropDownToast(currentLang === 'bn' ? '✅ কাস্টম ছবি সরানো হয়েছে।' : '✅ Custom photo removed.', 'info');
         }
-    } catch (_) {}
-    renderCustomerAvatarSlots(customer);
+    } catch (err) {
+        alert(err.message || 'Failed to remove photo.');
+    }
 }
-window.setCustomerAvatarPreference = setCustomerAvatarPreference;
+window.removeCustomerCustomPhoto = removeCustomerCustomPhoto;
 
 function initCustomerSession() {
     const customer = getLoggedInCustomer();

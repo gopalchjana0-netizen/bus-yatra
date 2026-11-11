@@ -1675,17 +1675,29 @@ function renderAdminCustomersList() {
         return;
     }
 
+    const regMap = new Map((adminRegisteredCustomers || []).map(c => [String(c.phone || '').trim(), c]));
     bookings.forEach(b => {
         const utr = (b.utrNumber && b.utrNumber !== 'N/A') ? b.utrNumber : ((b.upiTransactionId && b.upiTransactionId !== 'N/A') ? b.upiTransactionId : '');
         const isApproved = b.status === "Approved";
         const isRejected = b.status === "Rejected";
         const isCancelled = b.status === "Cancelled";
         const isCancelReq = b.status === "Cancellation Requested";
+        const regCust = regMap.get(String(b.passengerPhone || '').trim()) || null;
+        const avatarInfo = (typeof resolveCustomerAvatarInfo === 'function')
+            ? resolveCustomerAvatarInfo({ name: b.passengerName, phone: b.passengerPhone, profilePhoto: regCust?.profilePhoto, avatarPreference: regCust?.avatarPreference })
+            : { src: 'assets/avatar-customer-male.jpg', isCustom: false };
 
         container.innerHTML += `
             <div class="bg-gray-50 hover:bg-gray-100/80 p-4 rounded-xl border border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 text-xs transition">
                 <div class="flex items-start gap-3 flex-1 min-w-0">
                     <input type="checkbox" data-id="${escapeHtml(b.id)}" onchange="handleAdminBookingCheckChange(this)" class="admin-booking-cb w-4 h-4 mt-0.5 rounded text-purple-600 focus:ring-purple-500 cursor-pointer shrink-0">
+                    ${regCust ? `
+                        <button type="button" onclick="openAdminCustomerPhotoModal('${escapeHtml(regCust.phone)}')" class="relative w-9 h-9 rounded-full p-[1.5px] ${avatarInfo.isCustom ? 'bg-gradient-to-tr from-purple-600 to-pink-500' : 'bg-gray-300'} shrink-0 cursor-pointer hover:scale-105 transition" title="View / Change Customer Photo">
+                            <img src="${avatarInfo.src}" alt="${escapeHtml(b.passengerName)}" class="w-full h-full rounded-full object-cover object-top border border-white bg-white">
+                        </button>
+                    ` : `
+                        <img src="${avatarInfo.src}" alt="${escapeHtml(b.passengerName)}" class="w-9 h-9 rounded-full object-cover object-top border border-gray-300 shrink-0 bg-white">
+                    `}
                     <div class="space-y-1 min-w-0">
                         <div class="flex items-center gap-2 flex-wrap">
                             <span class="font-bold text-gray-900 text-sm">${escapeHtml(b.passengerName)}</span>
@@ -3478,27 +3490,41 @@ function renderAdminCustomersPinList(items) {
 
         const pinBadge = `<span class="font-mono bg-yellow-100 text-yellow-900 px-2.5 py-0.5 rounded-lg border border-yellow-400 font-black text-xs shadow-xs">🔑 PIN: ${escapeHtml(u.rawPin || u.pin || '••••')}</span>`;
 
+        const custAvatar = (u.role === 'customer' && typeof resolveCustomerAvatarInfo === 'function')
+            ? resolveCustomerAvatarInfo(u)
+            : null;
+        const custPhoneClean = escapeHtml(u.phone || u.displayPhone || '');
+
         return `
         <div class="bg-gray-50 hover:bg-gray-100/70 p-4 rounded-xl border ${u.pin_requested_at ? 'border-red-400 bg-red-50/30 ring-2 ring-red-300' : isSuspended ? 'border-amber-300 bg-amber-50/20' : 'border-gray-200'} flex flex-col md:flex-row justify-between items-start md:items-center gap-3 text-xs transition">
-            <div class="space-y-1.5">
-                <div class="font-bold text-gray-900 text-sm flex flex-wrap items-center gap-2">
-                    ${roleBadge}
-                    <span>${escapeHtml(u.displayName || u.name)}</span>
-                    <a href="tel:${escapeHtml(u.displayPhone || u.phone)}" class="font-mono text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-200">${u.displayPhone || u.phone}</a>
-                    ${pinBadge}
-                    ${statusBadge}
-                    ${u.pin_requested_at ? `
-                        <span class="bg-red-600 text-white font-black px-2.5 py-0.5 rounded-full animate-pulse text-[11px] shadow-sm flex items-center gap-1">🚨 PIN RESET REQUESTED (${new Date(u.pin_requested_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})</span>
-                    ` : ''}
-                </div>
-                <div class="text-gray-600 flex flex-wrap items-center gap-3">
-                    ${u.busInfo ? `<span class="font-semibold text-gray-800">🚌 ${escapeHtml(u.busInfo)}</span>` : ''}
-                    ${u.email ? `<span class="text-gray-700 font-semibold">✉️ ${escapeHtml(u.email)}</span>` : ''}
-                    ${u.created_at ? `<span><strong>Registered:</strong> ${new Date(u.created_at).toLocaleDateString()}</span>` : ''}
-                    ${u.security_question ? `<span><strong>Security Q:</strong> <span class="text-gray-800">${escapeHtml(u.security_question)}</span></span>` : ''}
-                </div>
-                <div>
-                    ${formatDeviceInlineBadge(u)}
+            <div class="flex items-start gap-3 min-w-0">
+                ${custAvatar ? `
+                    <button type="button" onclick="openAdminCustomerPhotoModal('${custPhoneClean}')" class="relative w-11 h-11 rounded-full p-[1.5px] ${custAvatar.isCustom ? 'bg-gradient-to-tr from-red-600 via-amber-500 to-emerald-500 shadow-sm' : 'bg-slate-300'} shrink-0 cursor-pointer hover:scale-105 transition" title="View / Change Customer Photo">
+                        <img src="${custAvatar.src}" alt="${escapeHtml(u.displayName || u.name)}" class="w-full h-full rounded-full object-cover object-top border-2 border-white bg-white">
+                        ${custAvatar.isCustom ? '<span class="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-purple-600 text-white border border-white rounded-full flex items-center justify-center text-[9px]">📷</span>' : ''}
+                    </button>
+                ` : ''}
+                <div class="space-y-1.5 min-w-0">
+                    <div class="font-bold text-gray-900 text-sm flex flex-wrap items-center gap-2">
+                        ${roleBadge}
+                        <span>${escapeHtml(u.displayName || u.name)}</span>
+                        <a href="tel:${escapeHtml(u.displayPhone || u.phone)}" class="font-mono text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-200">${u.displayPhone || u.phone}</a>
+                        ${pinBadge}
+                        ${statusBadge}
+                        ${custAvatar && custAvatar.isCustom ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-100 text-purple-800 border border-purple-200">📷 ${window.t('আপলোডেড ফটো', 'Custom Photo')}</span>` : ''}
+                        ${u.pin_requested_at ? `
+                            <span class="bg-red-600 text-white font-black px-2.5 py-0.5 rounded-full animate-pulse text-[11px] shadow-sm flex items-center gap-1">🚨 PIN RESET REQUESTED (${new Date(u.pin_requested_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})</span>
+                        ` : ''}
+                    </div>
+                    <div class="text-gray-600 flex flex-wrap items-center gap-3">
+                        ${u.busInfo ? `<span class="font-semibold text-gray-800">🚌 ${escapeHtml(u.busInfo)}</span>` : ''}
+                        ${u.email ? `<span class="text-gray-700 font-semibold">✉️ ${escapeHtml(u.email)}</span>` : ''}
+                        ${u.created_at ? `<span><strong>Registered:</strong> ${new Date(u.created_at).toLocaleDateString()}</span>` : ''}
+                        ${u.security_question ? `<span><strong>Security Q:</strong> <span class="text-gray-800">${escapeHtml(u.security_question)}</span></span>` : ''}
+                    </div>
+                    <div>
+                        ${formatDeviceInlineBadge(u)}
+                    </div>
                 </div>
             </div>
             <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
@@ -3517,6 +3543,9 @@ function renderAdminCustomersPinList(items) {
                         ⚡ Features
                     </button>
                 ` : `
+                    <button type="button" onclick="openAdminCustomerPhotoModal('${custPhoneClean}')" class="bg-pink-600 hover:bg-pink-700 text-white px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1 active:scale-95" title="View or Change Customer Photo">
+                        📸 ${window.t('ফটো', 'Photo')}
+                    </button>
                     <button type="button" onclick="adminAccessCustomerPortal('${escapeHtml(u.phone || u.displayPhone)}', '${escapeHtml(u.name || u.displayName)}')" class="bg-purple-600 hover:bg-purple-700 text-white px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1 active:scale-95" title="Access Customer Portal Directly">
                         👤 ${window.t('এক্সেস প্যানেল', 'Access Portal')}
                     </button>
@@ -6370,6 +6399,138 @@ function closeAdminEditCustomerModal() {
     document.getElementById('adminEditCustomerModal')?.classList.add('hidden');
 }
 window.closeAdminEditCustomerModal = closeAdminEditCustomerModal;
+
+// --- Admin Customer Profile Photo Viewer & Manager ---
+function syncAdminCustomerPhotoModalUI(cust) {
+    if (!cust) return;
+    const info = (typeof resolveCustomerAvatarInfo === 'function')
+        ? resolveCustomerAvatarInfo(cust)
+        : { src: cust.profilePhoto || 'assets/avatar-customer-male.jpg', isCustom: Boolean(cust.profilePhoto), hasUploadedPhoto: Boolean(cust.profilePhoto), preference: 'auto', gender: 'male' };
+
+    const preview = document.getElementById('adminCustPhotoModalPreviewImg');
+    const nameEl = document.getElementById('adminCustPhotoModalName');
+    const phoneEl = document.getElementById('adminCustPhotoModalPhone');
+    const badgeEl = document.getElementById('adminCustPhotoModalBadge');
+    const btnCustom = document.getElementById('btnAdminAvatarCustom');
+    const btnClear = document.getElementById('btnAdminClearCustPhoto');
+
+    if (preview) preview.src = info.src;
+    if (nameEl) nameEl.innerText = cust.name || 'Customer';
+    if (phoneEl) phoneEl.innerText = cust.phone ? `+91 ${cust.phone}` : '';
+    if (badgeEl) {
+        badgeEl.innerText = info.isCustom
+            ? window.t('📷 কাস্টমারের আপলোড করা ছবি', '📷 Custom Uploaded Photo')
+            : info.preference === 'male'
+                ? window.t('👨 পুরুষ স্টুডিও অ্যাভাটার', '👨 Male Studio Avatar')
+                : info.preference === 'female'
+                    ? window.t('👩 মহিলা স্টুডিও অ্যাভাটার', '👩 Female Studio Avatar')
+                    : (info.gender === 'female' ? window.t('✨ অটো মহিলা অ্যাভাটার', '✨ Auto Female Avatar') : window.t('✨ অটো পুরুষ অ্যাভাটার', '✨ Auto Male Avatar'));
+    }
+    const hasCustom = Boolean(info.hasUploadedPhoto);
+    if (btnCustom) btnCustom.classList.toggle('hidden', !hasCustom);
+    if (btnClear) btnClear.classList.toggle('hidden', !hasCustom);
+
+    const activeCls = 'py-1.5 px-2 rounded-lg border border-purple-600 bg-purple-50 text-purple-900 font-black transition';
+    const idleCls = 'py-1.5 px-2 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition';
+    const curPref = info.preference || 'auto';
+    const bAuto = document.getElementById('btnAdminAvatarAuto');
+    const bMale = document.getElementById('btnAdminAvatarMale');
+    const bFemale = document.getElementById('btnAdminAvatarFemale');
+    if (bAuto) bAuto.className = curPref === 'auto' ? activeCls : idleCls;
+    if (bMale) bMale.className = curPref === 'male' ? activeCls : idleCls;
+    if (bFemale) bFemale.className = curPref === 'female' ? activeCls : idleCls;
+    if (btnCustom && hasCustom) btnCustom.className = `flex-1 ${curPref === 'custom' ? activeCls : idleCls}`;
+}
+
+function openAdminCustomerPhotoModal(phone) {
+    const cleanPhone = String(phone || '').trim();
+    const cust = (adminRegisteredCustomers || []).find(c => String(c.phone || '').trim() === cleanPhone);
+    const modal = document.getElementById('adminCustomerPhotoModal');
+    if (!modal || !cust) return;
+    document.getElementById('adminCustPhotoModalTargetPhone').value = cleanPhone;
+    syncAdminCustomerPhotoModalUI(cust);
+    modal.classList.remove('hidden');
+}
+window.openAdminCustomerPhotoModal = openAdminCustomerPhotoModal;
+
+function closeAdminCustomerPhotoModal() {
+    document.getElementById('adminCustomerPhotoModal')?.classList.add('hidden');
+}
+window.closeAdminCustomerPhotoModal = closeAdminCustomerPhotoModal;
+
+async function persistAdminCustomerPhotoUpdate(payload) {
+    const res = await apiRequest('/api/admin/customers/photo', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+    });
+    const idx = (adminRegisteredCustomers || []).findIndex(c => String(c.phone || '').trim() === payload.phone);
+    if (idx >= 0) {
+        adminRegisteredCustomers[idx] = {
+            ...adminRegisteredCustomers[idx],
+            profilePhoto: res.profilePhoto !== undefined ? res.profilePhoto : (payload.clearPhoto ? '' : adminRegisteredCustomers[idx].profilePhoto),
+            profile_photo: res.profilePhoto !== undefined ? res.profilePhoto : (payload.clearPhoto ? '' : adminRegisteredCustomers[idx].profile_photo),
+            avatarPreference: res.avatarPreference || payload.avatarPreference || 'auto',
+            avatar_preference: res.avatarPreference || payload.avatarPreference || 'auto'
+        };
+        syncAdminCustomerPhotoModalUI(adminRegisteredCustomers[idx]);
+    }
+    filterAdminCustomersList();
+    renderAdminCustomersList();
+    return res;
+}
+
+async function handleAdminCustomerPhotoUpload(inputEl) {
+    const file = inputEl?.files?.[0];
+    const phone = (document.getElementById('adminCustPhotoModalTargetPhone')?.value || '').trim();
+    if (!file || !phone) return;
+    const btnEl = document.getElementById('btnAdminUploadCustPhoto');
+    const lblEl = document.getElementById('lblAdminUploadCustPhotoBtn');
+    const orig = lblEl ? lblEl.innerText : '';
+    try {
+        if (btnEl) btnEl.disabled = true;
+        if (lblEl) lblEl.innerText = window.t('আপলোড হচ্ছে...', 'Uploading...');
+        const dataUrl = await compressSquareAvatarImage(file, 256, 0.86);
+        await persistAdminCustomerPhotoUpdate({ phone, profilePhoto: dataUrl, avatarPreference: 'custom' });
+        if (typeof showDropDownToast === 'function') {
+            showDropDownToast(window.t('✅ কাস্টমারের ফটো আপডেট হয়েছে!', '✅ Customer photo updated!'), 'success');
+        }
+    } catch (err) {
+        alert(err.message || 'Failed to update customer photo.');
+    } finally {
+        if (btnEl) btnEl.disabled = false;
+        if (lblEl && orig) lblEl.innerText = orig;
+        if (inputEl) inputEl.value = '';
+    }
+}
+window.handleAdminCustomerPhotoUpload = handleAdminCustomerPhotoUpload;
+
+async function adminSetCustomerAvatarMode(mode) {
+    const phone = (document.getElementById('adminCustPhotoModalTargetPhone')?.value || '').trim();
+    if (!phone) return;
+    try {
+        await persistAdminCustomerPhotoUpdate({ phone, avatarPreference: mode });
+        if (typeof showDropDownToast === 'function') {
+            showDropDownToast(window.t('✅ অ্যাভাটার মোড আপডেট হয়েছে!', '✅ Avatar mode updated!'), 'success');
+        }
+    } catch (err) {
+        alert(err.message || 'Failed to update avatar mode.');
+    }
+}
+window.adminSetCustomerAvatarMode = adminSetCustomerAvatarMode;
+
+async function adminClearCustomerPhoto() {
+    const phone = (document.getElementById('adminCustPhotoModalTargetPhone')?.value || '').trim();
+    if (!phone) return;
+    try {
+        await persistAdminCustomerPhotoUpdate({ phone, clearPhoto: true, avatarPreference: 'auto' });
+        if (typeof showDropDownToast === 'function') {
+            showDropDownToast(window.t('✅ কাস্টম ফটো মুছে ফেলা হয়েছে।', '✅ Custom photo removed.'), 'info');
+        }
+    } catch (err) {
+        alert(err.message || 'Failed to clear customer photo.');
+    }
+}
+window.adminClearCustomerPhoto = adminClearCustomerPhoto;
 
 async function adminSaveCustomerChanges() {
     const oldPhone = (document.getElementById('adminEditCustOldPhone')?.value || '').trim();

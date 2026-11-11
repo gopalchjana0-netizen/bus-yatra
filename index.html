@@ -57,8 +57,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preload" href="common.js?v=10.48" as="script">
-    <link rel="preload" href="app.js?v=10.48" as="script">
+    <link rel="preload" href="common.js?v=10.49" as="script">
+    <link rel="preload" href="app.js?v=10.49" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
     <script src="tailwind.js?v=10.37" defer></script>
@@ -538,22 +538,32 @@
 
             <!-- Logged-in Verified Profile Card (Big-Company Style) -->
             <div id="customerLoggedProfileCard" class="hidden p-4 bg-gradient-to-r from-red-50 via-white to-amber-50 border-b border-gray-200 space-y-3">
+                <input type="file" id="customerAvatarFileInput" accept="image/*" class="hidden" onchange="handleCustomerPhotoUpload(this)">
                 <div class="flex items-center gap-3">
-                    <div class="relative w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-red-600 via-amber-500 to-emerald-500 shadow-md shrink-0">
+                    <button type="button" onclick="document.getElementById('customerAvatarFileInput')?.click()" class="relative w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-red-600 via-amber-500 to-emerald-500 shadow-md shrink-0 group cursor-pointer" title="Upload or change photo">
                         <img id="authModalProfileImg" src="assets/avatar-customer-male.jpg" alt="Passenger Profile" class="w-full h-full rounded-full object-cover object-top border-2 border-white">
-                        <span class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></span>
-                    </div>
+                        <span class="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-gray-900 group-hover:bg-red-600 text-white border-2 border-white rounded-full flex items-center justify-center shadow-sm transition">
+                            <svg viewBox="0 0 24 24" class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        </span>
+                    </button>
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-1.5 flex-wrap">
                             <span id="authModalProfileName" class="font-black text-gray-900 text-sm truncate">Passenger</span>
                             <span class="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full">Verified</span>
                         </div>
                         <p id="authModalProfilePhone" class="text-xs text-gray-600 font-semibold font-mono">+91 --</p>
+                        <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
+                            <button type="button" id="btnCustomerUploadPhoto" onclick="document.getElementById('customerAvatarFileInput')?.click()" class="bg-gray-900 hover:bg-red-600 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold shadow-2xs transition cursor-pointer inline-flex items-center gap-1">
+                                <span>📸</span> <span id="lblCustomerUploadPhotoBtn" data-bn="নিজের ছবি আপলোড / পরিবর্তন" data-en="Upload / Change Photo">Upload / Change Photo</span>
+                            </button>
+                            <button type="button" id="btnCustomerRemovePhoto" onclick="removeCustomerCustomPhoto()" class="hidden bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer" data-bn="🗑️ মুছুন" data-en="🗑️ Remove">🗑️ Remove</button>
+                        </div>
                     </div>
                 </div>
                 <div class="flex flex-wrap items-center justify-between gap-2 bg-white p-2 rounded-xl border border-gray-200">
-                    <span class="text-[11px] font-bold text-gray-700" data-bn="প্রোফাইল ফটো:" data-en="Profile Avatar:">প্রোফাইল ফটো:</span>
-                    <div class="flex items-center gap-1 text-[11px] font-bold">
+                    <span class="text-[11px] font-bold text-gray-700" data-bn="প্রোফাইল অ্যাভাটার:" data-en="Avatar Mode:">Avatar Mode:</span>
+                    <div class="flex items-center gap-1 text-[11px] font-bold flex-wrap">
+                        <button type="button" id="btnAvatarPrefCustom" onclick="setCustomerAvatarPreference('custom')" class="hidden px-2 py-1 rounded-lg border transition" data-bn="📷 নিজের ছবি" data-en="📷 My Photo">📷 My Photo</button>
                         <button type="button" id="btnAvatarPrefAuto" onclick="setCustomerAvatarPreference('auto')" class="px-2 py-1 rounded-lg border transition">✨ Auto</button>
                         <button type="button" id="btnAvatarPrefMale" onclick="setCustomerAvatarPreference('male')" class="px-2 py-1 rounded-lg border transition" data-bn="👨 পুরুষ" data-en="👨 Male">👨 Male</button>
                         <button type="button" id="btnAvatarPrefFemale" onclick="setCustomerAvatarPreference('female')" class="px-2 py-1 rounded-lg border transition" data-bn="👩 মহিলা" data-en="👩 Female">👩 Female</button>
@@ -1778,14 +1788,14 @@
     <!-- Firebase App & Firestore Compat SDKs for Real-Time Live Bus Tracking -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="common.js?v=10.48"></script>
-    <script src="app.js?v=10.48"></script>
+    <script src="common.js?v=10.49"></script>
+    <script src="app.js?v=10.49"></script>
     <script>
         if (typeof initFestivalThemeSync === 'function') {
             initFestivalThemeSync('customer');
         }
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js?v=10.48', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+            navigator.serviceWorker.register('/sw.js?v=10.49', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
         }
     </script>
 

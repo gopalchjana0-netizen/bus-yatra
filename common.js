@@ -3131,6 +3131,158 @@ if (typeof window !== 'undefined') {
     }
 }
 
+// --- Shared Enterprise Customer Male/Female Avatar Detector & Square Image Compressor ---
+const MALE_CUSTOMER_FIRST_NAMES = new Set([
+    'gopal', 'rahul', 'amit', 'subrata', 'ramesh', 'suresh', 'mahesh', 'ganesh', 'naresh', 'dinesh', 'rakesh', 'mukesh', 'lokesh', 'yogesh', 'paresh',
+    'krishna', 'rama', 'shiva', 'rudra', 'aditya', 'surya', 'chandra', 'indra', 'subhankar', 'subhash', 'subhajit', 'debabrata', 'satyabrata', 'siddhartha',
+    'partha', 'sarathi', 'mitra', 'biswajit', 'prosenjit', 'ranajit', 'sujit', 'ajit', 'bijoy', 'vijay', 'sanjay', 'sanjoy', 'sanjib', 'rajib', 'rajesh',
+    'prakash', 'bikash', 'vikas', 'dipak', 'deepak', 'alok', 'ashok', 'tarak', 'tapas', 'tapan', 'swapan', 'nayan', 'kalyan', 'aryan', 'ayush', 'piyush',
+    'ankush', 'pratyush', 'rohit', 'mohit', 'sumit', 'lalit', 'pulkit', 'ankit', 'mudit', 'harshit', 'arjun', 'karan', 'varun', 'tarun', 'arun', 'manoj',
+    'binod', 'vinod', 'pramod', 'subodh', 'prabodh', 'soumen', 'soumik', 'soumya', 'somen', 'sourav', 'gaurav', 'pranab', 'arnab', 'biplab', 'pallab',
+    'saurabh', 'rishabh', 'kaushik', 'koushik', 'koustav', 'ritwik', 'pratik', 'kartik', 'shamik', 'rohan', 'sohan', 'mohan', 'soham', 'shubham', 'shivam',
+    'satyam', 'uttam', 'gautam', 'pritam', 'anupam', 'salman', 'shahrukh', 'amir', 'imran', 'irfan', 'kamran', 'farhan', 'arhan', 'rehan', 'arman', 'danish',
+    'tarik', 'tariq', 'asif', 'arif', 'wasim', 'nasim', 'karim', 'rahim', 'salim', 'halim', 'sohel', 'shohel', 'rakib', 'sakib', 'tamim', 'habib', 'david',
+    'john', 'peter', 'samir', 'kabir', 'ranbir', 'ranvir', 'mahavir', 'raghav', 'madhav', 'keshav', 'keshab', 'prabhat', 'bharat', 'sharad', 'harish', 'girish',
+    'satish', 'manish', 'rajnish', 'ashish', 'debashis', 'subhasis', 'snehasis', 'abhijit', 'arijit', 'indrajit', 'chiranjeet', 'paramjit', 'amar', 'samar',
+    'tushar', 'sagar', 'bablu', 'bapi', 'bappa', 'raja', 'raju', 'sanju', 'gour', 'gourob', 'gobinda', 'arabinda', 'pabitra', 'sankha', 'parimal', 'shyamal',
+    'kamal', 'bimal', 'nirmal', 'amal', 'vimal', 'akmal', 'ajmal', 'faisal', 'jamil', 'nabil', 'sahil', 'nikhil', 'akhil', 'kapil', 'sunil', 'anil', 'susanta',
+    'prashanta', 'basanta', 'hemanta', 'jayanta', 'srimanta', 'sukanta', 'ananta', 'diganta', 'sumanta', 'srikanta', 'pradip', 'sandip', 'sudip', 'joydeep',
+    'abhishek', 'bibek', 'vivek', 'parvez', 'parvej', 'jabed', 'monirul', 'saiful', 'aminul', 'safiul', 'rakibul', 'ashraful', 'hasan', 'hossain', 'hussain',
+    'ali', 'rabi', 'hari', 'murali', 'murari', 'badri', 'chandan', 'nandan', 'kundan', 'madan', 'gagan', 'jagan', 'pavan', 'pawan', 'bhaskar', 'shekhar',
+    'shankar', 'sankar', 'dilip', 'ashutosh', 'paritosh', 'santosh', 'pintu', 'mintu', 'chintu', 'montu', 'jitu', 'bitu', 'santu', 'dipu', 'suman',
+    'গোপাল', 'রাহুল', 'অমিত', 'সুব্রত', 'রমেশ', 'সুরেশ', 'সুমন', 'সৌরভ', 'অর্জুন', 'বিকাশ', 'দীপক', 'সুজিত', 'বিজয়', 'সঞ্জয়', 'রাজু', 'তাপস', 'বিপ্লব'
+]);
+
+const FEMALE_CUSTOMER_FIRST_NAMES = new Set([
+    'priya', 'ananya', 'puja', 'pooja', 'riya', 'diya', 'jiya', 'siya', 'tiya', 'shreya', 'sneha', 'neha', 'rekha', 'shikha', 'sikha', 'lekha', 'sulekha',
+    'chandrima', 'purnima', 'pratima', 'susmita', 'smita', 'amrita', 'namita', 'mamata', 'mamta', 'sabita', 'kabita', 'babita', 'sunita', 'anita', 'sangeeta',
+    'sangita', 'rita', 'mita', 'gita', 'geeta', 'sita', 'seeta', 'nita', 'binita', 'arpita', 'ankita', 'nikita', 'ipsita', 'madhumita', 'paromita', 'debjani',
+    'indrani', 'shravani', 'sraboni', 'srabanti', 'barsha', 'varsha', 'soma', 'mou', 'mousumi', 'mausumi', 'tanushree', 'deboshree', 'rajashree', 'subhashree',
+    'padma', 'lakshmi', 'laxmi', 'saraswati', 'parvati', 'durga', 'kali', 'tara', 'asha', 'nisha', 'disha', 'trisha', 'isha', 'esha', 'tisha', 'krisha', 'aditi',
+    'smriti', 'kriti', 'priti', 'preeti', 'kirti', 'aarti', 'arti', 'bharti', 'shanti', 'jayanti', 'basanti', 'malati', 'bharati', 'swati', 'khyati', 'stuti',
+    'shruti', 'shristi', 'srishti', 'drishti', 'divya', 'kavya', 'navya', 'bhavya', 'saumya', 'priyanka', 'monika', 'monica', 'kanika', 'deepika', 'dipika',
+    'ritika', 'nitika', 'radhika', 'mallika', 'yashika', 'anushka', 'anwesha', 'tania', 'tanya', 'sonia', 'soniya', 'sonali', 'rupali', 'dipali', 'deepali',
+    'shilpa', 'silpa', 'roshni', 'rashmi', 'padmini', 'nandini', 'rohini', 'mohini', 'shalini', 'damini', 'kamini', 'yamini', 'mini', 'rani', 'vani', 'suhani',
+    'kalyani', 'shibani', 'shivani', 'ishani', 'bhavani', 'poulomi', 'paulomi', 'sohini', 'sayantani', 'rituparna', 'aparna', 'supriti', 'sujata', 'sanjukta',
+    'bandana', 'vandana', 'archana', 'kalpana', 'alpana', 'swarna', 'jharna', 'sapna', 'swapna', 'rupna', 'champa', 'shampa', 'rampa', 'rupa', 'krupa', 'shilpi',
+    'silpi', 'papia', 'piya', 'piu', 'kakali', 'banani', 'kaveri', 'kasturi', 'mayuri', 'gouri', 'gauri', 'mahua', 'kuhu', 'jhumka', 'jhumur', 'jhuma', 'ruma',
+    'uma', 'sucheta', 'suchitra', 'sunanda', 'nivedita', 'nibedita', 'sanghamitra', 'madhuri', 'kajari', 'koyel', 'doyel', 'payel', 'payal', 'tumpa', 'chumki',
+    'pinki', 'pinky', 'rinki', 'rinky', 'tina', 'rina', 'reena', 'meena', 'mina', 'hina', 'heena', 'rubina', 'sabina', 'shabina', 'sanjida', 'farida', 'fahmida',
+    'nasima', 'taslima', 'salma', 'halima', 'karima', 'rahima', 'fatima', 'fatema', 'ayesha', 'aisha', 'zoya', 'sana', 'huma', 'noor', 'anamika', 'parveen',
+    'parvin', 'nasreen', 'yasmin', 'jasmine', 'reshma', 'rakhi', 'sakhi', 'sarbani', 'sushama', 'sushma', 'manju', 'kiran', 'kajal', 'munmun', 'jui', 'bela',
+    'chameli', 'seuli', 'shiuli', 'laboni', 'tulsi', 'annapurna', 'devi', 'kumari', 'begum', 'khatun', 'bibi', 'sultana',
+    'প্রিয়া', 'রিয়া', 'অনন্যা', 'মমতা', 'পূজা', 'শ্রেয়া', 'সুমিতা', 'সুস্মিতা', 'অর্পিতা', 'মৌসুমী', 'কাকলি', 'সোমা', 'পায়েল', 'পিয়ালী', 'নীতা', 'মিতা'
+]);
+
+function getCustomerAvatarPrefKey(phone) {
+    return phone ? `busyatra_customer_avatar_pref_${String(phone).trim()}` : 'busyatra_customer_avatar_pref_default';
+}
+
+function getStoredCustomerAvatarPreference(phone, customerObj = null) {
+    const serverPref = String(customerObj?.avatarPreference || customerObj?.avatar_preference || '').trim().toLowerCase();
+    if (serverPref === 'custom' || serverPref === 'male' || serverPref === 'female' || serverPref === 'auto') {
+        return serverPref;
+    }
+    try {
+        const val = localStorage.getItem(getCustomerAvatarPrefKey(phone));
+        if (val === 'custom' || val === 'male' || val === 'female') return val;
+    } catch (_) {}
+    return (customerObj?.profilePhoto || customerObj?.profile_photo) ? 'custom' : 'auto';
+}
+window.getStoredCustomerAvatarPreference = getStoredCustomerAvatarPreference;
+
+function detectCustomerGender(fullName, customerObj = null) {
+    const phone = customerObj?.phone || '';
+    const pref = getStoredCustomerAvatarPreference(phone, customerObj);
+    if (pref === 'male' || pref === 'female') return pref;
+    const explicit = String(customerObj?.gender || '').trim().toLowerCase();
+    if (explicit === 'female' || explicit === 'f' || explicit === 'woman') return 'female';
+    if (explicit === 'male' || explicit === 'm' || explicit === 'man') return 'male';
+
+    const raw = String(fullName || '').trim().toLowerCase();
+    if (!raw) return 'male';
+    const tokens = raw.split(/[\s._\-()]+/).filter(Boolean);
+    const honorificFemale = new Set(['mrs', 'ms', 'miss', 'smt', 'kumari', 'begum', 'bibi', 'madam', 'maam']);
+    const honorificMale = new Set(['mr', 'shri', 'sri', 'md', 'sk', 'sheikh', 'syed', 'sir']);
+
+    for (const tok of tokens) {
+        if (honorificFemale.has(tok) || FEMALE_CUSTOMER_FIRST_NAMES.has(tok)) return 'female';
+        if (honorificMale.has(tok)) return 'male';
+    }
+
+    const first = tokens.find(t => t.length > 1) || tokens[0] || '';
+    if (MALE_CUSTOMER_FIRST_NAMES.has(first)) return 'male';
+    if (FEMALE_CUSTOMER_FIRST_NAMES.has(first)) return 'female';
+
+    if (/(ika|ita|shree|shri|priya|wati|mati|lata|lekha|mala|devi|rani|moni|nila|bina|tina|rina|lina|niya|miya|sree|kumari|begum|sultana|parvin|parveen|jahan)$/.test(first)) {
+        return 'female';
+    }
+    if (/(jit|deep|nath|lal|dev|das|paul|roy|sen|kumar|raj|kant|esh|endu|ananda|prasad|shankar|chandra)$/.test(first)) {
+        return 'male';
+    }
+    if (/(aa|ia|ee|ya)$/.test(first)) return 'female';
+    return 'male';
+}
+window.detectCustomerGender = detectCustomerGender;
+
+function resolveCustomerAvatarInfo(customer) {
+    if (!customer || (!customer.phone && !customer.name)) {
+        return { isLoggedIn: false, isCustom: false, preference: 'auto', gender: 'guest', src: '' };
+    }
+    const customPhoto = String(customer.profilePhoto || customer.profile_photo || '').trim();
+    const pref = getStoredCustomerAvatarPreference(customer.phone, customer);
+    const gender = detectCustomerGender(customer.name, customer);
+    const defaultSrc = gender === 'female' ? 'assets/avatar-customer-female.jpg' : 'assets/avatar-customer-male.jpg';
+    const useCustom = Boolean(customPhoto) && (pref === 'custom' || (pref === 'auto' && !customer.avatarPreference));
+    return {
+        isLoggedIn: Boolean(customer.phone),
+        isCustom: useCustom,
+        hasUploadedPhoto: Boolean(customPhoto),
+        preference: useCustom ? 'custom' : pref,
+        gender,
+        src: useCustom ? customPhoto : defaultSrc
+    };
+}
+window.resolveCustomerAvatarInfo = resolveCustomerAvatarInfo;
+
+function compressSquareAvatarImage(file, size = 256, quality = 0.86) {
+    return new Promise((resolve, reject) => {
+        if (!file || !String(file.type || '').startsWith('image/')) {
+            reject(new Error('শুধুমাত্র ছবির ফাইল (JPG, PNG, WebP) নির্বাচন করুন।'));
+            return;
+        }
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('ছবি পড়া সম্ভব হয়নি।'));
+        reader.onload = (ev) => {
+            const img = new Image();
+            img.onerror = () => reject(new Error('ছবিটি সঠিক ফরম্যাটে নেই।'));
+            img.onload = () => {
+                try {
+                    const w = img.naturalWidth || img.width;
+                    const h = img.naturalHeight || img.height;
+                    const side = Math.min(w, h);
+                    const sx = Math.max(0, Math.round((w - side) / 2));
+                    const sy = Math.max(0, Math.round((h - side) * 0.25));
+                    const canvas = document.createElement('canvas');
+                    canvas.width = size;
+                    canvas.height = size;
+                    const ctx = canvas.getContext('2d');
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+                    const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                    resolve(dataUrl);
+                } catch (e) {
+                    reject(e);
+                }
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+window.compressSquareAvatarImage = compressSquareAvatarImage;
+
 
 
 
