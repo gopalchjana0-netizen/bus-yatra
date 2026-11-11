@@ -1978,8 +1978,20 @@ async function searchBuses(isRestore = false) {
         const result = await apiRequest(`/api/buses?${query}`);
         setAppData({ buses: result.buses });
     } catch (error) {
-        alert(error.message);
-        return;
+        const fallbackBuses = (getAppData().buses || []);
+        if (fallbackBuses.length > 0 && (navigator.onLine === false || /Unable to connect/i.test(error?.message || ''))) {
+            if (!isRestore && typeof showDropDownToast === 'function') {
+                showDropDownToast(
+                    currentLang === 'bn'
+                        ? '📶 অফলাইন মোড: সংরক্ষিত বাসের সময়সূচি দেখানো হচ্ছে (বুকিংয়ের জন্য নেট প্রয়োজন)'
+                        : '📶 Offline Mode: Showing cached bus schedules (Internet needed to book)',
+                    'warning'
+                );
+            }
+        } else {
+            if (!isRestore) alert(error.message);
+            return;
+        }
     } finally {
         if (searchButton) searchButton.disabled = false;
     }

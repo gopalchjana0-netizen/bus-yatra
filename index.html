@@ -57,12 +57,13 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preload" href="common.js?v=10.51" as="script">
-    <link rel="preload" href="app.js?v=10.51" as="script">
+    <link rel="preload" href="common.js?v=10.52" as="script">
+    <link rel="preload" href="app.js?v=10.52" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
     <script src="tailwind.js?v=10.37" defer></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" /></noscript>
     <style>
         /* Fail-safe base styling to prevent unstyled layout or oversized images */
         *, *::before, *::after { box-sizing: border-box; }
@@ -1820,18 +1821,18 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="common.js?v=10.52"></script>
+    <script src="app.js?v=10.52"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
     <!-- Firebase App & Firestore Compat SDKs for Real-Time Live Bus Tracking -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="common.js?v=10.51"></script>
-    <script src="app.js?v=10.51"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" defer></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js" defer></script>
     <script>
         if (typeof initFestivalThemeSync === 'function') {
             initFestivalThemeSync('customer');
         }
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js?v=10.51', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+            navigator.serviceWorker.register('/sw.js?v=10.52', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
         }
     </script>
 

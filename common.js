@@ -38,7 +38,20 @@ function localDateStr(d = new Date()) {
     return `${year}-${month}-${day}`;
 }
 
+const BUS_YATRA_OFFLINE_CACHE_KEY = 'busyatra_offline_public_cache_v1';
 let appData = { buses: [], bookings: {}, reviews: [], coupons: defaultCoupons, featureFlags: defaultFeatureFlags, serviceDates: [] };
+
+if (typeof localStorage !== 'undefined') {
+    try {
+        const rawCache = localStorage.getItem(BUS_YATRA_OFFLINE_CACHE_KEY);
+        if (rawCache) {
+            const parsedCache = JSON.parse(rawCache);
+            if (Array.isArray(parsedCache?.buses)) appData.buses = parsedCache.buses;
+            if (parsedCache?.featureFlags && typeof parsedCache.featureFlags === 'object') appData.featureFlags = parsedCache.featureFlags;
+            if (Array.isArray(parsedCache?.coupons)) appData.coupons = parsedCache.coupons;
+        }
+    } catch (_) {}
+}
 
 // --- Universal Language Manager (Bengali & English for Customer, Captain, Owner & Admin) ---
 let currentPortalLang = 'bn';
@@ -415,6 +428,59 @@ function setAppData(data) {
         featureFlags: (data.featureFlags && typeof data.featureFlags === 'object') ? data.featureFlags : (appData.featureFlags || defaultFeatureFlags),
         serviceDates: Array.isArray(data.serviceDates) ? data.serviceDates : (appData.serviceDates || [])
     };
+    if (typeof localStorage !== 'undefined' && Array.isArray(data.buses) && data.buses.length > 0) {
+        try {
+            // Save lightweight offline bus schedules & feature flags cleanly for zero-wait offline boot
+            const compactBuses = appData.buses.map(b => {
+                const copy = { ...b };
+                if (typeof copy.busPhoto === 'string' && copy.busPhoto.length > 2000) copy.busPhoto = '';
+                if (Array.isArray(copy.busPhotos) && JSON.stringify(copy.busPhotos).length > 3000) copy.busPhotos = [];
+                return copy;
+            });
+            localStorage.setItem(BUS_YATRA_OFFLINE_CACHE_KEY, JSON.stringify({
+                buses: compactBuses,
+                featureFlags: appData.featureFlags,
+                coupons: appData.coupons,
+                cachedAt: Date.now()
+            }));
+        } catch (_) {}
+    }
+}
+
+// --- Offline / Poor-Network Status Banner Across All Portals ---
+function updateOfflineStatusBanner() {
+    if (typeof document === 'undefined' || !document.body) return;
+    const isOffline = (typeof navigator !== 'undefined' && navigator.onLine === false);
+    let banner = document.getElementById('busYatraOfflineStatusBanner');
+
+    if (isOffline) {
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'busYatraOfflineStatusBanner';
+            banner.style.cssText = 'position:fixed;bottom:74px;left:50%;transform:translateX(-50%);z-index:940;background:rgba(15,23,42,0.95);color:#fff;padding:8px 14px;border-radius:9999px;font-size:11px;font-weight:700;box-shadow:0 8px 25px rgba(0,0,0,0.28);border:1px solid rgba(255,255,255,0.2);display:flex;align-items:center;gap:8px;max-width:92vw;white-space:nowrap;';
+            document.body.appendChild(banner);
+        }
+        const msg = getPortalLanguage() === 'en'
+            ? '📶 Offline Mode — Saved routes & Offline Tickets available'
+            : '📶 অফলাইন মোড — সংরক্ষিত রুট ও অফলাইন টিকিট খোলা রয়েছে';
+        banner.innerHTML = `<span style="overflow:hidden;text-overflow:ellipsis;">${msg}</span><button type="button" onclick="this.parentElement.remove()" style="background:none;border:0;color:#cbd5e1;font-weight:900;cursor:pointer;padding:0 2px;">✕</button>`;
+        banner.style.display = 'flex';
+    } else if (banner) {
+        banner.style.background = '#059669';
+        banner.innerHTML = `<span>${getPortalLanguage() === 'en' ? '🌐 Back Online — Syncing latest data...' : '🌐 ইন্টারনেট ফিরেছে — তথ্য আপডেট হচ্ছে...'}</span>`;
+        setTimeout(() => { if (banner && banner.parentElement) banner.remove(); }, 2800);
+    }
+}
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('DOMContentLoaded', updateOfflineStatusBanner);
+    window.addEventListener('offline', updateOfflineStatusBanner);
+    window.addEventListener('online', () => {
+        updateOfflineStatusBanner();
+        if (typeof loadPublicBuses === 'function') {
+            loadPublicBuses().catch(() => {});
+        }
+    });
 }
 
 // --- PWA Installation Support (Universal for Customer, Owner, Captain & Admin) ---
@@ -2408,17 +2474,24 @@ function initFestivalThemeSync(portalName) {
         .catch(() => {});
 
     // 2. Real-time Firebase Firestore listener (<100ms instant sync across all users)
-    try {
-        const firestore = typeof getBusYatraFirestore === 'function' ? getBusYatraFirestore() : null;
-        if (firestore) {
+    const attachFirestoreThemeListener = () => {
+        try {
+            const firestore = typeof getBusYatraFirestore === 'function' ? getBusYatraFirestore() : null;
+            if (!firestore) return false;
             firestore.collection('system_config').doc('festivalTheme')
                 .onSnapshot(doc => {
                     if (doc.exists) {
                         applyFestivalTheme(doc.data(), portalName);
                     }
                 }, () => {});
+            return true;
+        } catch (_) {
+            return false;
         }
-    } catch (_) {}
+    };
+    if (!attachFirestoreThemeListener()) {
+        window.addEventListener('DOMContentLoaded', attachFirestoreThemeListener, { once: true });
+    }
 }
 window.initFestivalThemeSync = initFestivalThemeSync;
 
