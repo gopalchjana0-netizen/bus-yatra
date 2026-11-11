@@ -1542,14 +1542,15 @@ async function startCaptainGpsTracking(forcePrompt = false) {
 
         lastAccurateLocation = { lat, lng, accuracy, time: Date.now() };
 
-        // 3. Smooth Transmission: send immediately if moved >= 2m or if >= 3.5s elapsed
+        // 3. Quota-Smart Smooth Transmission: min 5s cooldown, emit on >= 25m move or 15s stationary heartbeat
         const now = Date.now();
+        const elapsed = now - lastBroadcastTs;
         let shouldSend = false;
         if (!lastBroadcastCoords) {
             shouldSend = true;
-        } else {
+        } else if (elapsed >= 5000) {
             const dist = calculateDistanceMeters(lastBroadcastCoords.lat, lastBroadcastCoords.lng, lat, lng);
-            if (dist >= 2.0 || (now - lastBroadcastTs >= 3500)) {
+            if (dist >= 25.0 || elapsed >= 15000) {
                 shouldSend = true;
             }
         }
@@ -1586,7 +1587,7 @@ async function startCaptainGpsTracking(forcePrompt = false) {
         { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
     );
 
-    // Watchdog pulse every 8s to guarantee fresh coordinates even if bus stops at traffic light
+    // Watchdog pulse every 15s to guarantee fresh coordinates even when stationary at signals
     if (captainGpsInterval) clearInterval(captainGpsInterval);
     captainGpsInterval = setInterval(() => {
         if (!isGpsActive) return;
@@ -1595,7 +1596,7 @@ async function startCaptainGpsTracking(forcePrompt = false) {
             err => console.debug('Periodic GPS watchdog:', err?.message),
             { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
         );
-    }, 8000);
+    }, 15000);
 }
 
 // Ensure WakeLock, Background Audio & GPS stream re-activate when visibility changes or screen turns back on

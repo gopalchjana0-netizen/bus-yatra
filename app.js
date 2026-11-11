@@ -3398,7 +3398,7 @@ async function handlePaymentScreenshotUpload(input) {
     }
 
     try {
-        const base64Data = await compressImageToDataUrl(file, 1000, 1000, 0.8);
+        const base64Data = await compressImageToDataUrl(file, 760, 760, 0.65);
         uploadedPaymentScreenshot = base64Data;
         const previewBox = document.getElementById('upiScreenshotPreviewBox');
         const thumb = document.getElementById('upiScreenshotThumb');
@@ -3436,7 +3436,10 @@ function removePaymentScreenshot() {
     if (thumb) thumb.src = "";
 }
 
-function compressImageToDataUrl(file, maxWidth = 1000, maxHeight = 1000, quality = 0.8) {
+function compressImageToDataUrl(file, maxWidth = 760, maxHeight = 760, quality = 0.65) {
+    if (typeof window.compressImageFile === 'function') {
+        return window.compressImageFile(file, maxWidth, maxHeight, quality);
+    }
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);

@@ -277,6 +277,50 @@ async function ensureEnterpriseSegmentTables(db) {
         `).run();
         await db.prepare('CREATE INDEX IF NOT EXISTS idx_shl_expiry ON seat_hold_legs (expires_at)').run();
         await db.prepare('CREATE INDEX IF NOT EXISTS idx_shl_session ON seat_hold_legs (bus_id, journey_date, session_id)').run();
+        const scaleStatements = [
+            'CREATE INDEX IF NOT EXISTS idx_bsl_date ON booking_seat_legs (journey_date, bus_id)',
+            'CREATE INDEX IF NOT EXISTS idx_booking_seats_date ON booking_seats (journey_date, bus_id)',
+            'CREATE INDEX IF NOT EXISTS idx_bookings_utr ON bookings (utr_number)',
+            'CREATE INDEX IF NOT EXISTS idx_bookings_created_at ON bookings (created_at DESC)',
+            'CREATE INDEX IF NOT EXISTS idx_portal_sessions_expires ON portal_sessions (expires_at)'
+        ];
+        for (const sql of scaleStatements) {
+            try { await db.prepare(sql).run(); } catch (_) {}
+        }
+        // Avoid firing expensive base64 bus-replica trigger on frequent GPS lat/lng pings
+        try {
+            const trig = await db.prepare(
+                "SELECT sql FROM sqlite_master WHERE type = 'trigger' AND name = 'firebase_outbox_buses_update'"
+            ).first();
+            if (trig && trig.sql && !/AFTER UPDATE OF /i.test(trig.sql)) {
+                await db.batch([
+                    db.prepare('DROP TRIGGER IF EXISTS firebase_outbox_buses_update'),
+                    db.prepare(`
+                        CREATE TRIGGER firebase_outbox_buses_update
+                        AFTER UPDATE OF name, bus_number, owner_name, owner_phone, owner_email, route,
+                            active_routes, stoppages, fare_per_stop, fare_per_km, window_seat_extra,
+                            time, fare, total_seats, image, upi_id, qr_image, allow_online_payment,
+                            allow_cash_payment, driver_phone, company_name, gst_number, ticket_terms,
+                            emergency_phone, driver_name ON buses
+                        BEGIN
+                            INSERT INTO firebase_replica_outbox (collection, document_key, operation, payload, created_at, next_attempt_at)
+                            VALUES ('buses', NEW.id, 'upsert', json_object(
+                                'id', NEW.id, 'name', NEW.name, 'bus_number', NEW.bus_number, 'owner_name', NEW.owner_name,
+                                'owner_phone', NEW.owner_phone, 'owner_email', NEW.owner_email, 'route', NEW.route,
+                                'active_routes', NEW.active_routes, 'stoppages', NEW.stoppages, 'fare_per_stop', NEW.fare_per_stop,
+                                'fare_per_km', NEW.fare_per_km, 'window_seat_extra', NEW.window_seat_extra, 'time', NEW.time,
+                                'fare', NEW.fare, 'total_seats', NEW.total_seats, 'image', NEW.image, 'upi_id', NEW.upi_id,
+                                'qr_image', NEW.qr_image, 'allow_online_payment', NEW.allow_online_payment,
+                                'allow_cash_payment', NEW.allow_cash_payment, 'driver_phone', NEW.driver_phone,
+                                'company_name', NEW.company_name, 'gst_number', NEW.gst_number, 'ticket_terms', NEW.ticket_terms,
+                                'emergency_phone', NEW.emergency_phone, 'lat', NEW.lat, 'lng', NEW.lng,
+                                'location_updated_at', NEW.location_updated_at, 'driver_name', NEW.driver_name
+                            ), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+                        END
+                    `)
+                ]);
+            }
+        } catch (_) {}
         await ensureCustomerPhotoColumns(db);
         _enterpriseSegmentTablesEnsured = true;
     } catch (e) {
@@ -522,6 +566,58 @@ async function getSegmentOccupiedSeats(db, busId, journeyDate, fromIdx, toIdx, f
     (legRows || []).forEach(r => seatSet.add(r.seat_number));
     (legacyRows || []).forEach(r => seatSet.add(r.seat_number));
     return Array.from(seatSet);
+}
+
+// Batched O(1)-query seat occupancy loader across ALL buses for a date (avoids N+1 Free-Plan subrequest limits)
+async function loadOccupiedSeatsForDate(db, journeyDate, flags = null) {
+    const reuseEnabled = !flags || flags.segmentSeatReuse !== false;
+    const legsStmt = db.prepare(
+        'SELECT bus_id, seat_number, hop_idx FROM booking_seat_legs WHERE journey_date = ?'
+    ).bind(journeyDate);
+    const legacyStmt = db.prepare(
+        `SELECT bs.bus_id, bs.seat_number FROM booking_seats bs
+         WHERE bs.journey_date = ?
+           AND NOT EXISTS (
+               SELECT 1 FROM booking_seat_legs bsl
+               WHERE bsl.booking_id = bs.booking_id AND bsl.journey_date = bs.journey_date
+           )`
+    ).bind(journeyDate);
+    const [legRes, legacyRes] = await db.batch([legsStmt, legacyStmt]);
+
+    const legsByBus = new Map();
+    for (const r of (legRes?.results || [])) {
+        let list = legsByBus.get(r.bus_id);
+        if (!list) {
+            list = [];
+            legsByBus.set(r.bus_id, list);
+        }
+        list.push({ seat: r.seat_number, hopIdx: Number(r.hop_idx) });
+    }
+
+    const legacyByBus = new Map();
+    for (const r of (legacyRes?.results || [])) {
+        let set = legacyByBus.get(r.bus_id);
+        if (!set) {
+            set = new Set();
+            legacyByBus.set(r.bus_id, set);
+        }
+        set.add(r.seat_number);
+    }
+
+    return (busId, fromIdx, toIdx) => {
+        const effectiveFrom = (reuseEnabled && fromIdx >= 0 && toIdx > fromIdx) ? fromIdx : 0;
+        const effectiveTo = (reuseEnabled && fromIdx >= 0 && toIdx > fromIdx) ? toIdx : 999;
+        const occupied = new Set(legacyByBus.get(busId) || []);
+        const legs = legsByBus.get(busId);
+        if (legs) {
+            for (const leg of legs) {
+                if (leg.hopIdx >= effectiveFrom && leg.hopIdx < effectiveTo) {
+                    occupied.add(leg.seat);
+                }
+            }
+        }
+        return Array.from(occupied);
+    };
 }
 
 async function getSegmentHeldSeats(db, busId, journeyDate, fromIdx, toIdx, sessionId, nowIso, flags = null) {
@@ -770,7 +866,7 @@ function mapBus(row) {
             } catch {
                 imagesList = [trimmed];
             }
-        } else if (trimmed.includes(',')) {
+        } else if (!trimmed.startsWith('data:') && trimmed.includes(',')) {
             imagesList = trimmed.split(',').map(s => s.trim()).filter(Boolean);
         } else if (trimmed.length > 0) {
             imagesList = [trimmed];
@@ -1272,12 +1368,14 @@ async function setCredentialPin(db, { role, identifier, busId = null, pin }) {
 async function createPortalSession(db, identity) {
     const token = secureRandomHex(32);
     const tokenDigest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+    const nowIso = new Date().toISOString();
     const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+    await db.prepare('DELETE FROM portal_sessions WHERE expires_at <= ?').bind(nowIso).run().catch(() => {});
     await db.prepare(
         'INSERT INTO portal_sessions (token_hash, role, identifier, bus_id, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?)'
     ).bind(
         bytesToHex(new Uint8Array(tokenDigest)), identity.role, identity.identifier,
-        identity.busId || null, expiresAt, new Date().toISOString()
+        identity.busId || null, expiresAt, nowIso
     ).run();
     return { token, expiresAt };
 }
@@ -1386,8 +1484,8 @@ async function sendEmailOtp(env, { email, role, purpose }) {
     const expiresAt = new Date(now + 10 * 60 * 1000).toISOString();
 
     await env.DB.prepare(
-        'DELETE FROM email_otps WHERE email = ? AND purpose = ?'
-    ).bind(cleanEmail, purpose).run();
+        'DELETE FROM email_otps WHERE (email = ? AND purpose = ?) OR expires_at <= ?'
+    ).bind(cleanEmail, purpose, new Date().toISOString()).run();
 
     await env.DB.prepare(
         'INSERT INTO email_otps (email, otp_hash, purpose, expires_at, attempts, created_at) VALUES (?, ?, ?, ?, 0, ?)'
@@ -1465,7 +1563,10 @@ async function verifyEmailOtp(env, { email, otp, purpose }) {
 export async function onRequest(context) {
     const response = await handleRequest(context);
     const { request, env } = context;
+    const reqPath = new URL(request.url).pathname;
+    const isEphemeralHighFreqWrite = /^\/api\/(?:captain\/location|owner\/buses\/[^/]+\/location|analytics\/|seats\/hold|emergency\/sos\/[^/]+\/(?:webrtc|camera))/.test(reqPath);
     if (response.ok && request.method !== 'GET' && request.method !== 'OPTIONS' &&
+        !isEphemeralHighFreqWrite &&
         env.FIREBASE_PROJECT_ID && env.FIREBASE_SERVICE_ACCOUNT_EMAIL &&
         env.FIREBASE_SERVICE_ACCOUNT_PRIVATE_KEY) {
         const replication = drainFirebaseReplica(env.DB, env).catch(error => {
@@ -1669,9 +1770,36 @@ async function handleGet(context) {
             ? await env.DB.prepare(query).bind(date).all()
             : await env.DB.prepare(query).all();
 
+        const getOccupiedForBus = date ? await loadOccupiedSeatsForDate(env.DB, date, flags) : null;
+
         const toPublicBus = (busObj) => {
             if (!busObj) return busObj;
-            const { ownerEmail: _omittedEmail, ...publicBus } = busObj;
+            const {
+                ownerEmail: _omittedEmail,
+                pendingImages: _p1,
+                pending_images: _p2,
+                photoApprovalStatus: _p3,
+                photo_approval_status: _p4,
+                photoRejectionReason: _p5,
+                photo_rejection_reason: _p6,
+                rejectionReason: _r1,
+                rejection_reason: _r2,
+                approval_status: _a1,
+                stoppage_timings: _st,
+                stoppage_fares: _sf,
+                return_stoppage_fares: _rsf,
+                seat_layout: _sl,
+                return_route_enabled: _rre,
+                return_time: _rt,
+                return_route: _rr,
+                return_stoppages: _rs,
+                return_stoppage_timings: _rst,
+                return_fare: _rf,
+                ...publicBus
+            } = busObj;
+            if (Array.isArray(publicBus.images) && publicBus.images.length === 1 && publicBus.images[0] === publicBus.image) {
+                delete publicBus.images;
+            }
             return publicBus;
         };
 
@@ -1694,7 +1822,7 @@ async function handleGet(context) {
                 const fIdx = reqFrom ? resolveStoppageIdx(upStops, reqFrom) : -1;
                 const tIdx = reqTo ? resolveStoppageIdx(upStops, reqTo) : -1;
                 const segMatch = fIdx >= 0 && tIdx > fIdx;
-                const occupied = await getSegmentOccupiedSeats(env.DB, row.id, date, segMatch ? fIdx : 0, segMatch ? tIdx : 999, flags);
+                const occupied = getOccupiedForBus(row.id, segMatch ? fIdx : 0, segMatch ? tIdx : 999);
                 upRemaining = Math.max(0, totalSeats - occupied.length);
                 if (upRemaining <= 0) upPush = false;
                 if (segMatch) {
@@ -1729,7 +1857,7 @@ async function handleGet(context) {
                     const rfIdx = reqFrom ? resolveStoppageIdx(returnStops, reqFrom) : -1;
                     const rtIdx = reqTo ? resolveStoppageIdx(returnStops, reqTo) : -1;
                     const retSegMatch = rfIdx >= 0 && rtIdx > rfIdx;
-                    const retOccupied = await getSegmentOccupiedSeats(env.DB, row.id + '_RETURN', date, retSegMatch ? rfIdx : 0, retSegMatch ? rtIdx : 999, flags);
+                    const retOccupied = getOccupiedForBus(row.id + '_RETURN', retSegMatch ? rfIdx : 0, retSegMatch ? rtIdx : 999);
                     retRemaining = Math.max(0, totalSeats - retOccupied.length);
                     if (retRemaining <= 0) retPush = false;
                     if (retSegMatch) {
@@ -1748,9 +1876,7 @@ async function handleGet(context) {
                         time: returnTime,
                         stoppages: returnStops,
                         stoppageTimings: returnTimings,
-                        stoppage_timings: returnTimings,
                         stoppageFares: returnFares,
-                        stoppage_fares: returnFares,
                         fare: returnFare,
                         tripDirection: 'DOWN',
                         remainingSeats: retRemaining,
@@ -1760,7 +1886,8 @@ async function handleGet(context) {
                 }
             }
         }
-        return jsonResponse({ buses }, 200, { 'Cache-Control': reqFrom ? 'no-cache, max-age=0' : 'public, max-age=5, stale-while-revalidate=30' });
+        const cacheHeader = (date || reqFrom) ? 'no-cache, max-age=0' : 'public, max-age=20, stale-while-revalidate=60';
+        return jsonResponse({ buses }, 200, { 'Cache-Control': cacheHeader });
     }
 
     if (path === '/api/config') {

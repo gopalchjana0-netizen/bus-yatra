@@ -127,6 +127,11 @@ export async function drainFirebaseReplica(db, env) {
 
     const now = new Date();
     const nowIso = now.toISOString();
+    const pendingRow = await db.prepare(
+        'SELECT id FROM firebase_replica_outbox WHERE next_attempt_at <= ? LIMIT 1'
+    ).bind(nowIso).first();
+    if (!pendingRow) return;
+
     const leaseToken = crypto.randomUUID();
     const leaseExpiresAt = new Date(now.getTime() + 120_000).toISOString();
     const lease = await db.prepare(

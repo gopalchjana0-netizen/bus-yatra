@@ -874,6 +874,9 @@ function loadAdminBuses() {
 }
 
 function readImageFileAsDataUrl(file) {
+    if (typeof window.compressImageFile === 'function') {
+        return window.compressImageFile(file, 720, 720, 0.64);
+    }
     return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -882,7 +885,7 @@ function readImageFileAsDataUrl(file) {
                 const canvas = document.createElement('canvas');
                 let width = img.width;
                 let height = img.height;
-                const maxWidth = 800;
+                const maxWidth = 720;
                 if (width > maxWidth) {
                     height = Math.round((height * maxWidth) / width);
                     width = maxWidth;
@@ -891,7 +894,7 @@ function readImageFileAsDataUrl(file) {
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL('image/jpeg', 0.7));
+                resolve(canvas.toDataURL('image/jpeg', 0.64));
             };
             img.src = e.target.result;
         };

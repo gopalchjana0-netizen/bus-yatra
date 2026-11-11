@@ -3505,6 +3505,54 @@ async function readPromoVideoAsDataUrl(file) {
 }
 window.readPromoVideoAsDataUrl = readPromoVideoAsDataUrl;
 
+/**
+ * Shared compact image compressor used for bus photos and UPI payment screenshots.
+ * Keeps photos crisp while fitting 3x-4x more records inside D1 Free Tier storage.
+ */
+function compressImageFile(file, maxWidth = 720, maxHeight = 720, quality = 0.64) {
+    return new Promise((resolve, reject) => {
+        if (!file || !String(file.type || '').startsWith('image/')) {
+            reject(new Error('শুধুমাত্র বৈধ ছবির ফাইল (JPG, PNG, WebP) নির্বাচন করুন।'));
+            return;
+        }
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('ছবি পড়া সম্ভব হয়নি।'));
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onerror = () => reject(new Error('ছবিটি সঠিক ফরম্যাটে নেই।'));
+            img.onload = () => {
+                let width = img.naturalWidth || img.width;
+                let height = img.naturalHeight || img.height;
+                if (width > maxWidth || height > maxHeight) {
+                    if (width / height > maxWidth / maxHeight) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    } else {
+                        width = Math.round((width * maxHeight) / height);
+                        height = maxHeight;
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.max(1, width);
+                canvas.height = Math.max(1, height);
+                const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                let dataUrl = canvas.toDataURL('image/jpeg', quality);
+                if (dataUrl.length > 90000 && quality > 0.48) {
+                    dataUrl = canvas.toDataURL('image/jpeg', 0.48);
+                }
+                resolve(dataUrl);
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+window.compressImageFile = compressImageFile;
+
 
 
 

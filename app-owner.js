@@ -2356,8 +2356,12 @@ function shareOwnerLiveLocation() {
     if (btn) btn.innerHTML = '⏹ Stop Sharing Live GPS';
     if (statusText) statusText.innerText = 'Acquiring GPS location... Keep this browser tab open while bus is running.';
 
+    let lastOwnerGpsTs = 0;
     ownerLocationWatch = navigator.geolocation.watchPosition(
         async position => {
+            const now = Date.now();
+            if (now - lastOwnerGpsTs < 8000) return;
+            lastOwnerGpsTs = now;
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
             try {
