@@ -3550,6 +3550,7 @@ window.closePaymentScreenshotModal = closePaymentScreenshotModal;
 // Re-render views on language change in Owner Portal
 if (typeof window !== 'undefined') {
     window.addEventListener('portal-language-change', () => {
+        if (typeof getOwnerSession === 'function' && !getOwnerSession()) return;
         if (typeof updateOwnerSelectionToolbar === 'function') updateOwnerSelectionToolbar();
         if (typeof renderOwnerApprovals === 'function') renderOwnerApprovals();
         if (typeof renderPassengerManifest === 'function') renderPassengerManifest();

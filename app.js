@@ -1157,6 +1157,9 @@ function getLoggedInCustomer() {
 
 async function validateCustomerSession() {
     try {
+        const rawSession = localStorage.getItem('customer_session') || sessionStorage.getItem('customer_session') || localStorage.getItem('portal_session_customer') || sessionStorage.getItem('portal_session_customer');
+        const parsedSession = rawSession ? JSON.parse(rawSession) : null;
+        if (!parsedSession || !parsedSession.token) return;
         const result = await apiRequest('/api/customer/me');
         if (result && result.customer) {
             localStorage.setItem('busyatra_customer', JSON.stringify(result.customer));
