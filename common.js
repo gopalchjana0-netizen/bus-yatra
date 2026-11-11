@@ -1017,12 +1017,14 @@ function isTripTimePassed(journeyDate, timeStr) {
 window.isTripTimePassed = isTripTimePassed;
 
 function getStoppageRowHtml(containerId, seq, name = '', time = '') {
+    const stopPh = t('স্টপেজের নাম (যেমন: বলাইপাণ্ডা)', 'Stoppage Name (e.g. Balaipanda)');
+    const timePh = t('সময় (05:40 AM)', 'Time (05:40 AM)');
     return `
-        <div class="stoppage-schedule-row flex items-center gap-2 bg-gray-50 p-2 rounded-xl border border-gray-200">
-            <span class="stoppage-seq w-6 text-center text-xs font-extrabold text-gray-400">#${seq}</span>
-            <input type="text" value="${escapeHtml(name)}" placeholder="Stoppage Name (e.g. Balaipanda)" class="stoppage-name-input flex-1 p-2 border rounded-lg text-xs bg-white font-medium focus:ring-1 focus:ring-red-500" required>
-            <input type="text" value="${escapeHtml(time)}" placeholder="Time (e.g. 05:40 AM)" class="stoppage-time-input w-28 sm:w-36 p-2 border rounded-lg text-xs bg-white font-semibold text-gray-800 focus:ring-1 focus:ring-red-500">
-            <button type="button" onclick="removeStoppageRow(this)" title="Remove this stop" class="text-gray-400 hover:text-red-600 font-bold px-2 py-1 text-sm rounded-lg hover:bg-red-50 transition">✕</button>
+        <div class="stoppage-schedule-row flex items-center gap-1.5 sm:gap-2 bg-gray-50 p-1.5 sm:p-2 rounded-xl border border-gray-200 w-full max-w-full min-w-0 overflow-hidden">
+            <span class="stoppage-seq w-5 sm:w-6 shrink-0 text-center text-[11px] sm:text-xs font-extrabold text-gray-400">#${seq}</span>
+            <input type="text" value="${escapeHtml(name)}" placeholder="${escapeHtml(stopPh)}" data-bn-placeholder="স্টপেজের নাম (যেমন: বলাইপাণ্ডা)" data-en-placeholder="Stoppage Name (e.g. Balaipanda)" class="stoppage-name-input flex-1 min-w-0 w-full p-1.5 sm:p-2 border rounded-lg text-xs bg-white font-medium focus:ring-1 focus:ring-red-500" required>
+            <input type="text" value="${escapeHtml(time)}" placeholder="${escapeHtml(timePh)}" data-bn-placeholder="সময় (05:40 AM)" data-en-placeholder="Time (05:40 AM)" class="stoppage-time-input w-20 sm:w-32 shrink-0 p-1.5 sm:p-2 border rounded-lg text-[11px] sm:text-xs bg-white font-semibold text-gray-800 focus:ring-1 focus:ring-red-500">
+            <button type="button" onclick="removeStoppageRow(this)" title="Remove this stop" class="shrink-0 text-gray-400 hover:text-red-600 font-bold px-1.5 sm:px-2 py-1 text-sm rounded-lg hover:bg-red-50 transition">✕</button>
         </div>
     `;
 }
@@ -1036,7 +1038,7 @@ function renderStoppageScheduleEditor(containerId, stoppages = [], timings = {})
         : ['Pingla', 'Balaipanda', 'Debra', 'Kharagpur', 'Kolaghat', 'Kolkata'];
 
     let html = `
-        <div class="space-y-2" id="${containerId}-rows">
+        <div class="space-y-2 w-full min-w-0" id="${containerId}-rows">
     `;
     stops.forEach((stop, idx) => {
         const timeVal = (timings && timings[stop]) || '';
@@ -1045,10 +1047,10 @@ function renderStoppageScheduleEditor(containerId, stoppages = [], timings = {})
     html += `
         </div>
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2">
-            <button type="button" onclick="addStoppageRowToEditor('${containerId}')" class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-red-200 self-start">
-                ➕ Add Stoppage (স্টপেজ যোগ করুন)
+            <button type="button" onclick="addStoppageRowToEditor('${containerId}')" class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-red-200 self-start" data-bn="➕ স্টপেজ যোগ করুন" data-en="➕ Add Stoppage">
+                ${t('➕ স্টপেজ যোগ করুন', '➕ Add Stoppage')}
             </button>
-            <span class="text-[11px] text-gray-500">প্রতিটি স্টপেজের নাম ও ছাড়ার নির্দিষ্ট সময় লিখুন (e.g. 05:40 AM)</span>
+            <span class="text-[11px] text-gray-500" data-bn="প্রতিটি স্টপেজের নাম ও ছাড়ার নির্দিষ্ট সময় লিখুন (যেমন: 05:40 AM)" data-en="Enter stoppage name and exact departure time (e.g. 05:40 AM)">${t('প্রতিটি স্টপেজের নাম ও ছাড়ার নির্দিষ্ট সময় লিখুন (যেমন: 05:40 AM)', 'Enter stoppage name and exact departure time (e.g. 05:40 AM)')}</span>
         </div>
     `;
     container.innerHTML = html;

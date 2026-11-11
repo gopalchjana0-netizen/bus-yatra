@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.35">
     <title>Bus Yatra | Online Bus Ticket Booking | ভারতের যেকোনো রুটের নির্ভরযোগ্য অনলাইন বাস সার্ভিস</title>
     <meta name="description" content="Bus Yatra - সারা ভারতের যেকোনো রুটের নির্ভরযোগ্য অনলাইন বাস টিকিট বুকিং প্ল্যাটফর্ম। All India daily bus booking, live GPS tracking, 65-seater bus service, instant confirmation & seat selection.">
     <meta name="keywords" content="Bus Yatra, online bus booking, pan India bus service, West Bengal bus booking, Kolkata bus, Pingla bus, Digha bus, Siliguri bus, বাস যাত্রা, ভারতের বাস সার্ভিস, অনলাইন বাস টিকিট">
@@ -57,14 +57,18 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preload" href="common.js?v=10.44" as="script">
-    <link rel="preload" href="app.js?v=10.44" as="script">
+    <link rel="preload" href="common.js?v=10.45" as="script">
+    <link rel="preload" href="app.js?v=10.45" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
     <script src="tailwind.js?v=10.37" defer></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         /* Fail-safe base styling to prevent unstyled layout or oversized images */
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body { max-width: 100%; overflow-x: clip; -webkit-text-size-adjust: 100%; }
+        .grid > * { min-width: 0; }
+        input:not([type="checkbox"]):not([type="radio"]), select, textarea { max-width: 100%; min-width: 0; }
         .hidden { display: none !important; }
         img { max-width: 100%; height: auto; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f3f4f6; margin: 0; }
@@ -1325,8 +1329,8 @@
                     <span>🎯</span> <span data-bn="বাসের অবস্থান" data-en="Recenter Bus">বাসের অবস্থান</span>
                 </button>
             </div>
-            <div id="lblMapFooter" class="p-3 sm:p-4 bg-white border-t text-center text-xs text-gray-500">
-                Map updates automatically in real-time with GPS coordinates.
+            <div id="lblMapFooter" class="p-3 sm:p-4 bg-white border-t text-center text-xs font-semibold text-gray-600">
+                🛰️ Bus Yatra Map GPS System • Live Real-Time Tracking
             </div>
         </div>
     </div>
@@ -1726,14 +1730,14 @@
     <!-- Firebase App & Firestore Compat SDKs for Real-Time Live Bus Tracking -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="common.js?v=10.44"></script>
-    <script src="app.js?v=10.44"></script>
+    <script src="common.js?v=10.45"></script>
+    <script src="app.js?v=10.45"></script>
     <script>
         if (typeof initFestivalThemeSync === 'function') {
             initFestivalThemeSync('customer');
         }
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js?v=10.37', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+            navigator.serviceWorker.register('/sw.js?v=10.45', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
         }
     </script>
 

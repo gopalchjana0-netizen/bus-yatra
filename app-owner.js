@@ -670,11 +670,15 @@ async function loadOwnerDashboard() {
         const ownerNameEl = document.getElementById('ownerSubBannerName');
         const ownerCompanyEl = document.getElementById('ownerSubBannerCompany');
         const ownerFleetEl = document.getElementById('ownerSubBannerFleetBadge');
-        if (ownerNameEl) ownerNameEl.innerText = firstBus?.owner_name || ownerSession?.phone || 'বাস মালিক';
+        if (ownerNameEl) ownerNameEl.innerText = firstBus?.owner_name || ownerSession?.phone || window.t('বাস মালিক', 'Bus Owner');
         if (ownerCompanyEl) ownerCompanyEl.innerText = firstBus?.name || 'Bus Yatra Fleet';
         if (ownerFleetEl) {
             const busCount = (data.buses || []).length;
-            ownerFleetEl.innerText = `${busCount}টি সক্রিয় বাস`;
+            const bnText = `${busCount}টি সক্রিয় বাস`;
+            const enText = `${busCount} Active ${busCount === 1 ? 'Bus' : 'Buses'}`;
+            ownerFleetEl.setAttribute('data-bn', bnText);
+            ownerFleetEl.setAttribute('data-en', enText);
+            ownerFleetEl.innerText = window.t(bnText, enText);
         }
 
         loadOwnerBuses();
@@ -946,7 +950,7 @@ function switchOwnerTab(tab) {
         if (hubGrid) hubGrid.classList.add('hidden');
         if (backBar) backBar.classList.remove('hidden');
         if (tabTitleEl) {
-            const tabTitles = {
+            const tabTitlesBn = {
                 approvals: '🎫 বুকিং অনুমোদন',
                 settings: '⚙️ বাস ও সেটিংস',
                 captains: '👨‍✈️ কন্ডাক্টর ও স্টাফ',
@@ -955,7 +959,20 @@ function switchOwnerTab(tab) {
                 notifications: '📢 নোটিশ ও ঘোষণা',
                 reviews: '⭐ যাত্রী ফিডব্যাক'
             };
-            tabTitleEl.innerText = tabTitles[tab] || capitalize(tab);
+            const tabTitlesEn = {
+                approvals: '🎫 Booking Approvals',
+                settings: '⚙️ Fare & Bus Settings',
+                captains: '👨‍✈️ Captains & Staff',
+                manifest: '📋 Passenger Manifest',
+                ledger: '📊 Trip Ledger',
+                notifications: '📢 Notices & Updates',
+                reviews: '⭐ Customer Feedback'
+            };
+            const bnTitle = tabTitlesBn[tab] || capitalize(tab);
+            const enTitle = tabTitlesEn[tab] || capitalize(tab);
+            tabTitleEl.setAttribute('data-bn', bnTitle);
+            tabTitleEl.setAttribute('data-en', enTitle);
+            tabTitleEl.innerText = window.t(bnTitle, enTitle);
         }
         updateOwnerNavHighlight(tab === 'approvals' ? 'approvals' : (tab === 'ledger' ? 'ledger' : ''));
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1021,11 +1038,17 @@ function updateOwnerSelectionToolbar() {
 
     if (btn) {
         btn.disabled = count === 0;
-        btn.innerHTML = `<span>🗑️</span> <span>নির্বাচিত ডিলিট (${count}টি)</span>`;
+        const bnLbl = `নির্বাচিত ডিলিট (${count}টি)`;
+        const enLbl = `Delete Selected (${count})`;
+        btn.innerHTML = `<span>🗑️</span> <span data-bn="${bnLbl}" data-en="${enLbl}">${window.t(bnLbl, enLbl)}</span>`;
     }
     if (badge) {
         if (count > 0) {
-            badge.innerText = `${count}টি নির্বাচিত`;
+            const bnBadge = `${count}টি নির্বাচিত`;
+            const enBadge = `${count} selected`;
+            badge.setAttribute('data-bn', bnBadge);
+            badge.setAttribute('data-en', enBadge);
+            badge.innerText = window.t(bnBadge, enBadge);
             badge.classList.remove('hidden');
         } else {
             badge.classList.add('hidden');
@@ -1333,7 +1356,11 @@ function loadOwnerBuses() {
     const currentVal = select.value;
     select.innerHTML = "";
     (db.buses || []).forEach(b => {
-        const statusTag = b.approvalStatus === 'pending' ? ' 🟡 [অ্যাডমিন অনুমোদনের অপেক্ষায়]' : (b.approvalStatus === 'rejected' ? ' 🔴 [বাতিল]' : ' 🟢 [লাইভ]');
+        const statusTag = b.approvalStatus === 'pending'
+            ? window.t(' 🟡 [অনুমোদনের অপেক্ষায়]', ' 🟡 [Pending Approval]')
+            : (b.approvalStatus === 'rejected'
+                ? window.t(' 🔴 [বাতিল]', ' 🔴 [Rejected]')
+                : window.t(' 🟢 [লাইভ]', ' 🟢 [Live]'));
         const retTag = b.returnRouteEnabled ? ' 🔄' : '';
         select.innerHTML += `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name)} (${escapeHtml(b.busNumber)})${retTag}${statusTag}</option>`;
     });
@@ -1354,11 +1381,15 @@ function renderOwnerBusPhotosGallery(bus) {
     if (!gallery) return;
 
     if (badge) {
-        badge.textContent = `${currentOwnerBusPhotos.length} টি ছবি`;
+        const bnCount = `${currentOwnerBusPhotos.length} টি ছবি`;
+        const enCount = `${currentOwnerBusPhotos.length} Photo${currentOwnerBusPhotos.length === 1 ? '' : 's'}`;
+        badge.setAttribute('data-bn', bnCount);
+        badge.setAttribute('data-en', enCount);
+        badge.textContent = window.t(bnCount, enCount);
     }
 
     if (currentOwnerBusPhotos.length === 0) {
-        gallery.innerHTML = `<div class="text-xs text-gray-400 italic py-2">কোনো ছবি আপলোড করা নেই। নিচে ছবি বাছুন।</div>`;
+        gallery.innerHTML = `<div class="text-xs text-gray-400 italic py-2" data-bn="কোনো ছবি আপলোড করা নেই। নিচে ছবি বাছুন।" data-en="No photos uploaded yet. Choose files below.">${window.t('কোনো ছবি আপলোড করা নেই। নিচে ছবি বাছুন।', 'No photos uploaded yet. Choose files below.')}</div>`;
         if (banner) banner.classList.add('hidden');
         return;
     }
@@ -1368,8 +1399,8 @@ function renderOwnerBusPhotosGallery(bus) {
     gallery.innerHTML = currentOwnerBusPhotos.map((url, idx) => {
         const isOverLimit = idx >= 3;
         const badgeMarkup = isOverLimit && isPending
-            ? `<span class="absolute bottom-1 left-1 bg-amber-500 text-black text-[9px] font-black px-1.5 py-0.5 rounded shadow">🟡 অ্যাডমিন পেন্ডিং</span>`
-            : `<span class="absolute bottom-1 left-1 bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow">🟢 লাইভ</span>`;
+            ? `<span class="absolute bottom-1 left-1 bg-amber-500 text-black text-[9px] font-black px-1.5 py-0.5 rounded shadow">🟡 ${window.t('অ্যাডমিন পেন্ডিং', 'Admin Pending')}</span>`
+            : `<span class="absolute bottom-1 left-1 bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow">🟢 ${window.t('লাইভ', 'Live')}</span>`;
 
         return `
             <div class="relative w-28 h-20 rounded-xl overflow-hidden border-2 ${isOverLimit && isPending ? 'border-amber-400' : 'border-gray-200'} shadow-sm group bg-gray-900 shrink-0">
@@ -1385,10 +1416,16 @@ function renderOwnerBusPhotosGallery(bus) {
     if (banner) {
         if (isPending && currentOwnerBusPhotos.length > 3) {
             banner.className = 'p-3 rounded-xl text-xs bg-amber-50 border border-amber-200 text-amber-900 block';
-            banner.innerHTML = `🟡 <strong>অ্যাডমিন অনুমোদনের অপেক্ষায়:</strong> আপনার আপলোড করা ${currentOwnerBusPhotos.length}টি ছবির মধ্যে প্রথম ৩টি সক্রিয় রয়েছে। বাকি ${currentOwnerBusPhotos.length - 3}টি ছবি অ্যাডমিন রিভিউ করছেন। অ্যাডমিন অনুমোদন দিলেই যাত্রীরা সব ছবি দেখতে পাবেন।`;
+            banner.innerHTML = window.t(
+                `🟡 <strong>অ্যাডমিন অনুমোদনের অপেক্ষায়:</strong> আপনার আপলোড করা ${currentOwnerBusPhotos.length}টি ছবির মধ্যে প্রথম ৩টি সক্রিয় রয়েছে। বাকি ${currentOwnerBusPhotos.length - 3}টি ছবি অ্যাডমিন রিভিউ করছেন।`,
+                `🟡 <strong>Pending Admin Approval:</strong> First 3 of your ${currentOwnerBusPhotos.length} uploaded photos are live. The remaining ${currentOwnerBusPhotos.length - 3} photo(s) are under admin review.`
+            );
         } else if (currentOwnerBusPhotos.length > 3) {
             banner.className = 'p-3 rounded-xl text-xs bg-blue-50 border border-blue-200 text-blue-900 block';
-            banner.innerHTML = `ℹ️ <strong>তথ্য:</strong> আপনি ${currentOwnerBusPhotos.length}টি ছবি বেছেছেন। ৩টির বেশি ছবি থাকায় 'Save Bus Configuration' করার পর অতিরিক্ত ছবিগুলো অ্যাডমিন অনুমোদনের জন্য যাবে।`;
+            banner.innerHTML = window.t(
+                `ℹ️ <strong>তথ্য:</strong> আপনি ${currentOwnerBusPhotos.length}টি ছবি বেছেছেন। 'Save' করার পর ৩টির অতিরিক্ত ছবিগুলো অ্যাডমিন অনুমোদনের জন্য যাবে।`,
+                `ℹ️ <strong>Info:</strong> You selected ${currentOwnerBusPhotos.length} photos. After saving, photos beyond the first 3 will go for admin approval.`
+            );
         } else {
             banner.classList.add('hidden');
         }
@@ -1502,44 +1539,44 @@ function loadBusConfigDetails() {
     if (banner) {
         const status = bus.approvalStatus || 'approved';
         if (status === 'pending') {
-            banner.className = 'mt-2 p-3 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 text-xs font-semibold flex items-center justify-between gap-3 shadow-xs';
+            banner.className = 'mt-2 p-3 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 text-xs font-semibold flex flex-wrap items-center justify-between gap-2 sm:gap-3 shadow-xs';
             banner.innerHTML = `
-                <div class="flex items-center gap-2">
-                    <span class="text-base">🟡</span>
-                    <div>
-                        <div class="font-bold text-amber-950">${(typeof window !== 'undefined' && typeof window.t === 'function') ? window.t('অ্যাডমিন অনুমোদনের অপেক্ষায়', 'Pending Admin Approval') : 'Pending Admin Approval'}</div>
-                        <div class="text-[11px] text-amber-800">এই বাসটি এখনো সেন্ট্রাল অ্যাডমিন অনুমোদন করেননি। অনুমোদন পেলে স্বয়ংক্রিয়ভাবে লাইভ হবে।</div>
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="text-base shrink-0">🟡</span>
+                    <div class="min-w-0">
+                        <div class="font-bold text-amber-950">${window.t('অ্যাডমিন অনুমোদনের অপেক্ষায়', 'Pending Admin Approval')}</div>
+                        <div class="text-[11px] text-amber-800">${window.t('এই বাসটি এখনো সেন্ট্রাল অ্যাডমিন অনুমোদন করেননি। অনুমোদন পেলে স্বয়ংক্রিয়ভাবে লাইভ হবে।', 'Awaiting central admin approval. Your coach will go live automatically once approved.')}</div>
                     </div>
                 </div>
-                <span class="bg-amber-200 text-amber-900 px-2 py-1 rounded text-[11px] font-bold shrink-0">পর্যালোচনাধীন</span>
+                <span class="bg-amber-200 text-amber-900 px-2 py-1 rounded text-[11px] font-bold shrink-0">${window.t('পর্যালোচনাধীন', 'Under Review')}</span>
             `;
             banner.classList.remove('hidden');
         } else if (status === 'rejected') {
-            banner.className = 'mt-2 p-3 rounded-xl border border-rose-300 bg-rose-50 text-rose-900 text-xs font-semibold flex items-center justify-between gap-3 shadow-xs';
+            banner.className = 'mt-2 p-3 rounded-xl border border-rose-300 bg-rose-50 text-rose-900 text-xs font-semibold flex flex-wrap items-center justify-between gap-2 sm:gap-3 shadow-xs';
             banner.innerHTML = `
-                <div class="flex items-center gap-2">
-                    <span class="text-base">🔴</span>
-                    <div>
-                        <div class="font-bold text-rose-950">${(typeof window !== 'undefined' && typeof window.t === 'function') ? window.t('বাসটি বাতিল করা হয়েছে', 'Rejected by Admin') : 'Rejected by Admin'}</div>
-                        <div class="text-[11px] text-rose-800">কারণ: ${escapeHtml(bus.rejectionReason || 'তথ্য অসম্পূর্ণ')}। তথ্য সংশোধন করে পুনরায় পাঠান।</div>
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="text-base shrink-0">🔴</span>
+                    <div class="min-w-0">
+                        <div class="font-bold text-rose-950">${window.t('বাসটি বাতিল করা হয়েছে', 'Rejected by Admin')}</div>
+                        <div class="text-[11px] text-rose-800">${window.t('কারণ:', 'Reason:')} ${escapeHtml(bus.rejectionReason || window.t('তথ্য অসম্পূর্ণ', 'Incomplete details'))}। ${window.t('তথ্য সংশোধন করে পুনরায় পাঠান।', 'Update details and re-submit.')}</div>
                     </div>
                 </div>
                 <button type="button" onclick="resubmitBusForApproval('${escapeHtml(bus.id)}')" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 shadow-xs cursor-pointer">
-                    পুনরায় পাঠান (Re-Submit)
+                    ${window.t('পুনরায় পাঠান', 'Re-Submit')}
                 </button>
             `;
             banner.classList.remove('hidden');
         } else {
-            banner.className = 'mt-2 p-3 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-900 text-xs font-semibold flex items-center justify-between gap-3 shadow-xs';
+            banner.className = 'mt-2 p-3 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-900 text-xs font-semibold flex flex-wrap items-center justify-between gap-2 sm:gap-3 shadow-xs';
             banner.innerHTML = `
-                <div class="flex items-center gap-2">
-                    <span class="text-base">🟢</span>
-                    <div>
-                        <div class="font-bold text-emerald-950">বাসটি অনুমোদিত ও লাইভ (Approved & Live)</div>
-                        <div class="text-[11px] text-emerald-800">যাত্রীরা Bus Yatra অ্যাপে এই বাসের সিট বুক করতে পারবেন।</div>
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="text-base shrink-0">🟢</span>
+                    <div class="min-w-0">
+                        <div class="font-bold text-emerald-950">${window.t('বাসটি অনুমোদিত ও লাইভ', 'Approved & Live')}</div>
+                        <div class="text-[11px] text-emerald-800">${window.t('যাত্রীরা Bus Yatra অ্যাপে এই বাসের সিট বুক করতে পারবেন।', 'Passengers can search and book seats on this bus live in the app.')}</div>
                     </div>
                 </div>
-                <span class="bg-emerald-200 text-emerald-900 px-2 py-1 rounded text-[11px] font-bold shrink-0">🟢 লাইভ</span>
+                <span class="bg-emerald-200 text-emerald-900 px-2 py-1 rounded text-[11px] font-bold shrink-0">🟢 ${window.t('লাইভ', 'Live')}</span>
             `;
             banner.classList.remove('hidden');
         }
@@ -1855,7 +1892,7 @@ function switchOwnerModalApkTab(tabKey) {
     if (descEl) descEl.innerText = cfg.desc;
     if (qrImgEl) qrImgEl.src = cfg.qrUrl;
     if (hintEl) hintEl.innerText = cfg.hint;
-    if (btnTextEl) btnTextEl.innerText = `ডাউনলোড ${cfg.apkName} (ইনস্টল করুন)`;
+    if (btnTextEl) btnTextEl.innerText = window.t(`ডাউনলোড ${cfg.apkName} (ইনস্টল করুন)`, `Download ${cfg.apkName}`);
     if (linkTextEl) {
         linkTextEl.href = cfg.apkUrl;
         linkTextEl.innerText = cfg.apkUrl;
@@ -2027,7 +2064,7 @@ function renderPassengerManifest() {
                         <th class="p-2.5 font-bold">Boarding ➔ Dropping</th>
                         <th class="p-2.5 font-bold">Payment</th>
                         <th class="p-2.5 font-bold">Booking ID</th>
-                        <th class="p-2.5 font-bold text-center">রিমাইন্ডার (1-Click)</th>
+                        <th class="p-2.5 font-bold text-center">${window.t('রিমাইন্ডার (1-Click)', 'Reminder (1-Click)')}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -2420,13 +2457,13 @@ async function fetchOwnerBusLocationCloudflare(busId) {
         const loc = res ? res.location : null;
         if (loc) {
             if (loc.lat === null || loc.lng === null) {
-                if (timeEl) timeEl.innerText = (typeof window !== 'undefined' && typeof window.t === 'function') ? window.t('ক্যাপ্টেন এখনও জিপিএস অন করেননি', 'No GPS shared by captain yet') : 'No GPS shared by captain yet';
+                if (timeEl) timeEl.innerText = window.t('ক্যাপ্টেন এখনও জিপিএস অন করেননি', 'No GPS shared by captain yet');
                 if (badge) {
                     badge.className = "px-2.5 py-1 rounded-full text-xs font-black bg-red-100 text-red-700 flex items-center gap-1";
-                    badge.innerText = '🔴 GPS বন্ধ';
+                    badge.innerText = window.t('🔴 GPS বন্ধ', '🔴 GPS OFF');
                 }
                 if (speedEl) speedEl.innerText = '0 km/h';
-                if (stopEl) stopEl.innerText = 'অজানা';
+                if (stopEl) stopEl.innerText = window.t('অজানা', 'On Route');
                 return;
             }
             if (badge) {
@@ -2436,14 +2473,14 @@ async function fetchOwnerBusLocationCloudflare(busId) {
             renderOwnerBusMarker(loc.lat, loc.lng, loc.location_updated_at, 0, null, 15);
         }
     } catch (err) {
-        console.warn("Failed to load bus location from Cloudflare:", err);
+        console.warn("Failed to load bus location from server:", err);
     }
 }
 
 function renderOwnerBusMarker(lat, lng, updatedAtStr, speed = null, stopName = null, accuracy = null) {
     const timeText = updatedAtStr ? new Date(updatedAtStr).toLocaleTimeString() : new Date().toLocaleTimeString();
     const timeEl = document.getElementById('ownerTrackingTime');
-    if (timeEl) timeEl.innerText = `সর্বশেষ আপডেট: ${timeText}`;
+    if (timeEl) timeEl.innerText = `${window.t('সর্বশেষ আপডেট:', 'Last Updated:')} ${timeText}`;
 
     const busIcon = L.divIcon({
         className: 'bus-yatra-owner-marker',
@@ -2457,10 +2494,9 @@ function renderOwnerBusMarker(lat, lng, updatedAtStr, speed = null, stopName = n
     });
 
     if (!ownerTrackingMap) {
-        ownerTrackingMap = L.map('ownerTrackingMap').setView([lat, lng], 15);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap | Bus Yatra'
-        }).addTo(ownerTrackingMap);
+        ownerTrackingMap = L.map('ownerTrackingMap', { attributionControl: false }).setView([lat, lng], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(ownerTrackingMap);
+        L.control.attribution({ prefix: false, position: 'bottomright' }).addAttribution('🛰️ Bus Yatra Own Map GPS System').addTo(ownerTrackingMap);
         ownerTrackingMarker = L.marker([lat, lng], { icon: busIcon }).addTo(ownerTrackingMap);
     } else {
         ownerTrackingMarker.setIcon(busIcon);
@@ -2584,9 +2620,9 @@ async function loadOwnerTripLedger() {
 
     if (revEl) revEl.innerText = `₹${grossRevenue.toLocaleString('en-IN')}`;
     if (expEl) expEl.innerText = `₹${totalExpenses.toLocaleString('en-IN')}`;
-    if (seatsEl) seatsEl.innerText = `বুকিং আসন: ${bookedSeatsCount} টি`;
-    if (voucherEl) voucherEl.innerText = `ভাউচার: ${ownerTripExpenses.length} টি`;
-    if (marginEl) marginEl.innerText = `প্রফিট মার্জিন: ${marginPercent}%`;
+    if (seatsEl) seatsEl.innerText = window.t(`বুকিং আসন: ${bookedSeatsCount} টি`, `Booked Seats: ${bookedSeatsCount}`);
+    if (voucherEl) voucherEl.innerText = window.t(`ভাউচার: ${ownerTripExpenses.length} টি`, `Vouchers: ${ownerTripExpenses.length}`);
+    if (marginEl) marginEl.innerText = window.t(`প্রফিট মার্জিন: ${marginPercent}%`, `Profit Margin: ${marginPercent}%`);
 
     if (profEl && profCard) {
         if (netProfit >= 0) {
@@ -2624,13 +2660,13 @@ async function loadOwnerTripLedger() {
 window.loadOwnerTripLedger = loadOwnerTripLedger;
 
 const EXPENSE_CATEGORY_MAP = {
-    fuel: { label: 'ডিজেল / জ্বালানি', icon: '⛽', color: 'bg-amber-100 text-amber-800 border-amber-300' },
-    toll: { label: 'টোল ট্যাক্স', icon: '🛣️', color: 'bg-blue-100 text-blue-800 border-blue-300' },
-    batta: { label: 'ড্রাইভার ও স্টাফ বাট্টা', icon: '👨‍✈️', color: 'bg-purple-100 text-purple-800 border-purple-300' },
-    parking: { label: 'স্ট্যান্ড ও পার্কিং ফি', icon: '🅿️', color: 'bg-indigo-100 text-indigo-800 border-indigo-300' },
-    police: { label: 'পুলিশ ও রোড চালান', icon: '👮', color: 'bg-red-100 text-red-800 border-red-300' },
-    maintenance: { label: 'মেরামত ও মেকানিক', icon: '🔧', color: 'bg-orange-100 text-orange-800 border-orange-300' },
-    misc: { label: 'চা/জলখাবার ও বিবিধ', icon: '🍽️', color: 'bg-gray-100 text-gray-800 border-gray-300' }
+    fuel: { bn: 'ডিজেল / জ্বালানি', en: 'Diesel / Fuel', icon: '⛽', color: 'bg-amber-100 text-amber-800 border-amber-300' },
+    toll: { bn: 'টোল ট্যাক্স', en: 'Toll Plaza', icon: '🛣️', color: 'bg-blue-100 text-blue-800 border-blue-300' },
+    batta: { bn: 'ড্রাইভার ও স্টাফ বাট্টা', en: 'Staff Batta', icon: '👨‍✈️', color: 'bg-purple-100 text-purple-800 border-purple-300' },
+    parking: { bn: 'স্ট্যান্ড ও পার্কিং ফি', en: 'Stand & Parking Fee', icon: '🅿️', color: 'bg-indigo-100 text-indigo-800 border-indigo-300' },
+    police: { bn: 'পুলিশ ও রোড চালান', en: 'Traffic & Challan', icon: '👮', color: 'bg-red-100 text-red-800 border-red-300' },
+    maintenance: { bn: 'মেরামত ও মেকানিক', en: 'Repairs & Maintenance', icon: '🔧', color: 'bg-orange-100 text-orange-800 border-orange-300' },
+    misc: { bn: 'চা/জলখাবার ও বিবিধ', en: 'Food & Misc', icon: '🍽️', color: 'bg-gray-100 text-gray-800 border-gray-300' }
 };
 
 function renderOwnerExpensesTable() {
@@ -2638,14 +2674,14 @@ function renderOwnerExpensesTable() {
     const countEl = document.getElementById('ledgerEntriesCount');
     if (!tbody) return;
 
-    if (countEl) countEl.innerText = `${ownerTripExpenses.length}টি এন্ট্রি`;
+    if (countEl) countEl.innerText = window.t(`${ownerTripExpenses.length}টি এন্ট্রি`, `${ownerTripExpenses.length} ${ownerTripExpenses.length === 1 ? 'entry' : 'entries'}`);
 
     if (ownerTripExpenses.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="5" class="text-center py-8 text-gray-400">
                     <span class="text-2xl block mb-1">📝</span>
-                    এই ট্রিপ ও তারিখের জন্য কোনো খরচ রেকর্ড করা হয়নি। উপরে ফরম থেকে খরচ যুক্ত করুন।
+                    ${window.t('এই ট্রিপ ও তারিখের জন্য কোনো খরচ রেকর্ড করা হয়নি। উপরে ফরম থেকে খরচ যুক্ত করুন।', 'No expenses recorded for this trip and date yet. Add one using the form above.')}
                 </td>
             </tr>
         `;
@@ -2653,7 +2689,8 @@ function renderOwnerExpensesTable() {
     }
 
     tbody.innerHTML = ownerTripExpenses.map(exp => {
-        const cat = EXPENSE_CATEGORY_MAP[exp.category] || { label: exp.category, icon: '💸', color: 'bg-gray-100 text-gray-700 border-gray-200' };
+        const catObj = EXPENSE_CATEGORY_MAP[exp.category];
+        const cat = catObj ? { label: window.t(catObj.bn, catObj.en), icon: catObj.icon, color: catObj.color } : { label: exp.category, icon: '💸', color: 'bg-gray-100 text-gray-700 border-gray-200' };
         const timeStr = exp.created_at ? new Date(exp.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--';
 
         return `
@@ -2664,7 +2701,7 @@ function renderOwnerExpensesTable() {
                     </span>
                 </td>
                 <td class="p-3 font-medium text-gray-800">
-                    ${escapeHtml(exp.note || 'বিবরণ নেই')}
+                    ${escapeHtml(exp.note || window.t('বিবরণ নেই', 'No description'))}
                 </td>
                 <td class="p-3 text-gray-500 font-mono text-[11px]">
                     ${timeStr}
@@ -3083,7 +3120,7 @@ async function loadOwnerNotifications() {
         if (sentList) {
             const sent = cachedOwnerNotifications.sent;
             if (!sent.length) {
-                sentList.innerHTML = `<div class="text-center text-gray-400 py-6 text-xs">আপনি এখনো কোনো নোটিফিকেশন পাঠাননি। ওপরের ফর্মটি পূরণ করে পাঠান।</div>`;
+                sentList.innerHTML = `<div class="text-center text-gray-400 py-6 text-xs">${window.t('আপনি এখনো কোনো নোটিফিকেশন পাঠাননি। ওপরের ফর্মটি পূরণ করে পাঠান।', 'You have not sent any notifications yet. Compose one using the form above.')}</div>`;
             } else {
                 sentList.innerHTML = sent.map(n => {
                     const isPaused = n.status === 'paused';
@@ -3149,7 +3186,7 @@ function populateOwnerNotificationBuses() {
     const sel = document.getElementById('ownerNotifBusSelect');
     if (!sel) return;
     const buses = (ownerBuses && ownerBuses.length > 0) ? ownerBuses : (ownerAppData?.buses || (typeof getAppData === 'function' ? getAppData()?.buses : []) || []);
-    sel.innerHTML = `<option value="">-- All My Buses (আমার সকল বাস) --</option>` + 
+    sel.innerHTML = `<option value="">${window.t('-- আমার সকল বাস --', '-- All My Buses --')}</option>` + 
         buses.map(b => `<option value="${b.id}">${escapeHtml(b.name)} (${escapeHtml(b.busNumber || b.bus_number)})</option>`).join('');
 }
 
@@ -3402,13 +3439,16 @@ window.closePaymentScreenshotModal = closePaymentScreenshotModal;
 // Re-render views on language change in Owner Portal
 if (typeof window !== 'undefined') {
     window.addEventListener('portal-language-change', () => {
+        if (typeof updateOwnerSelectionToolbar === 'function') updateOwnerSelectionToolbar();
         if (typeof renderOwnerApprovals === 'function') renderOwnerApprovals();
         if (typeof renderPassengerManifest === 'function') renderPassengerManifest();
         if (typeof renderOwnerExpensesTable === 'function') renderOwnerExpensesTable();
+        if (typeof loadOwnerTripLedger === 'function' && !document.getElementById('tabLedgerContent')?.classList.contains('hidden')) loadOwnerTripLedger();
         if (typeof loadOwnerBuses === 'function') loadOwnerBuses();
         if (typeof loadOwnerReviews === 'function') loadOwnerReviews();
         if (typeof loadOwnerCaptains === 'function') loadOwnerCaptains();
         if (typeof loadOwnerNotifications === 'function') loadOwnerNotifications();
+        if (typeof populateOwnerNotificationBuses === 'function') populateOwnerNotificationBuses();
         if (typeof updateBookingModeBadge === 'function') updateBookingModeBadge();
     });
 }

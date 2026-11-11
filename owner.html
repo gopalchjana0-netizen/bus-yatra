@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.35">
     <title>Bus Yatra - Bus Owner & Operator Management Portal</title>
     <meta name="description" content="Bus Yatra - বাস মালিক ও অপারেটর পোর্টাল। বাস বহর পরিচালনা, টিকিট বুকিং অনুমোদন এবং রিয়েল-টাইম রাজস্ব হিসাব।">
     <meta name="keywords" content="Bus Yatra Owner, Bus Operator Portal, বাস ওনার পোর্টাল, বাস মালিক রেজিস্ট্রেশন, পিংলা বাস অপারেটর">
@@ -20,13 +20,14 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preload" href="common.js?v=10.44" as="script">
-    <link rel="preload" href="app-owner.js?v=10.40" as="script">
+    <link rel="preload" href="common.js?v=10.45" as="script">
+    <link rel="preload" href="app-owner.js?v=10.45" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
     <script src="tailwind.js?v=10.37" defer></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
+        *, *::before, *::after { box-sizing: border-box; }
         .hidden { display: none !important; }
         @media (max-width: 767px) {
             .hide-on-mobile { display: none !important; }
@@ -39,7 +40,9 @@
             .show-on-desktop-flex { display: flex !important; }
         }
         img { max-width: 100%; height: auto; }
-        html, body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f3f4f6; margin: 0; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
+        html, body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f3f4f6; margin: 0; max-width: 100%; overflow-x: clip; -webkit-text-size-adjust: 100%; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
+        .grid > * { min-width: 0; }
+        input:not([type="checkbox"]):not([type="radio"]), select, textarea { max-width: 100%; min-width: 0; }
         .w-9 { width: 2.25rem !important; height: 2.25rem !important; }
         .w-8 { width: 2rem !important; height: 2rem !important; }
         .rounded-full { border-radius: 9999px !important; }
@@ -165,12 +168,12 @@
                 <div class="flex items-center gap-2">
                     <span class="text-xl">📲</span>
                     <div>
-                        <p class="text-xs font-bold text-gray-900 leading-tight">Bus Owner GitHub APK</p>
-                        <p class="text-[10px] text-gray-600">অফিসিয়াল Android অ্যাপ ইনস্টল করুন</p>
+                        <p class="text-xs font-bold text-gray-900 leading-tight" data-bn="Bus Owner অফিসিয়াল অ্যাপ" data-en="Bus Owner Official App">Bus Owner Official App</p>
+                        <p class="text-[10px] text-gray-600" data-bn="অফিসিয়াল Android অ্যাপ ইনস্টল করুন" data-en="Install official Android app">Install official Android app</p>
                     </div>
                 </div>
-                <button type="button" onclick="openOwnerAppQrModal('owner')" class="bg-yellow-500 hover:bg-yellow-600 text-gray-950 font-black text-xs px-2.5 py-1.5 rounded-lg shadow-sm whitespace-nowrap transition">
-                    ইনস্টল APK
+                <button type="button" onclick="openOwnerAppQrModal('owner')" class="bg-yellow-500 hover:bg-yellow-600 text-gray-950 font-black text-xs px-2.5 py-1.5 rounded-lg shadow-sm whitespace-nowrap transition" data-bn="ইনস্টল APK" data-en="Install APK">
+                    Install APK
                 </button>
             </div>
 
@@ -297,7 +300,7 @@
                     <span class="text-base shrink-0">👑</span>
                     <div class="truncate">
                         <strong class="text-yellow-300 block leading-tight" data-bn="অ্যাডমিন এক্সেস মোড" data-en="Admin Control Mode">অ্যাডমিন এক্সেস মোড</strong>
-                        <p id="adminImpersonationText" class="text-[11px] text-gray-200 truncate">আপনি অ্যাডমিন হিসেবে এই বাস মালিকের প্যানেল পরিচালনা করছেন।</p>
+                        <p id="adminImpersonationText" class="text-[11px] text-gray-200 truncate" data-bn="আপনি অ্যাডমিন হিসেবে এই বাস মালিকের প্যানেল পরিচালনা করছেন।" data-en="You are managing this bus owner portal as Super Admin.">আপনি অ্যাডমিন হিসেবে এই বাস মালিকের প্যানেল পরিচালনা করছেন।</p>
                     </div>
                 </div>
                 <button type="button" onclick="exitAdminOwnerImpersonation()" class="bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-black text-xs px-3 py-1.5 rounded-lg shadow-sm transition flex items-center gap-1 active:scale-95 shrink-0 whitespace-nowrap">
@@ -308,40 +311,40 @@
             <!-- Header -->
             <header id="ownerHeader" class="gemini-aurora-bg text-white shadow-md overflow-hidden relative">
                 <div class="gemini-shimmer-bar"></div>
-                <div class="max-w-5xl mx-auto px-3 sm:px-4 py-2.5 flex justify-between items-center gap-2">
-            <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                <button onclick="toggleOwnerSidebar()" type="button" class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white/15 hover:bg-white/25 active:scale-90 active:bg-white/35 flex items-center justify-center text-white shadow-xs border border-white/20 transition-all shrink-0 cursor-pointer focus:outline-none" aria-label="Open menu" title="Menu">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <div class="max-w-5xl mx-auto px-2 sm:px-4 py-2.5 flex justify-between items-center gap-1.5 sm:gap-2">
+            <div class="flex items-center gap-1.5 sm:gap-3 min-w-0 flex-1">
+                <button onclick="toggleOwnerSidebar()" type="button" class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-white/15 hover:bg-white/25 active:scale-90 active:bg-white/35 flex items-center justify-center text-white shadow-xs border border-white/20 transition-all shrink-0 cursor-pointer focus:outline-none" aria-label="Open menu" title="Menu">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"></path>
                     </svg>
                 </button>
-                <div class="flex items-center gap-2.5 min-w-0">
-                    <img src="icons/logo-owner.png" alt="Bus Yatra Owner" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full shadow-sm border border-yellow-400/50 object-cover gemini-logo-glow shrink-0">
+                <div class="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+                    <img src="icons/logo-owner.png" alt="Bus Yatra Owner" class="w-8 h-8 sm:w-10 sm:h-10 rounded-full shadow-sm border border-yellow-400/50 object-cover gemini-logo-glow shrink-0">
                     <div class="min-w-0">
-                        <h1 class="text-sm sm:text-base md:text-lg font-black flex items-center gap-2 leading-tight truncate">
-                            <span class="gemini-title-sparkle">Bus Yatra</span> <span class="bg-yellow-400 text-gray-950 px-2 py-0.5 rounded text-[10px] font-black uppercase shrink-0" data-bn="বাস ওনার" data-en="Bus Owner">Bus Owner</span>
+                        <h1 class="text-xs sm:text-base md:text-lg font-black flex items-center gap-1 sm:gap-2 leading-tight truncate">
+                            <span class="gemini-title-sparkle truncate">Bus Yatra</span> <span class="hidden sm:inline bg-yellow-400 text-gray-950 px-1.5 sm:px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-black uppercase shrink-0" data-bn="বাস ওনার" data-en="Bus Owner">Bus Owner</span>
                         </h1>
-                        <p class="text-[11px] text-yellow-200/90 font-medium truncate" data-bn="অপারেটর ও ফ্লিট ম্যানেজমেন্ট" data-en="Operator & Fleet Management">Operator & Fleet Management</p>
+                        <p class="text-[10px] sm:text-[11px] text-yellow-200/90 font-medium truncate" data-bn="অপারেটর প্যানেল" data-en="Owner Panel">Owner Panel</p>
                     </div>
                 </div>
             </div>
-            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <div class="flex items-center gap-1 sm:gap-2 shrink-0">
                 <!-- Festival Header Badge Pill -->
                 <span id="festivalHeaderPill" class="hidden"></span>
 
                 <!-- Language Switcher (বাংলা / ENG) -->
                 <div class="flex items-center bg-black/40 rounded-xl p-0.5 border border-white/20 text-xs shrink-0 shadow-xs">
-                    <button type="button" onclick="setPortalLanguage('bn')" class="lang-btn-bn px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black bg-yellow-400 text-gray-900 shadow-xs transition active:scale-95">বাংলা</button>
-                    <button type="button" onclick="setPortalLanguage('en')" class="lang-btn-en px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold text-white/80 hover:text-white bg-transparent transition active:scale-95">ENG</button>
+                    <button type="button" onclick="setPortalLanguage('bn')" class="lang-btn-bn px-1.5 sm:px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black bg-yellow-400 text-gray-900 shadow-xs transition active:scale-95">বাংলা</button>
+                    <button type="button" onclick="setPortalLanguage('en')" class="lang-btn-en px-1.5 sm:px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold text-white/80 hover:text-white bg-transparent transition active:scale-95">ENG</button>
                 </div>
 
                 <!-- Quick Live Bus GPS Tracking Button -->
-                <button type="button" onclick="openOwnerTrackingModalFromNav()" class="gemini-glass-pill hover:bg-white/20 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap active:scale-95 cursor-pointer" title="Track Bus Live Location">
-                    <span>🗺️</span> <span class="hidden sm:inline font-bold text-xs" data-bn="লাইভ জিপিএস" data-en="Live GPS">লাইভ জিপিএস</span>
+                <button type="button" onclick="openOwnerTrackingModalFromNav()" class="gemini-glass-pill hover:bg-white/20 text-white px-2 sm:px-3 py-1.5 rounded-xl text-[10px] sm:text-xs font-bold transition flex items-center gap-1 sm:gap-1.5 shadow-sm shrink-0 whitespace-nowrap active:scale-95 cursor-pointer" title="Live Bus GPS Tracking">
+                    <span>🗺️</span> <span class="font-bold text-[10px] sm:text-xs" data-bn="লাইভ ট্র্যাক" data-en="Live Track">লাইভ ট্র্যাক</span>
                 </button>
 
                 <!-- Notice Button -->
-                <button type="button" onclick="switchOwnerTab('notifications')" class="gemini-glass-pill hover:bg-white/20 relative text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap active:scale-95 cursor-pointer" title="Notifications">
+                <button type="button" onclick="switchOwnerTab('notifications')" class="gemini-glass-pill hover:bg-white/20 relative text-white px-2 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap active:scale-95 cursor-pointer" title="Notifications">
                     <span>🔔</span> <span class="hidden sm:inline font-bold text-xs" data-bn="নোটিশ" data-en="Notice">নোটিশ</span>
                     <span id="ownerHeaderNotifBadge" class="hidden absolute -top-1 -right-1 bg-red-600 text-white text-[9px] w-4 h-4 rounded-full font-black flex items-center justify-center">0</span>
                 </button>
@@ -373,7 +376,7 @@
                     <span id="ownerSubBannerCompany" class="text-yellow-300 font-black truncate">Bus Yatra Fleet</span>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
-                    <span class="bg-amber-600/80 border border-amber-400/40 text-white px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold shadow-xs whitespace-nowrap" id="ownerSubBannerFleetBadge">ফ্লিট সক্রিয়</span>
+                    <span class="bg-amber-600/80 border border-amber-400/40 text-white px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold shadow-xs whitespace-nowrap" id="ownerSubBannerFleetBadge" data-bn="ফ্লিট সক্রিয়" data-en="Fleet Active">ফ্লিট সক্রিয়</span>
                 </div>
             </div>
         </div>
@@ -399,38 +402,38 @@
             <div class="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 min-h-0 touch-pan-y focus:outline-none" style="-webkit-overflow-scrolling: touch;">
                 <nav class="space-y-2 pb-3">
                     <button onclick="toggleOwnerSidebar(); openOwnerTrackingModalFromNav();" class="w-full text-left p-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs flex items-center gap-3 transition border border-blue-200">
-                        <span>🗺️</span> <span>Live Bus GPS Tracking (লাইভ অবস্থান)</span>
+                        <span>🗺️</span> <span data-bn="লাইভ বাস জিপিএস ট্র্যাকিং" data-en="Live Bus GPS Tracking">Live Bus GPS Tracking</span>
                     </button>
                     <button onclick="toggleOwnerSidebar(); switchOwnerTab('ledger');" class="w-full text-left p-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 font-bold text-xs flex items-center gap-3 transition border border-amber-200">
-                        <span>📊</span> <span>Daily Trip Profit &amp; Expense Ledger (খতিয়ান)</span>
+                        <span>📊</span> <span data-bn="দৈনিক ট্রিপ আয়-ব্যয় খতিয়ান" data-en="Daily Trip Profit &amp; Expense Ledger">Daily Trip Profit &amp; Expense Ledger</span>
                     </button>
                     <button onclick="toggleOwnerSidebar(); switchOwnerTab('notifications');" class="w-full text-left p-3 rounded-xl hover:bg-yellow-50 font-semibold text-xs flex items-center justify-between transition">
-                        <span class="flex items-center gap-3">📢 Send &amp; Manage Notifications</span>
+                        <span class="flex items-center gap-3"><span>📢</span> <span data-bn="নোটিশ ও ঘোষণা পরিচালনা" data-en="Send &amp; Manage Notifications">Send &amp; Manage Notifications</span></span>
                         <span id="ownerSidebarNotifBadge" class="hidden bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-black">0</span>
                     </button>
                     <button onclick="toggleOwnerSidebar(); switchOwnerTab('approvals');" class="w-full text-left p-3 rounded-xl hover:bg-yellow-50 font-semibold text-xs flex items-center gap-3 transition">
-                        🎫 Booking Approvals Queue
+                        <span>🎫</span> <span data-bn="বুকিং অনুমোদন তালিকা" data-en="Booking Approvals Queue">Booking Approvals Queue</span>
                     </button>
                     <button onclick="toggleOwnerSidebar(); switchOwnerTab('settings');" class="w-full text-left p-3 rounded-xl hover:bg-yellow-50 font-semibold text-xs flex items-center gap-3 transition">
-                        ⚙️ Ticket Template, GST & Fare Settings
+                        <span>⚙️</span> <span data-bn="বাস সেটিংস, জিএসটি ও ভাড়া" data-en="Ticket Template, GST &amp; Fare Settings">Ticket Template, GST &amp; Fare Settings</span>
                     </button>
                     <button onclick="toggleOwnerSidebar(); switchOwnerTab('manifest');" class="w-full text-left p-3 rounded-xl hover:bg-yellow-50 font-semibold text-xs flex items-center gap-3 transition">
-                        📋 Daily Passenger Manifest
+                        <span>📋</span> <span data-bn="দৈনিক যাত্রী তালিকা" data-en="Daily Passenger Manifest">Daily Passenger Manifest</span>
                     </button>
                     <button onclick="toggleOwnerSidebar(); switchOwnerTab('reviews');" class="w-full text-left p-3 rounded-xl hover:bg-yellow-50 font-semibold text-xs flex items-center gap-3 transition">
-                        ⭐ Customer Feedback
+                        <span>⭐</span> <span data-bn="যাত্রী ফিডব্যাক ও রিভিউ" data-en="Customer Feedback">Customer Feedback</span>
                     </button>
                     <button onclick="toggleOwnerSidebar(); switchOwnerTab('captains');" class="w-full text-left p-3 rounded-xl hover:bg-yellow-50 font-semibold text-xs flex items-center gap-3 transition">
-                        👨‍✈️ Captain (Conductor) Management
+                        <span>👨‍✈️</span> <span data-bn="ক্যাপ্টেন (কন্ডাক্টর) পরিচালনা" data-en="Captain (Conductor) Management">Captain (Conductor) Management</span>
                     </button>
                     <a href="/captain.html" class="w-full text-left p-3 rounded-xl hover:bg-blue-50 font-semibold text-xs flex items-center gap-3 transition text-blue-700">
-                        👨‍✈️ Switch to Captain / Conductor Portal
+                        <span>👨‍✈️</span> <span data-bn="ক্যাপ্টেন পোর্টালে যান" data-en="Switch to Captain / Conductor Portal">Switch to Captain / Conductor Portal</span>
                     </a>
                     <button type="button" onclick="toggleOwnerSidebar(); refreshOwnerData();" class="w-full text-left p-3.5 rounded-2xl bg-gray-50 hover:bg-gray-100 font-bold text-xs flex items-center gap-3 transition border border-gray-200 active:scale-98">
-                        <span>🔄</span> <span data-bn="ডাটা রিফ্রেশ করুন" data-en="Refresh & Sync Data">ডাটা রিফ্রেশ করুন</span>
+                        <span>🔄</span> <span data-bn="ডাটা রিফ্রেশ করুন" data-en="Refresh &amp; Sync Data">ডাটা রিফ্রেশ করুন</span>
                     </button>
                     <button type="button" onclick="toggleOwnerSidebar(); openOwnerFeedbackPosterModal();" class="w-full text-left p-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs flex items-center gap-3 transition border border-red-200">
-                        ⭐ <span>বাসের ফিডব্যাক QR ও পোস্টার (Download &amp; Print)</span>
+                        <span>⭐</span> <span data-bn="বাসের ফিডব্যাক QR ও পোস্টার" data-en="Bus Feedback QR &amp; Poster (Download &amp; Print)">Bus Feedback QR &amp; Poster</span>
                     </button>
                     <button type="button" onclick="toggleOwnerSidebar(); openOwnerAppQrModal('owner');" class="w-full text-left p-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 font-black text-xs flex items-center justify-between transition border border-amber-300 shadow-xs">
                         <span class="flex items-center gap-3"><span>📲</span> <span data-bn="বাস মালিক (Owner) GitHub APK ইনস্টল" data-en="Install Owner GitHub APK">বাস মালিক (Owner) GitHub APK ইনস্টল</span></span>
@@ -465,25 +468,25 @@
                     <div class="flex items-center gap-2 flex-wrap">
                         <span class="bg-black/30 text-yellow-300 px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-xs">
                             <span class="w-2 h-2 rounded-full bg-yellow-300 animate-ping"></span>
-                            <span>💳 প্ল্যাটফর্ম সাবস্ক্রিপশন চার্জ বাকি</span>
+                            <span data-bn="💳 প্ল্যাটফর্ম সাবস্ক্রিপশন চার্জ বাকি" data-en="💳 Platform Subscription Due">💳 প্ল্যাটফর্ম সাবস্ক্রিপশন চার্জ বাকি</span>
                         </span>
-                        <span id="ownerSubPlanBadge" class="bg-white/20 text-white font-bold text-xs px-2 py-0.5 rounded-lg uppercase">মাসিক ফি</span>
+                        <span id="ownerSubPlanBadge" class="bg-white/20 text-white font-bold text-xs px-2 py-0.5 rounded-lg uppercase" data-bn="মাসিক ফি" data-en="Monthly Plan">মাসিক ফি</span>
                     </div>
                     <div class="flex items-baseline gap-2">
-                        <span class="text-xs font-medium text-white/90">বকেয়া টাকার পরিমাণ:</span>
+                        <span class="text-xs font-medium text-white/90" data-bn="বকেয়া টাকার পরিমাণ:" data-en="Due Amount:">বকেয়া টাকার পরিমাণ:</span>
                         <span id="ownerSubDueAmount" class="text-2xl sm:text-3xl font-black text-yellow-200 tracking-tight">₹0</span>
                     </div>
                     <!-- Live Real-Time Countdown Timer -->
                     <div class="inline-flex items-center gap-2 bg-black/40 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-black text-white border border-white/20 shadow-inner">
-                        <span class="text-yellow-400">⏳ শেষ সময় বাকি:</span>
-                        <span id="ownerSubCountdownText" class="font-mono text-yellow-300 tracking-wider">লোড হচ্ছে...</span>
+                        <span class="text-yellow-400" data-bn="⏳ শেষ সময় বাকি:" data-en="⏳ Time Remaining:">⏳ শেষ সময় বাকি:</span>
+                        <span id="ownerSubCountdownText" class="font-mono text-yellow-300 tracking-wider">...</span>
                     </div>
                     <p id="ownerSubNote" class="text-xs text-white/95 leading-relaxed font-medium mt-1"></p>
                 </div>
 
                 <div class="bg-black/30 p-3.5 rounded-2xl border border-white/20 text-xs space-y-2 shrink-0 w-full md:w-auto text-left">
                     <p class="font-bold text-yellow-300 flex items-center gap-1">
-                        <span>📲</span> <span>পেমেন্ট পরিশোধ করার UPI তথ্য:</span>
+                        <span>📲</span> <span data-bn="পেমেন্ট পরিশোধ করার UPI তথ্য:" data-en="UPI Details for Payment:">পেমেন্ট পরিশোধ করার UPI তথ্য:</span>
                     </p>
                     <div class="bg-white/10 px-3 py-1.5 rounded-xl font-mono text-xs font-black text-white flex items-center justify-between gap-2">
                         <span id="ownerSubUpiText">support.busyatra@gmail.com</span>
@@ -503,19 +506,19 @@
                     🔒
                 </div>
                 <h3 class="text-xl font-black text-gray-900" data-bn="অ্যাকাউন্ট সাময়িকভাবে স্থগিত" data-en="Account Temporarily Suspended">অ্যাকাউন্ট সাময়িকভাবে স্থগিত</h3>
-                <p id="ownerSuspendedReason" class="text-xs text-red-700 bg-red-50 p-3 rounded-2xl border border-red-200 leading-relaxed font-medium">
+                <p id="ownerSuspendedReason" class="text-xs text-red-700 bg-red-50 p-3 rounded-2xl border border-red-200 leading-relaxed font-medium" data-bn="বকেয়া প্ল্যাটফর্ম সাবস্ক্রিপশন ফি পরিশোধ না করায় বা অ্যাডমিনের নির্দেশে আপনার বাস সার্ভিস ও প্যানেল সাময়িকভাবে বন্ধ রাখা হয়েছে।" data-en="Your bus service and operator panel are temporarily suspended due to pending subscription dues or admin action.">
                     বকেয়া প্ল্যাটফর্ম সাবস্ক্রিপশন ফি পরিশোধ না করায় বা অ্যাডমিনের নির্দেশে আপনার বাস সার্ভিস ও প্যানেল সাময়িকভাবে বন্ধ রাখা হয়েছে।
                 </p>
                 <div class="bg-gray-50 p-3.5 rounded-2xl border text-xs text-gray-700 space-y-1.5 text-left">
-                    <p class="font-bold text-gray-900">অনুরোধ:</p>
-                    <p>অনুগ্রহ করে দ্রুত প্ল্যাটফর্ম ফি পরিশোধ করুন অথবা সুপার অ্যাডমিনের সাথে যোগাযোগ করুন। বকেয়া ক্লিয়ার বা আনব্লক করলেই তৎক্ষণাৎ আপনার সার্ভিস সচল হয়ে যাবে।</p>
-                    <p class="font-mono text-xs font-bold text-indigo-700 pt-1">অ্যাডমিন হেল্পলাইন: support.busyatra@gmail.com</p>
+                    <p class="font-bold text-gray-900" data-bn="অনুরোধ:" data-en="Request:">অনুরোধ:</p>
+                    <p data-bn="অনুগ্রহ করে দ্রুত প্ল্যাটফর্ম ফি পরিশোধ করুন অথবা সুপার অ্যাডমিনের সাথে যোগাযোগ করুন। বকেয়া ক্লিয়ার বা আনব্লক করলেই তৎক্ষণাৎ আপনার সার্ভিস সচল হয়ে যাবে।" data-en="Please clear your platform subscription dues or contact Super Admin. Your service will resume immediately once unblocked.">অনুগ্রহ করে দ্রুত প্ল্যাটফর্ম ফি পরিশোধ করুন অথবা সুপার অ্যাডমিনের সাথে যোগাযোগ করুন। বকেয়া ক্লিয়ার বা আনব্লক করলেই তৎক্ষণাৎ আপনার সার্ভিস সচল হয়ে যাবে।</p>
+                    <p class="font-mono text-xs font-bold text-indigo-700 pt-1"><span data-bn="অ্যাডমিন হেল্পলাইন:" data-en="Admin Helpline:">অ্যাডমিন হেল্পলাইন:</span> support.busyatra@gmail.com</p>
                 </div>
                 <div class="flex gap-2 pt-2">
                     <button type="button" onclick="refreshOwnerData()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-black text-xs shadow-md transition flex items-center justify-center gap-1.5">
                         <span>🔄</span> <span data-bn="পুনরায় চেক করুন" data-en="Recheck Status">পুনরায় চেক করুন</span>
                     </button>
-                    <button type="button" onclick="ownerLogout()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-4 rounded-xl font-bold text-xs transition">
+                    <button type="button" onclick="ownerLogout()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-4 rounded-xl font-bold text-xs transition" data-bn="লগআউট" data-en="Logout">
                         লগআউট
                     </button>
                 </div>
@@ -567,14 +570,14 @@
             <div class="gemini-aurora-bg rounded-3xl p-4 sm:p-5 text-white shadow-lg relative overflow-hidden">
                 <div class="gemini-shimmer-bar"></div>
                 <div class="flex items-center justify-between gap-3 relative z-10">
-                    <div>
+                    <div class="min-w-0">
                         <span class="bg-yellow-400 text-gray-950 px-2 py-0.5 rounded text-[10px] font-black uppercase">Bus Owner Hub</span>
-                        <h2 class="text-lg font-black leading-tight mt-1 text-white">বাস মালিক ড্যাশবোর্ড</h2>
-                        <p class="text-xs text-yellow-100/90 mt-0.5">বুকিং, রুট ও আয়-ব্যয় পরিচালনা</p>
+                        <h2 class="text-lg font-black leading-tight mt-1 text-white" data-bn="বাস মালিক ড্যাশবোর্ড" data-en="Bus Owner Dashboard">বাস মালিক ড্যাশবোর্ড</h2>
+                        <p class="text-xs text-yellow-100/90 mt-0.5" data-bn="বুকিং, রুট ও আয়-ব্যয় পরিচালনা" data-en="Manage Bookings, Routes &amp; Ledger">বুকিং, রুট ও আয়-ব্যয় পরিচালনা</p>
                     </div>
                     <button type="button" onclick="openOwnerAppQrModal()" class="bg-white/20 hover:bg-white/30 active:scale-95 text-white p-2.5 rounded-2xl border border-white/30 text-center flex flex-col items-center shrink-0 transition shadow-sm cursor-pointer">
                         <span class="text-xl">📲</span>
-                        <span class="text-[9px] font-black mt-0.5 whitespace-nowrap">অ্যাপ QR</span>
+                        <span class="text-[9px] font-black mt-0.5 whitespace-nowrap" data-bn="অ্যাপ QR" data-en="App QR">অ্যাপ QR</span>
                     </button>
                 </div>
             </div>
@@ -719,25 +722,25 @@
 
         <!-- Tab 1: Booking Approvals -->
         <div id="tabApprovalsContent" class="space-y-4">
-            <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200">
+            <div class="bg-white p-3.5 sm:p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
                     <div>
-                        <h2 class="text-base md:text-lg font-bold text-gray-900">Customer Booking Approval Queue</h2>
-                        <p class="text-xs text-gray-500">বুকিং অনুমোদন বা বাতিল করুন, তারিখ অনুযায়ী ফিল্টার করুন এবং পুরোনো বুকিং হিস্ট্রি ডিলিট করুন যাতে স্ক্রিন পরিষ্কার থাকে।</p>
+                        <h2 class="text-base md:text-lg font-bold text-gray-900" data-bn="যাত্রী বুকিং অনুমোদন তালিকা" data-en="Customer Booking Approval Queue">Customer Booking Approval Queue</h2>
+                        <p class="text-xs text-gray-500" data-bn="বুকিং অনুমোদন বা বাতিল করুন, তারিখ অনুযায়ী ফিল্টার করুন এবং পুরোনো বুকিং হিস্ট্রি ডিলিট করুন যাতে স্ক্রিন পরিষ্কার থাকে।" data-en="Approve or reject bookings, filter by date, and clean up past history.">বুকিং অনুমোদন বা বাতিল করুন, তারিখ অনুযায়ী ফিল্টার করুন এবং পুরোনো বুকিং হিস্ট্রি ডিলিট করুন যাতে স্ক্রিন পরিষ্কার থাকে।</p>
                     </div>
-                    <div class="flex flex-wrap items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2 max-w-full">
                         <div class="flex items-center gap-1.5">
-                            <span class="text-xs font-bold text-gray-600 whitespace-nowrap">📅 তারিখ:</span>
+                            <span class="text-xs font-bold text-gray-600 whitespace-nowrap" data-bn="📅 তারিখ:" data-en="📅 Date:">📅 তারিখ:</span>
                             <input type="date" id="ownerBookingDateFilter" onchange="renderOwnerApprovals()" class="text-xs p-2 border rounded-xl bg-gray-50 font-bold">
-                            <button type="button" onclick="clearOwnerDateFilter()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-2 rounded-xl font-bold text-xs" title="সব তারিখ">সব</button>
+                            <button type="button" onclick="clearOwnerDateFilter()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-2 rounded-xl font-bold text-xs" title="View all dates" data-bn="সব" data-en="All">সব</button>
                         </div>
                         <select id="bookingFilterStatus" onchange="renderOwnerApprovals()" class="text-xs p-2 border rounded-xl bg-gray-50 font-bold">
                             <option value="ALL" data-bn="সব স্ট্যাটাস" data-en="All Statuses">সব স্ট্যাটাস</option>
-                            <option value="Pending Approval" selected>Pending Approval</option>
-                            <option value="Cancellation Requested">Cancellation Requested (বাতিলের অনুরোধ)</option>
-                            <option value="Approved">Approved (Booking Done)</option>
-                            <option value="Cancelled">Cancelled (বাতিলকৃত)</option>
-                            <option value="Rejected">Rejected</option>
+                            <option value="Pending Approval" selected data-bn="অপেক্ষারত" data-en="Pending Approval">Pending Approval</option>
+                            <option value="Cancellation Requested" data-bn="বাতিলের অনুরোধ" data-en="Cancellation Requested">Cancellation Requested</option>
+                            <option value="Approved" data-bn="অনুমোদিত (বুকিং সম্পন্ন)" data-en="Approved (Booking Done)">Approved (Booking Done)</option>
+                            <option value="Cancelled" data-bn="বাতিলকৃত" data-en="Cancelled">Cancelled</option>
+                            <option value="Rejected" data-bn="প্রত্যাখ্যাত" data-en="Rejected">Rejected</option>
                         </select>
                     </div>
                 </div>
@@ -750,12 +753,12 @@
                         <span id="ownerSelectedCountBadge" class="text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full text-[11px] font-black hidden">০টি নির্বাচিত</span>
                     </label>
 
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <button type="button" id="btnOwnerBulkDelete" onclick="deleteOwnerSelectedBookings()" disabled class="bg-red-600 hover:bg-red-700 disabled:opacity-30 disabled:cursor-not-allowed text-white text-xs font-black px-3.5 py-2 rounded-xl shadow-xs transition flex items-center gap-1.5">
                             <span>🗑️</span> <span data-bn="নির্বাচিত মুছুন" data-en="Delete Selected">নির্বাচিত মুছুন</span>
                         </button>
                         <button type="button" onclick="deleteOwnerAllOnDate()" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold px-3 py-2 rounded-xl shadow-xs transition flex items-center gap-1.5" title="Clear all bookings for selected date">
-                            <span>🧹</span> <span>তারিখের সব মুছুন</span>
+                            <span>🧹</span> <span data-bn="তারিখের সব মুছুন" data-en="Clear Date">তারিখের সব মুছুন</span>
                         </button>
                     </div>
                 </div>
@@ -768,35 +771,35 @@
 
         <!-- Tab 2: Ticket Template, GST, Pricing & Bus Settings -->
         <div id="tabSettingsContent" class="space-y-6 hidden">
-            <section class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200">
+            <section class="bg-white p-3.5 sm:p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                 <div class="border-b pb-3 mb-4">
-                    <h2 class="text-base md:text-lg font-bold text-gray-900">⚙️ Customize Ticket Template, GST & Ticket Pricing</h2>
-                    <p class="text-xs text-gray-500">Configure base ticket fare, per-KM/stop rates, company name, and GSTIN. Customers will only see the clean final fare.</p>
+                    <h2 class="text-base md:text-lg font-bold text-gray-900" data-bn="⚙️ টিকিট টেমপ্লেট, জিএসটি ও ভাড়া সেটিংস" data-en="⚙️ Customize Ticket Template, GST &amp; Ticket Pricing">⚙️ Customize Ticket Template, GST &amp; Ticket Pricing</h2>
+                    <p class="text-xs text-gray-500" data-bn="মূল ভাড়া, প্রতি স্টপেজ ভাড়া, কোম্পানির নাম এবং GSTIN সেট করুন।" data-en="Configure base ticket fare, per-KM/stop rates, company name, and GSTIN. Customers only see the clean final fare.">Configure base ticket fare, per-KM/stop rates, company name, and GSTIN. Customers will only see the clean final fare.</p>
                 </div>
 
                 <div class="space-y-4">
                     <div>
                         <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-2">
-                            <label class="block text-xs font-semibold text-gray-700">Select Bus to Configure (বাস নির্বাচন করুন)</label>
-                            <button type="button" onclick="openAddBusModal()" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold px-3 py-1.5 rounded-xl text-xs shadow-xs transition flex items-center gap-1.5 self-start sm:self-auto">
-                                ➕ Add Another Bus (আরেকটি বাস যোগ করুন)
+                            <label class="block text-xs font-semibold text-gray-700" data-bn="সেটিংস পরিবর্তন করতে বাস নির্বাচন করুন" data-en="Select Bus to Configure">Select Bus to Configure</label>
+                            <button type="button" onclick="openAddBusModal()" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold px-3 py-1.5 rounded-xl text-xs shadow-xs transition flex items-center gap-1.5 self-start sm:self-auto" data-bn="➕ আরেকটি বাস যোগ করুন" data-en="➕ Add Another Bus">
+                                ➕ Add Another Bus
                             </button>
                         </div>
                         <select id="configBusSelect" onchange="loadBusConfigDetails()" class="w-full p-2.5 border rounded-xl text-sm bg-gray-50 font-medium">
                             <!-- Loaded dynamically -->
                         </select>
                         <!-- Bus Approval Status Banner for Owner -->
-                        <div id="ownerBusApprovalBanner" class="hidden mt-2 p-3 rounded-xl border text-xs font-semibold flex items-center justify-between gap-3"></div>
+                        <div id="ownerBusApprovalBanner" class="hidden mt-2 p-3 rounded-xl border text-xs font-semibold flex flex-wrap items-center justify-between gap-2 sm:gap-3"></div>
                     </div>
 
                     <!-- Route & Stoppage Timetable Section -->
-                    <div class="p-4 bg-white border border-gray-200 rounded-2xl space-y-3 shadow-xs">
+                    <div class="p-3 sm:p-4 bg-white border border-gray-200 rounded-2xl space-y-3 shadow-xs">
                         <div class="flex items-center justify-between border-b pb-2">
-                            <div>
+                            <div class="min-w-0">
                                 <h4 class="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                                    <span>⏱️</span> Route & Stoppage Timetable (রুট ও স্টপেজ অনুযায়ী ছাড়ার সময়সূচি)
+                                    <span>⏱️</span> <span data-bn="রুট ও স্টপেজ অনুযায়ী ছাড়ার সময়সূচি" data-en="Route &amp; Stoppage Timetable">Route &amp; Stoppage Timetable</span>
                                 </h4>
-                                <p class="text-[11px] text-gray-500 mt-0.5">
+                                <p class="text-[11px] text-gray-500 mt-0.5" data-bn="প্রতিটি স্টপেজের নাম ও বাস ছাড়ার নির্দিষ্ট সময় সেট করুন। যাত্রীরা সার্চ করলে ঠিক এই ছাড়ার ও পৌঁছানোর তথ্য দেখতে পাবেন।" data-en="Set each stoppage name and scheduled departure time. Passengers see these exact departure timings when searching.">
                                     প্রতিটি স্টপেজের নাম ও বাস ছাড়ার নির্দিষ্ট সময় সেট করুন। যাত্রীরা যখন সার্চ করবেন, তারা ঠিক এই সময়ের ছাড়ার ও পৌঁছানোর তথ্য দেখতে পাবেন।
                                 </p>
                             </div>
@@ -804,74 +807,74 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-bold text-gray-800 mb-1">Operating Route Title (রুট)</label>
+                                <label class="block text-xs font-bold text-gray-800 mb-1" data-bn="রুটের নাম" data-en="Operating Route Title">Operating Route Title</label>
                                 <input type="text" id="configRoute" placeholder="e.g. Pingla - Kolkata" class="w-full p-2.5 border rounded-xl text-sm bg-gray-50 font-semibold">
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-gray-800 mb-1">Origin Scheduled Departure Time (মূল ছাড়ার সময়)</label>
+                                <label class="block text-xs font-bold text-gray-800 mb-1" data-bn="মূল ছাড়ার সময়" data-en="Origin Scheduled Departure Time">Origin Scheduled Departure Time</label>
                                 <input type="text" id="configTime" placeholder="e.g. 05:00 AM" class="w-full p-2.5 border rounded-xl text-sm bg-gray-50 font-semibold">
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-xs font-bold text-gray-800 mb-1.5">Stoppages & Arrival/Departure Timings (স্টপেজ ও সময়সূচি)</label>
+                            <label class="block text-xs font-bold text-gray-800 mb-1.5" data-bn="স্টপেজ ও সময়সূচি" data-en="Stoppages &amp; Arrival/Departure Timings">Stoppages &amp; Arrival/Departure Timings</label>
                             <div id="ownerConfigStoppagesContainer" class="space-y-2"></div>
                         </div>
                     </div>
 
                     <!-- Return Route & Stoppage Timetable Section (Round Trip - আপ ও ফিরতি ট্রিপ) -->
-                    <div class="p-4 bg-blue-50/70 border border-blue-200 rounded-2xl space-y-3 shadow-xs">
+                    <div class="p-3 sm:p-4 bg-blue-50/70 border border-blue-200 rounded-2xl space-y-3 shadow-xs">
                         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-blue-200 pb-2">
-                            <div>
+                            <div class="min-w-0">
                                 <div class="flex items-center gap-2">
-                                    <input type="checkbox" id="configReturnRouteEnabled" onchange="toggleReturnRouteFields()" class="w-4 h-4 text-blue-600 rounded">
-                                    <label for="configReturnRouteEnabled" class="text-xs font-bold text-blue-950 uppercase tracking-wider cursor-pointer">
-                                        🔄 Return / Round Trip (একই বাসের ফিরতি ট্রিপ সক্রিয় করুন)
+                                    <input type="checkbox" id="configReturnRouteEnabled" onchange="toggleReturnRouteFields()" class="w-4 h-4 text-blue-600 rounded shrink-0">
+                                    <label for="configReturnRouteEnabled" class="text-xs font-bold text-blue-950 uppercase tracking-wider cursor-pointer" data-bn="🔄 একই বাসের ফিরতি ট্রিপ সক্রিয় করুন" data-en="🔄 Enable Return / Round Trip">
+                                        🔄 Return / Round Trip
                                     </label>
                                 </div>
-                                <p class="text-[11px] text-gray-500 mt-0.5">
-                                    বাসটি যাওয়ার পর একই দিনে আবার ফিরে আসবে (যেমন: সকালে পিংলা ➔ কলকাতা, বিকেলে কলকাতা ➔ পিংলা)। ফিরতি ট্রিপের সিট সম্পূর্ণ স্বাধীন থাকবে।
+                                <p class="text-[11px] text-gray-500 mt-0.5" data-bn="বাসটি যাওয়ার পর একই দিনে আবার ফিরে আসবে (যেমন: সকালে পিংলা ➔ কলকাতা, বিকেলে কলকাতা ➔ পিংলা)। ফিরতি ট্রিপের সিট সম্পূর্ণ স্বাধীন থাকবে।" data-en="Same coach runs back on return schedule (e.g. Morning Pingla ➔ Kolkata, Evening Kolkata ➔ Pingla) with separate seat layout.">
+                                    বাসটি যাওয়ার পর একই দিনে আবার ফিরে আসবে। ফিরতি ট্রিপের সিট সম্পূর্ণ স্বাধীন থাকবে।
                                 </p>
                             </div>
-                            <button type="button" onclick="reverseUpRouteForReturn()" class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-xl text-[11px] font-bold shadow-xs transition flex items-center gap-1 self-start sm:self-auto">
-                                🔁 আপ রুট থেকে রিভার্স করুন
+                            <button type="button" onclick="reverseUpRouteForReturn()" class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-xl text-[11px] font-bold shadow-xs transition flex items-center gap-1 self-start sm:self-auto shrink-0" data-bn="🔁 আপ রুট থেকে রিভার্স করুন" data-en="🔁 Reverse Up Route">
+                                🔁 Reverse Up Route
                             </button>
                         </div>
 
                         <div id="configReturnRouteFields" class="space-y-3 hidden">
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <div>
-                                    <label class="block text-xs font-bold text-gray-800 mb-1">Return Route Title (ফিরতি রুট)</label>
+                                    <label class="block text-xs font-bold text-gray-800 mb-1" data-bn="ফিরতি রুটের নাম" data-en="Return Route Title">Return Route Title</label>
                                     <input type="text" id="configReturnRoute" placeholder="e.g. Kolkata - Pingla" class="w-full p-2.5 border rounded-xl text-sm bg-white font-semibold">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold text-gray-800 mb-1">Return Departure Time (ফিরতি ছাড়ার সময়)</label>
+                                    <label class="block text-xs font-bold text-gray-800 mb-1" data-bn="ফিরতি ছাড়ার সময়" data-en="Return Departure Time">Return Departure Time</label>
                                     <input type="text" id="configReturnTime" placeholder="e.g. 03:30 PM" class="w-full p-2.5 border rounded-xl text-sm bg-white font-semibold">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold text-gray-800 mb-1">Return Base Fare (ফিরতি ভাড়া ₹)</label>
+                                    <label class="block text-xs font-bold text-gray-800 mb-1" data-bn="ফিরতি মূল ভাড়া (₹)" data-en="Return Base Fare (₹)">Return Base Fare (₹)</label>
                                     <input type="number" id="configReturnFare" placeholder="e.g. 150" class="w-full p-2.5 border rounded-xl text-sm bg-white font-bold text-blue-700">
                                 </div>
                             </div>
 
                             <div>
-                                <label class="block text-xs font-bold text-gray-800 mb-1.5">Return Stoppages & Arrival/Departure Timings (ফিরতি স্টপেজ ও সময়সূচি)</label>
+                                <label class="block text-xs font-bold text-gray-800 mb-1.5" data-bn="ফিরতি স্টপেজ ও সময়সূচি" data-en="Return Stoppages &amp; Timings">Return Stoppages &amp; Timings</label>
                                 <div id="ownerConfigReturnStoppagesContainer" class="space-y-2"></div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Bus Photo Upload & Gallery Section -->
-                    <div class="p-4 bg-gray-50 border border-gray-200 rounded-2xl space-y-3">
-                        <div class="flex items-center justify-between">
-                            <label class="block text-xs font-bold text-gray-800">📸 Bus Photos / Coach Gallery (ফোনের গ্যালারি বা পিসি থেকে ছবি আপলোড)</label>
+                    <div class="p-3 sm:p-4 bg-gray-50 border border-gray-200 rounded-2xl space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <label class="block text-xs font-bold text-gray-800" data-bn="📸 বাসের ছবি / কোচ গ্যালারি" data-en="📸 Bus Photos / Coach Gallery">📸 Bus Photos / Coach Gallery</label>
                             <span id="ownerPhotoCountBadge" class="bg-primary/20 text-gray-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full">0 টি ছবি</span>
                         </div>
                         
                         <!-- Uploaded Photos Grid -->
                         <div id="ownerBusPhotosGallery" class="flex flex-wrap gap-3 p-3 bg-white border border-gray-200 rounded-xl min-h-[90px] items-center">
                             <!-- Thumbnails dynamically rendered here -->
-                            <div class="text-xs text-gray-400 italic py-2">কোনো ছবি আপলোড করা নেই। নিচে ছবি বাছুন।</div>
+                            <div class="text-xs text-gray-400 italic py-2" data-bn="কোনো ছবি আপলোড করা নেই। নিচে ছবি বাছুন।" data-en="No photos uploaded yet. Choose files below.">কোনো ছবি আপলোড করা নেই। নিচে ছবি বাছুন।</div>
                         </div>
 
                         <!-- Status Notice Banner -->
@@ -879,112 +882,112 @@
 
                         <div class="space-y-1.5 pt-1">
                             <div class="flex flex-col sm:flex-row items-center gap-3">
-                                <input type="file" id="ownerBusImageInput" accept="image/*" multiple onchange="previewOwnerBusImage(event)" class="w-full text-xs text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-yellow-400 file:text-black hover:file:bg-yellow-500 cursor-pointer">
+                                <input type="file" id="ownerBusImageInput" accept="image/*" multiple onchange="previewOwnerBusImage(event)" class="w-full max-w-full overflow-hidden text-xs text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-yellow-400 file:text-black hover:file:bg-yellow-500 cursor-pointer">
                             </div>
-                            <div class="p-2.5 bg-amber-50/80 border border-amber-200/70 rounded-xl text-[11px] text-amber-900 leading-relaxed">
-                                💡 <strong>ফটো আপলোড নিয়মাবলী:</strong> আপনি বাসের সর্বোচ্চ <strong>৩টি ছবি</strong> সরাসরি লাইভ করতে পারেন (কোনো অ্যাডমিন অনুমোদনের প্রয়োজন নেই)। ৩টির বেশি (৪ বা তার অধিক) ছবি আপলোড করলে প্রথম ৩টি সাথে সাথে লাইভ থাকবে এবং অতিরিক্ত ছবিগুলি অ্যাডমিন অনুমোদনের জন্য যাবে। অ্যাডমিন অনুমোদন দিলেই যাত্রীরা সব ছবি স্লাইডশোতে দেখতে পাবেন। যেকোনো ছবি ডিলিট করতে চাইলে ছবির উপরের 🗑️ বাটনে চাপুন।
+                            <div class="p-2.5 bg-amber-50/80 border border-amber-200/70 rounded-xl text-[11px] text-amber-900 leading-relaxed" data-bn="💡 <strong>ফটো আপলোড নিয়মাবলী:</strong> আপনি বাসের সর্বোচ্চ <strong>৩টি ছবি</strong> সরাসরি লাইভ করতে পারেন। ৩টির বেশি ছবি আপলোড করলে অতিরিক্ত ছবিগুলো অ্যাডমিন অনুমোদনের জন্য যাবে। ছবির উপরের 🗑️ বাটনে চেপে ডিলিট করতে পারবেন।" data-en="💡 <strong>Photo Upload Rules:</strong> Up to <strong>3 photos</strong> go live immediately without admin wait. Extra photos beyond 3 are queued for admin approval. Tap ✕ on any photo to delete.">
+                                💡 <strong>ফটো আপলোড নিয়মাবলী:</strong> আপনি বাসের সর্বোচ্চ <strong>৩টি ছবি</strong> সরাসরি লাইভ করতে পারেন।
                             </div>
                         </div>
                     </div>
 
                     <!-- Pricing Section -->
-                    <div class="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-3">
-                        <div class="flex items-center gap-2">
-                            <span class="text-amber-700 font-bold text-xs uppercase tracking-wider">💰 Bus Fare & Rate Management</span>
-                            <span class="text-[11px] text-gray-500">(Customers only see the final calculated fare in ₹)</span>
+                    <div class="p-3 sm:p-4 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-3">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-amber-700 font-bold text-xs uppercase tracking-wider" data-bn="💰 বাস ভাড়া ও রেট পরিচালনা" data-en="💰 Bus Fare &amp; Rate Management">💰 Bus Fare &amp; Rate Management</span>
+                            <span class="text-[11px] text-gray-500" data-bn="(যাত্রীরা শুধুমাত্র চূড়ান্ত ভাড়া ₹ দেখতে পাবেন)" data-en="(Customers only see the final calculated fare in ₹)">(Customers only see the final calculated fare in ₹)</span>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div>
-                                <label class="block text-xs font-bold text-gray-800 mb-1">Standard Full Route Fare (₹)</label>
+                                <label class="block text-xs font-bold text-gray-800 mb-1" data-bn="সম্পূর্ণ রুটের ভাড়া (₹)" data-en="Standard Full Route Fare (₹)">Standard Full Route Fare (₹)</label>
                                 <input type="number" id="configFare" placeholder="e.g. 180" class="w-full p-2.5 border rounded-xl text-sm bg-white font-bold text-red-600">
-                                <span class="text-[10px] text-gray-500">End-to-end full journey fare shown on search cards.</span>
+                                <span class="text-[10px] text-gray-500" data-bn="সার্চ কার্ডে সম্পূর্ণ রুটের ভাড়া দেখানো হয়।" data-en="End-to-end full journey fare shown on search cards.">End-to-end full journey fare shown on search cards.</span>
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-gray-800 mb-1">Fare Per Stop (₹)</label>
+                                <label class="block text-xs font-bold text-gray-800 mb-1" data-bn="প্রতি স্টপেজ ভাড়া (₹)" data-en="Fare Per Stop (₹)">Fare Per Stop (₹)</label>
                                 <input type="number" id="configFarePerStop" placeholder="e.g. 45" class="w-full p-2.5 border rounded-xl text-sm bg-white font-semibold">
-                                <span class="text-[10px] text-gray-500">Rate per intermediate stoppage.</span>
+                                <span class="text-[10px] text-gray-500" data-bn="মাঝের প্রতিটি স্টপেজ অনুযায়ী রেট।" data-en="Rate per intermediate stoppage.">Rate per intermediate stoppage.</span>
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-gray-800 mb-1">Fare Per KM (₹)</label>
+                                <label class="block text-xs font-bold text-gray-800 mb-1" data-bn="প্রতি কিমি ভাড়া (₹)" data-en="Fare Per KM (₹)">Fare Per KM (₹)</label>
                                 <input type="number" id="configFarePerKm" step="0.5" placeholder="e.g. 3.5" class="w-full p-2.5 border rounded-xl text-sm bg-white font-semibold">
-                                <span class="text-[10px] text-gray-500">Kilometer based rate benchmark.</span>
+                                <span class="text-[10px] text-gray-500" data-bn="কিলোমিটার অনুযায়ী হিসাব।" data-en="Kilometer based rate benchmark.">Kilometer based rate benchmark.</span>
                             </div>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">Bus / Agency Trade Name (Printed on Ticket Header)</label>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1" data-bn="বাস / এজেন্সির নাম (টিকিটে প্রিন্ট হবে)" data-en="Bus / Agency Trade Name (Printed on Ticket Header)">Bus / Agency Trade Name (Printed on Ticket Header)</label>
                             <input type="text" id="configCompanyName" placeholder="e.g. Subrata Travels & Logistics" class="w-full p-2.5 border rounded-xl text-sm bg-white font-medium">
-                            <span class="text-[11px] text-gray-400">Appears boldly as the issuing company on PDF tickets.</span>
+                            <span class="text-[11px] text-gray-400" data-bn="PDF টিকিটের উপরে প্রধান নাম হিসেবে প্রদর্শিত হয়।" data-en="Appears boldly as the issuing company on PDF tickets.">Appears boldly as the issuing company on PDF tickets.</span>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">GSTIN Number (Goods & Services Tax ID)</label>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1" data-bn="GSTIN নম্বর (ট্যাক্স ইনভয়েসের জন্য)" data-en="GSTIN Number (Goods &amp; Services Tax ID)">GSTIN Number (Goods &amp; Services Tax ID)</label>
                             <input type="text" id="configGstNumber" placeholder="e.g. 19ABCDE1234F1Z5" class="w-full p-2.5 border rounded-xl text-sm bg-white font-mono uppercase">
-                            <span class="text-[11px] text-gray-400">Printed on the tax invoice / ticket. Leave blank if not registered.</span>
+                            <span class="text-[11px] text-gray-400" data-bn="টিকিট ইনভয়েসে প্রিন্ট হয়। না থাকলে ফাঁকা রাখুন।" data-en="Printed on the tax invoice / ticket. Leave blank if not registered.">Printed on the tax invoice / ticket. Leave blank if not registered.</span>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">Conductor / Emergency Helpline Phone</label>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1" data-bn="কন্ডাক্টর / জরুরি হেল্পলাইন নম্বর" data-en="Conductor / Emergency Helpline Phone">Conductor / Emergency Helpline Phone</label>
                             <input type="tel" id="configEmergencyPhone" placeholder="e.g. 9876543210" class="w-full p-2.5 border rounded-xl text-sm bg-white font-medium" maxlength="10">
-                            <span class="text-[11px] text-gray-400">Passengers call this number during boarding.</span>
+                            <span class="text-[11px] text-gray-400" data-bn="বোর্ডিংয়ের সময় যাত্রীরা এই নম্বরে কল করবেন।" data-en="Passengers call this number during boarding.">Passengers call this number during boarding.</span>
                         </div>
                         <div>
-                            <div class="flex justify-between items-center mb-1">
-                                <label class="block text-xs font-semibold text-gray-700">Total Seats</label>
-                                <button type="button" onclick="openOwnerSeatLayoutDesigner()" class="text-[11px] font-bold text-purple-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2 py-0.5 rounded-md flex items-center gap-1 transition shadow-2xs">
+                            <div class="flex flex-wrap justify-between items-center gap-1 mb-1">
+                                <label class="block text-xs font-semibold text-gray-700" data-bn="মোট আসন সংখ্যা" data-en="Total Seats">Total Seats</label>
+                                <button type="button" onclick="openOwnerSeatLayoutDesigner()" class="text-[11px] font-bold text-purple-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2 py-0.5 rounded-md flex items-center gap-1 transition shadow-2xs" data-bn="💺 সিট ম্যাপ বিল্ডার" data-en="💺 Seat Map Builder">
                                     💺 সিট ম্যাপ বিল্ডার
                                 </button>
                             </div>
                             <input type="number" id="configTotalSeats" min="20" max="100" class="w-full p-2.5 border rounded-xl text-sm bg-white font-semibold">
-                            <span class="text-[11px] text-gray-400">বাসের মোট সিট বা কাস্টম ম্যাপ ঠিক করতে 'সিট ম্যাপ বিল্ডার' চাপুন।</span>
+                            <span class="text-[11px] text-gray-400" data-bn="বাসের মোট সিট বা কাস্টম ম্যাপ ঠিক করতে 'সিট ম্যাপ বিল্ডার' চাপুন।" data-en="Click 'Seat Map Builder' to customize total seats and coach layout.">বাসের মোট সিট বা কাস্টম ম্যাপ ঠিক করতে 'সিট ম্যাপ বিল্ডার' চাপুন।</span>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">UPI ID for Online Payment</label>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1" data-bn="অনলাইন পেমেন্ট UPI আইডি" data-en="UPI ID for Online Payment">UPI ID for Online Payment</label>
                             <input type="text" id="configUpiId" placeholder="owner@oksbi" class="w-full p-2.5 border rounded-xl text-sm bg-white font-medium">
-                            <span class="text-[11px] text-gray-400">Used to generate payment QR code for passengers.</span>
+                            <span class="text-[11px] text-gray-400" data-bn="যাত্রীদের জন্য পেমেন্ট QR কোড তৈরিতে ব্যবহৃত হয়।" data-en="Used to generate payment QR code for passengers.">Used to generate payment QR code for passengers.</span>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-xl">
                         <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">Captain / Conductor Login Mobile</label>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1" data-bn="ক্যাপ্টেন / কন্ডাক্টর লগইন মোবাইল" data-en="Captain / Conductor Login Mobile">Captain / Conductor Login Mobile</label>
                             <input type="tel" id="configCaptainPhone" inputmode="numeric" maxlength="10" class="w-full p-2.5 border rounded-xl text-sm bg-white">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">Set / Change Captain 4-digit PIN</label>
-                            <input type="password" id="configCaptainPin" inputmode="numeric" maxlength="4" placeholder="Leave blank to keep current PIN" class="w-full p-2.5 border rounded-xl text-sm bg-white">
+                            <label class="block text-xs font-semibold text-gray-700 mb-1" data-bn="ক্যাপ্টেন ৪-সংখ্যার পিন সেট / পরিবর্তন" data-en="Set / Change Captain 4-digit PIN">Set / Change Captain 4-digit PIN</label>
+                            <input type="password" id="configCaptainPin" inputmode="numeric" maxlength="4" placeholder="Leave blank to keep current PIN" data-bn-placeholder="বর্তমান পিন রাখতে চাইলে ফাঁকা রাখুন" data-en-placeholder="Leave blank to keep current PIN" class="w-full p-2.5 border rounded-xl text-sm bg-white">
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Custom Ticket Terms, Conditions & Luggage Policy</label>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1" data-bn="কাস্টম টিকিট শর্তাবলী ও ব্যাগেজ নীতিমালা" data-en="Custom Ticket Terms, Conditions &amp; Luggage Policy">Custom Ticket Terms, Conditions &amp; Luggage Policy</label>
                         <textarea id="configTicketTerms" rows="3" placeholder="Please arrive at the boarding stoppage 15 minutes before scheduled departure. Maximum baggage allowance 15kg. Smoking strictly prohibited." class="w-full p-2.5 border rounded-xl text-xs bg-white"></textarea>
-                        <span class="text-[11px] text-gray-400">This exact notice is printed at the bottom of the customer's PDF ticket.</span>
+                        <span class="text-[11px] text-gray-400" data-bn="এই বার্তাটি যাত্রীর PDF টিকিটের নিচে প্রিন্ট হয়।" data-en="This exact notice is printed at the bottom of the customer's PDF ticket.">This exact notice is printed at the bottom of the customer's PDF ticket.</span>
                     </div>
 
                     <!-- Payment Toggles -->
-                    <div class="flex flex-wrap gap-6 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <div class="flex flex-wrap gap-4 sm:gap-6 bg-gray-50 p-3 sm:p-4 rounded-xl border border-gray-200">
                         <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-800">
                             <input type="checkbox" id="toggleOnlinePay" class="w-4 h-4 text-red-600 rounded">
-                            <span>Enable Online Payment (UPI / QR Code)</span>
+                            <span data-bn="অনলাইন পেমেন্ট (UPI / QR) চালু করুন" data-en="Enable Online Payment (UPI / QR Code)">Enable Online Payment (UPI / QR Code)</span>
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-800">
                             <input type="checkbox" id="toggleCashPay" class="w-4 h-4 text-red-600 rounded">
-                            <span>Enable Pay on Bus (Cash)</span>
+                            <span data-bn="বাসে নগদ পেমেন্ট (Cash) চালু করুন" data-en="Enable Pay on Bus (Cash)">Enable Pay on Bus (Cash)</span>
                         </label>
                     </div>
 
                     <!-- Bus Booking Mode Control Section -->
-                    <div id="ownerBookingModeSection" class="p-4 bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 border border-purple-200 rounded-2xl space-y-3">
+                    <div id="ownerBookingModeSection" class="p-3 sm:p-4 bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 border border-purple-200 rounded-2xl space-y-3">
                         <div class="flex items-center justify-between flex-wrap gap-2 border-b border-purple-100 pb-2">
                             <div>
                                 <h3 class="font-bold text-sm text-purple-950 flex items-center gap-2">
                                     <span>⚡</span> <span data-bn="বাস বুকিং মোড কন্ট্রোল" data-en="Bus Booking Mode Control">বাস বুকিং মোড কন্ট্রোল</span>
                                 </h3>
-                                <p class="text-xs text-purple-700 mt-0.5">
+                                <p class="text-xs text-purple-700 mt-0.5" data-bn="কাস্টমার অ্যাপে এই বাসটি কীভাবে বুকিং নেবে তা ঠিক করুন।" data-en="Control how passengers can search and book seats on this coach.">
                                     কাস্টমার অ্যাপে এই বাসটি কীভাবে বুকিং নেবে তা ঠিক করুন।
                                 </p>
                             </div>
@@ -996,94 +999,94 @@
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
                             <!-- Mode 1: Auto-Pilot -->
                             <label class="relative flex flex-col p-3.5 bg-white rounded-xl border-2 border-gray-200 hover:border-purple-400 cursor-pointer shadow-xs transition group">
-                                <div class="flex items-center justify-between mb-1.5">
+                                <div class="flex items-center justify-between mb-1.5 gap-1">
                                     <div class="flex items-center gap-2">
                                         <input type="radio" name="busBookingMode" value="auto_pilot" onchange="changeBusBookingMode('auto_pilot')" class="w-4 h-4 text-purple-600">
-                                        <span class="text-xs font-black text-gray-900 group-hover:text-purple-700">🚀 Auto-Pilot Mode</span>
+                                        <span class="text-xs font-black text-gray-900 group-hover:text-purple-700" data-bn="🚀 অটো-পাইলট মোড" data-en="🚀 Auto-Pilot Mode">🚀 Auto-Pilot Mode</span>
                                     </div>
-                                    <span class="text-[10px] bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded">Smart</span>
+                                    <span class="text-[10px] bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded" data-bn="স্মার্ট" data-en="Smart">Smart</span>
                                 </div>
-                                <p class="text-[11px] text-gray-600 leading-relaxed">
-                                    আপনি ব্যস্ত থাকলে সিস্টেম একা একাই সিট পূর্ণ হওয়া পর্যন্ত বুকিং নেবে। <strong>সব সিট পূর্ণ হলে অ্যাপ থেকে বাসটি নিজে নিজেই লুকিয়ে যাবে</strong>। কোনো সিট ক্যানসেল বা খালি হলে আবার নিজে নিজেই অ্যাপে দেখাবে।
+                                <p class="text-[11px] text-gray-600 leading-relaxed" data-bn="সিস্টেম স্বয়ংক্রিয়ভাবে সিট পূর্ণ হওয়া পর্যন্ত বুকিং নেবে। সব সিট পূর্ণ হলে অ্যাপ থেকে বাসটি নিজেই লুকিয়ে যাবে এবং সিট খালি হলে আবার দেখাবে।" data-en="Automatically accepts bookings until all seats fill up, hides the coach when full, and re-opens it automatically upon cancellation.">
+                                    আপনি ব্যস্ত থাকলে সিস্টেম একা একাই সিট পূর্ণ হওয়া পর্যন্ত বুকিং নেবে।
                                 </p>
                             </label>
 
                             <!-- Mode 2: Active Booking -->
                             <label class="relative flex flex-col p-3.5 bg-white rounded-xl border-2 border-gray-200 hover:border-green-400 cursor-pointer shadow-xs transition group">
-                                <div class="flex items-center justify-between mb-1.5">
+                                <div class="flex items-center justify-between mb-1.5 gap-1">
                                     <div class="flex items-center gap-2">
                                         <input type="radio" name="busBookingMode" value="active" onchange="changeBusBookingMode('active')" class="w-4 h-4 text-green-600">
-                                        <span class="text-xs font-black text-gray-900 group-hover:text-green-700">🟢 Active Booking</span>
+                                        <span class="text-xs font-black text-gray-900 group-hover:text-green-700" data-bn="🟢 অ্যাক্টিভ বুকিং" data-en="🟢 Active Booking">🟢 Active Booking</span>
                                     </div>
-                                    <span class="text-[10px] bg-green-100 text-green-800 font-bold px-1.5 py-0.5 rounded">Standard</span>
+                                    <span class="text-[10px] bg-green-100 text-green-800 font-bold px-1.5 py-0.5 rounded" data-bn="সাধারণ" data-en="Standard">Standard</span>
                                 </div>
-                                <p class="text-[11px] text-gray-600 leading-relaxed">
-                                    স্বাভাবিক বুকিং চালু থাকবে। কাস্টমার অ্যাপে সার্চে এই বাসটি সব সময় দেখাবে এবং খালি সিট বুকিং নিতে থাকবে।
+                                <p class="text-[11px] text-gray-600 leading-relaxed" data-bn="স্বাভাবিক বুকিং চালু থাকবে। কাস্টমার অ্যাপে সার্চে এই বাসটি সব সময় দেখাবে এবং খালি সিট বুকিং নিতে থাকবে।" data-en="Standard active booking. The bus stays visible in passenger search results and accepts seat bookings.">
+                                    স্বাভাবিক বুকিং চালু থাকবে। কাস্টমার অ্যাপে সার্চে এই বাসটি সব সময় দেখাবে।
                                 </p>
                             </label>
 
                             <!-- Mode 3: Inactive / Disabled -->
                             <label class="relative flex flex-col p-3.5 bg-white rounded-xl border-2 border-gray-200 hover:border-red-400 cursor-pointer shadow-xs transition group">
-                                <div class="flex items-center justify-between mb-1.5">
+                                <div class="flex items-center justify-between mb-1.5 gap-1">
                                     <div class="flex items-center gap-2">
                                         <input type="radio" name="busBookingMode" value="inactive" onchange="changeBusBookingMode('inactive')" class="w-4 h-4 text-red-600">
-                                        <span class="text-xs font-black text-gray-900 group-hover:text-red-700">⛔ Inactive / Disabled</span>
+                                        <span class="text-xs font-black text-gray-900 group-hover:text-red-700" data-bn="⛔ সাময়িক বন্ধ" data-en="⛔ Inactive / Disabled">⛔ Inactive / Disabled</span>
                                     </div>
-                                    <span class="text-[10px] bg-red-100 text-red-800 font-bold px-1.5 py-0.5 rounded">Paused</span>
+                                    <span class="text-[10px] bg-red-100 text-red-800 font-bold px-1.5 py-0.5 rounded" data-bn="বন্ধ" data-en="Paused">Paused</span>
                                 </div>
-                                <p class="text-[11px] text-gray-600 leading-relaxed">
-                                    এই বাসের বুকিং সম্পূর্ণ বন্ধ থাকবে। <strong>কাস্টমার অ্যাপে সার্চ করলে এই বাসটি মোটেও দেখাবে না</strong>। সাময়িক সার্ভিস বন্ধ রাখতে এটি বেছে নিন।
+                                <p class="text-[11px] text-gray-600 leading-relaxed" data-bn="এই বাসের বুকিং সম্পূর্ণ বন্ধ থাকবে। কাস্টমার অ্যাপে সার্চ করলে এই বাসটি দেখাবে না।" data-en="Bookings are paused and this coach is hidden from public passenger search until turned back on.">
+                                    এই বাসের বুকিং সম্পূর্ণ বন্ধ থাকবে। কাস্টমার অ্যাপে এই বাসটি দেখাবে না।
                                 </p>
                             </label>
                         </div>
                     </div>
 
                     <!-- Next-Gen Feature: Parcel & Luggage Booking Control for Owner -->
-                    <div id="ownerParcelSection" class="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-2.5">
-                        <div class="flex items-center justify-between">
+                    <div id="ownerParcelSection" class="p-3 sm:p-4 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-2.5">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
                             <h3 class="font-bold text-sm text-amber-950 flex items-center gap-2">
-                                <span>📦</span> বাসের পার্সেল ও লাগেজ পরিবহন (Parcel & Courier Booking)
+                                <span>📦</span> <span data-bn="বাসের পার্সেল ও লাগেজ পরিবহন" data-en="Bus Parcel &amp; Courier Booking">বাসের পার্সেল ও লাগেজ পরিবহন</span>
                             </h3>
                             <span class="text-[10px] bg-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded-full">Next-Gen</span>
                         </div>
-                        <p class="text-xs text-amber-900">বাসের ডিকিতে ছোট পার্সেল, বক্স বা লাগেজ বুকিং নেওয়ার অনলাইন সুবিধা। কাস্টমার অ্যাপ থেকে পার্সেল বুকিংয়ের আবেদন আসলে আপনার প্যানেলে সরাসরি নোটিফিকেশন আসবে।</p>
-                        <div class="text-[11px] bg-white p-2.5 rounded-xl border border-amber-200 text-gray-700 flex items-center justify-between">
+                        <p class="text-xs text-amber-900" data-bn="বাসের ডিকিতে ছোট পার্সেল, বক্স বা লাগেজ বুকিং নেওয়ার অনলাইন সুবিধা। কাস্টমার অ্যাপ থেকে পার্সেল বুকিংয়ের আবেদন আসলে আপনার প্যানেলে সরাসরি নোটিফিকেশন আসবে।" data-en="Accept online luggage and courier parcel requests for your bus storage compartment with instant notifications.">বাসের ডিকিতে ছোট পার্সেল, বক্স বা লাগেজ বুকিং নেওয়ার অনলাইন সুবিধা।</p>
+                        <div class="text-[11px] bg-white p-2.5 rounded-xl border border-amber-200 text-gray-700 flex flex-wrap items-center justify-between gap-2">
                             <span data-bn="✅ পার্সেল বুকিং স্ট্যাটাস: সক্রিয়" data-en="✅ Parcel Booking Status: Active">✅ পার্সেল বুকিং স্ট্যাটাস: সক্রিয়</span>
-                            <span class="text-xs font-bold text-amber-700">মিনিমাম চার্জ: ৳১০০ / পার্সেল</span>
+                            <span class="text-xs font-bold text-amber-700" data-bn="মিনিমাম চার্জ: ₹১০০ / পার্সেল" data-en="Min Charge: ₹100 / Parcel">Min Charge: ₹100 / Parcel</span>
                         </div>
                     </div>
 
                     <!-- Next-Gen Feature: Monthly Commuter Pass Control for Owner -->
-                    <div id="ownerMonthlyPassSection" class="p-4 bg-teal-50/70 border border-teal-200 rounded-2xl space-y-2.5">
-                        <div class="flex items-center justify-between">
+                    <div id="ownerMonthlyPassSection" class="p-3 sm:p-4 bg-teal-50/70 border border-teal-200 rounded-2xl space-y-2.5">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
                             <h3 class="font-bold text-sm text-teal-950 flex items-center gap-2">
                                 <span>🎫</span> <span data-bn="মান্থলি ও ডেইলি বাস পাস" data-en="Digital Commuter Pass">মান্থলি ও ডেইলি বাস পাস</span>
                             </h3>
                             <span class="text-[10px] bg-teal-200 text-teal-900 font-bold px-2 py-0.5 rounded-full">Next-Gen</span>
                         </div>
-                        <p class="text-xs text-teal-900">নিয়মিত অফিস যাত্রী ও ছাত্র-ছাত্রীদের জন্য মান্থলি বা উইকলি ডিজিটাল পাসের ব্যবস্থা। কন্ডাক্টর শুধু QR কোড স্ক্যান করে যাত্রীদের ভেরিফাই করতে পারবে।</p>
-                        <div class="text-[11px] bg-white p-2.5 rounded-xl border border-teal-200 text-gray-700 flex items-center justify-between">
+                        <p class="text-xs text-teal-900" data-bn="নিয়মিত অফিস যাত্রী ও ছাত্র-ছাত্রীদের জন্য মান্থলি বা উইকলি ডিজিটাল পাসের ব্যবস্থা। কন্ডাক্টর শুধু QR কোড স্ক্যান করে যাত্রীদের ভেরিফাই করতে পারবে।" data-en="Monthly and weekly digital commuter passes for daily office riders and students, verified via conductor QR scan.">নিয়মিত অফিস যাত্রী ও ছাত্র-ছাত্রীদের জন্য মান্থলি বা উইকলি ডিজিটাল পাসের ব্যবস্থা।</p>
+                        <div class="text-[11px] bg-white p-2.5 rounded-xl border border-teal-200 text-gray-700 flex flex-wrap items-center justify-between gap-2">
                             <span data-bn="✅ মান্থলি পাস ব্যবস্থা: সক্রিয়" data-en="✅ Monthly Pass System: Active">✅ মান্থলি পাস ব্যবস্থা: সক্রিয়</span>
-                            <span class="text-xs font-bold text-teal-700">ডিসকাউন্ট: ১৫% ক্যাশব্যাক</span>
+                            <span class="text-xs font-bold text-teal-700" data-bn="ডিসকাউন্ট: ১৫% ক্যাশব্যাক" data-en="Discount: 15% Cashback">Discount: 15% Cashback</span>
                         </div>
                     </div>
 
-                    <button onclick="saveBusConfiguration()" class="w-full bg-gray-900 hover:bg-black text-white py-3 rounded-xl font-bold text-sm shadow-md transition">
-                        💾 Save Ticket Template, Fare & Bus Settings
+                    <button onclick="saveBusConfiguration()" class="w-full bg-gray-900 hover:bg-black text-white py-3 rounded-xl font-bold text-sm shadow-md transition" data-bn="💾 টিকিট টেমপ্লেট, ভাড়া ও বাস সেটিংস সেভ করুন" data-en="💾 Save Ticket Template, Fare &amp; Bus Settings">
+                        💾 Save Ticket Template, Fare &amp; Bus Settings
                     </button>
 
-                    <div class="p-4 bg-blue-50 border border-blue-200 rounded-xl space-y-3">
+                    <div class="p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-xl space-y-3">
                         <div>
-                            <h3 class="font-bold text-sm text-gray-900">📅 Bus service by journey date</h3>
-                            <p class="text-xs text-gray-600 mt-1">Turn this bus on or off for a specific date. Full buses are automatically hidden from customer search.</p>
+                            <h3 class="font-bold text-sm text-gray-900" data-bn="📅 তারিখ অনুযায়ী বাস সার্ভিস চালু / বন্ধ" data-en="📅 Bus service by journey date">📅 Bus service by journey date</h3>
+                            <p class="text-xs text-gray-600 mt-1" data-bn="যেকোনো নির্দিষ্ট তারিখের জন্য বাস বুকিং চালু বা বন্ধ রাখুন। সব সিট ভর্তি হলে বাসটি স্বয়ংক্রিয়ভাবে লুকানো থাকে।" data-en="Turn this bus on or off for a specific date. Full buses are automatically hidden from customer search.">Turn this bus on or off for a specific date. Full buses are automatically hidden from customer search.</p>
                         </div>
                         <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
                             <input type="date" id="serviceDateInput" class="p-2.5 border rounded-xl text-sm bg-white">
                             <label class="flex items-center gap-2 text-xs font-bold">
                                 <input type="checkbox" id="serviceDateEnabled" class="w-4 h-4">
-                                Accept bookings on this date
+                                <span data-bn="এই তারিখে বুকিং গ্রহণ করুন" data-en="Accept bookings on this date">Accept bookings on this date</span>
                             </label>
-                            <button onclick="saveBusServiceDate()" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2.5 rounded-xl font-bold text-xs">Save date status</button>
+                            <button onclick="saveBusServiceDate()" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2.5 rounded-xl font-bold text-xs" data-bn="তারিখের স্ট্যাটাস সেভ করুন" data-en="Save date status">Save date status</button>
                         </div>
                         <p id="serviceDateStatus" class="text-xs text-gray-600"></p>
                     </div>
@@ -1091,13 +1094,13 @@
                     <!-- Live GPS Broadcast -->
                     <div class="pt-5 border-t">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
-                            <h3 class="font-bold text-sm text-gray-900">📍 Live GPS Sharing (Driver / Conductor)</h3>
-                            <button onclick="openOwnerTrackingFromSelection()" class="text-xs text-blue-600 font-bold hover:underline">
+                            <h3 class="font-bold text-sm text-gray-900" data-bn="📍 লাইভ জিপিএস শেয়ারিং (ড্রাইভার / কন্ডাক্টর)" data-en="📍 Live GPS Sharing (Driver / Conductor)">📍 Live GPS Sharing (Driver / Conductor)</h3>
+                            <button onclick="openOwnerTrackingFromSelection()" class="text-xs text-blue-600 font-bold hover:underline" data-bn="🗺️ ম্যাপে বাসের বর্তমান অবস্থান দেখুন" data-en="🗺️ View Current Bus Location on Map">
                                 🗺️ View Current Bus Location on Map
                             </button>
                         </div>
-                        <p class="text-xs text-gray-500 mb-3">Allow GPS access on this phone while the bus is in transit. Approved passengers can view real-time location on their map.</p>
-                        <button id="shareLocationButton" onclick="shareOwnerLiveLocation()" class="w-full bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-xl font-bold text-xs shadow-md transition flex items-center justify-center gap-2">
+                        <p class="text-xs text-gray-500 mb-3" data-bn="বাস চলার সময় এই ফোনে জিপিএস চালু রাখুন যাতে অনুমোদিত যাত্রীরা ম্যাপে লাইভ অবস্থান দেখতে পারেন।" data-en="Allow GPS access on this phone while the bus is in transit. Approved passengers can view real-time location on their map.">Allow GPS access on this phone while the bus is in transit. Approved passengers can view real-time location on their map.</p>
+                        <button id="shareLocationButton" onclick="shareOwnerLiveLocation()" class="w-full bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-xl font-bold text-xs shadow-md transition flex items-center justify-center gap-2" data-bn="📍 লাইভ জিপিএস শেয়ার শুরু করুন" data-en="📍 Start Sharing Live GPS">
                             📍 Start Sharing Live GPS
                         </button>
                         <p id="locationStatusText" class="text-xs text-center text-gray-500 mt-2"></p>
@@ -1108,41 +1111,41 @@
 
         <!-- Tab 3: Passenger Manifest -->
         <div id="tabManifestContent" class="space-y-4 hidden">
-            <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200">
+            <div class="bg-white p-3.5 sm:p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-3 mb-4">
                     <div>
-                        <h2 class="text-base md:text-lg font-bold text-gray-900">📋 Passenger Trip Manifest</h2>
-                        <p class="text-xs text-gray-500">Daily boarding list for conductor verification. Includes passenger seat numbers, boarding points, and contact numbers.</p>
+                        <h2 class="text-base md:text-lg font-bold text-gray-900" data-bn="📋 দৈনিক যাত্রী তালিকা" data-en="📋 Passenger Trip Manifest">📋 Passenger Trip Manifest</h2>
+                        <p class="text-xs text-gray-500" data-bn="কন্ডাক্টর ভেরিফিকেশনের জন্য যাত্রীদের সিট নম্বর, বোর্ডিং পয়েন্ট ও মোবাইল নম্বর সহ তালিকা।" data-en="Daily boarding list for conductor verification. Includes passenger seat numbers, boarding points, and contact numbers.">Daily boarding list for conductor verification. Includes passenger seat numbers, boarding points, and contact numbers.</p>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <input type="date" id="manifestDateInput" onchange="renderPassengerManifest()" class="text-xs p-2 border rounded-xl bg-gray-50 font-medium">
-                        <button onclick="window.print()" class="bg-gray-800 hover:bg-black text-white px-3 py-2 rounded-xl text-xs font-bold transition">
+                        <button onclick="window.print()" class="bg-gray-800 hover:bg-black text-white px-3 py-2 rounded-xl text-xs font-bold transition" data-bn="🖨️ প্রিন্ট ম্যানিফেস্ট" data-en="🖨️ Print Manifest">
                             🖨️ Print Manifest
                         </button>
                     </div>
                 </div>
 
                 <!-- Trip Reminder Control Panel (WhatsApp & Normal SMS - 100% Free) -->
-                <div id="ownerReminderCard" class="bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 p-4 sm:p-5 rounded-2xl border-2 border-emerald-300 shadow-xs space-y-3 mb-4">
+                <div id="ownerReminderCard" class="bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 p-3.5 sm:p-5 rounded-2xl border-2 border-emerald-300 shadow-xs space-y-3 mb-4">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-emerald-200 pb-2.5">
                         <div class="flex items-center gap-2.5">
                             <span class="text-2xl">📲</span>
                             <div>
-                                <h3 class="font-black text-emerald-950 text-sm sm:text-base flex items-center gap-2">
-                                    <span>যাত্রীদের ২-৩ ঘণ্টা আগের ট্রিপ রিমাইন্ডার</span>
+                                <h3 class="font-black text-emerald-950 text-sm sm:text-base flex flex-wrap items-center gap-2">
+                                    <span data-bn="যাত্রীদের ২-৩ ঘণ্টা আগের ট্রিপ রিমাইন্ডার" data-en="2-3 Hour Pre-Trip Passenger Reminders">যাত্রীদের ২-৩ ঘণ্টা আগের ট্রিপ রিমাইন্ডার</span>
                                     <span class="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">100% Free</span>
                                 </h3>
-                                <p class="text-[11px] text-emerald-800">হোয়াটসঅ্যাপ অথবা মোবাইলের ফ্রি সাধারণ এসএমএস-এ বাংলা+ইংরেজি রিমাইন্ডার ও লাইভ GPS লিংক পাঠান।</p>
+                                <p class="text-[11px] text-emerald-800" data-bn="হোয়াটসঅ্যাপ অথবা মোবাইলের ফ্রি সাধারণ এসএমএস-এ রিমাইন্ডার ও লাইভ GPS লিংক পাঠান।" data-en="Send WhatsApp or SMS boarding reminders with live GPS tracking links.">হোয়াটসঅ্যাপ অথবা মোবাইলের ফ্রি সাধারণ এসএমএস-এ রিমাইন্ডার ও লাইভ GPS লিংক পাঠান।</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-2">
                             <label class="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
-                                <span>সময়:</span>
+                                <span data-bn="সময়:" data-en="Lead Time:">সময়:</span>
                                 <select id="ownerReminderHoursSelect" class="text-xs p-1.5 border border-emerald-300 rounded-lg bg-white font-bold text-gray-800">
-                                    <option value="2">২ ঘণ্টা আগে (2 Hours)</option>
-                                    <option value="3">৩ ঘণ্টা আগে (3 Hours)</option>
-                                    <option value="1">১ ঘণ্টা আগে (1 Hour)</option>
-                                    <option value="4">৪ ঘণ্টা আগে (4 Hours)</option>
+                                    <option value="2" data-bn="২ ঘণ্টা আগে" data-en="2 Hours Before">২ ঘণ্টা আগে (2 Hours)</option>
+                                    <option value="3" data-bn="৩ ঘণ্টা আগে" data-en="3 Hours Before">৩ ঘণ্টা আগে (3 Hours)</option>
+                                    <option value="1" data-bn="১ ঘণ্টা আগে" data-en="1 Hour Before">১ ঘণ্টা আগে (1 Hour)</option>
+                                    <option value="4" data-bn="৪ ঘণ্টা আগে" data-en="4 Hours Before">৪ ঘণ্টা আগে (4 Hours)</option>
                                 </select>
                             </label>
                         </div>
@@ -1152,27 +1155,27 @@
                     <div class="flex flex-wrap items-center justify-between gap-2.5 pt-1">
                         <label class="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-xl border border-emerald-300 shadow-xs text-xs font-black text-gray-900 select-none">
                             <input type="checkbox" id="ownerManifestSelectAll" onchange="toggleOwnerManifestSelectAll(this.checked)" class="w-4 h-4 text-emerald-600 rounded">
-                            <span>[✓] Select All (সবাইকে নির্বাচন করুন)</span>
+                            <span data-bn="সবাইকে নির্বাচন করুন" data-en="Select All Passengers">সবাইকে নির্বাচন করুন</span>
                         </label>
                         
                         <div class="flex flex-wrap items-center gap-2 text-xs font-bold">
                             <span class="text-emerald-900 bg-emerald-100/80 px-2.5 py-1.5 rounded-xl border border-emerald-200">
-                                নির্বাচিত যাত্রী: <strong id="ownerSelectedCount" class="text-emerald-950 font-black">0</strong> জন
+                                <span data-bn="নির্বাচিত:" data-en="Selected:">নির্বাচিত:</span> <strong id="ownerSelectedCount" class="text-emerald-950 font-black">0</strong>
                             </span>
                             <!-- WhatsApp Send Button -->
                             <button type="button" id="btnOwnerSendWhatsApp" onclick="sendOwnerSelectedWhatsAppReminders()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95">
-                                <span>🟢</span> <span>WhatsApp রিমাইন্ডার</span>
+                                <span>🟢</span> <span data-bn="WhatsApp রিমাইন্ডার" data-en="WhatsApp Reminder">WhatsApp রিমাইন্ডার</span>
                             </button>
                             <!-- Normal SMS Send Button -->
                             <button type="button" id="btnOwnerSendNormalSms" onclick="sendOwnerSelectedNormalSmsReminders()" class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95">
-                                <span>💬</span> <span>নরমাল SMS পাঠান</span>
+                                <span>💬</span> <span data-bn="নরমাল SMS পাঠান" data-en="Send Normal SMS">নরমাল SMS পাঠান</span>
                             </button>
                         </div>
                     </div>
 
                     <!-- Admin Disabled Notice Banner (Hidden when enabled) -->
                     <div id="ownerReminderAdminDisabledNotice" class="hidden bg-amber-100 border border-amber-300 p-2.5 rounded-xl text-amber-900 text-xs font-semibold flex items-center gap-2">
-                        <span>⚠️</span> <span>সুপার অ্যাডমিন কর্তৃক ট্রিপ রিমাইন্ডার ফিচারটি সাময়িকভাবে বন্ধ রাখা হয়েছে।</span>
+                        <span>⚠️</span> <span data-bn="সুপার অ্যাডমিন কর্তৃক ট্রিপ রিমাইন্ডার ফিচারটি সাময়িকভাবে বন্ধ রাখা হয়েছে।" data-en="Trip reminder feature is temporarily disabled by Super Admin.">সুপার অ্যাডমিন কর্তৃক ট্রিপ রিমাইন্ডার ফিচারটি সাময়িকভাবে বন্ধ রাখা হয়েছে।</span>
                     </div>
                 </div>
 
@@ -1185,15 +1188,15 @@
         <!-- Tab 4: Customer Feedback -->
         <div id="tabReviewsContent" class="space-y-4 hidden">
             <!-- Feedback QR Code Download & Poster Banner -->
-            <div class="bg-gradient-to-r from-red-50 to-orange-50 p-5 rounded-2xl border border-red-200 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
+            <div class="bg-gradient-to-r from-red-50 to-orange-50 p-4 sm:p-5 rounded-2xl border border-red-200 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
                 <div class="flex items-center gap-4">
                     <div class="bg-white p-2 rounded-2xl shadow-sm border border-red-200 shrink-0">
                         <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fbusyatra.pages.dev%2Ffeedback.html" alt="Feedback QR" class="w-20 h-20 rounded-lg">
                     </div>
                     <div>
                         <span class="inline-block bg-red-600 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full mb-1">Official Feedback QR</span>
-                        <h3 class="text-sm sm:text-base font-black text-gray-900">বাস ও কাউন্টারে ফিডব্যাক QR কোড লাগান</h3>
-                        <p class="text-xs text-gray-600 mt-0.5">যাত্রীরা এই QR কোড স্ক্যান করে সরাসরি বাসের পরিষেবা ও ব্যবহার সম্পর্কে ১-৫ স্টার রেটিং দিতে পারবেন।</p>
+                        <h3 class="text-sm sm:text-base font-black text-gray-900" data-bn="বাস ও কাউন্টারে ফিডব্যাক QR কোড লাগান" data-en="Display Feedback QR Code on Bus &amp; Counter">বাস ও কাউন্টারে ফিডব্যাক QR কোড লাগান</h3>
+                        <p class="text-xs text-gray-600 mt-0.5" data-bn="যাত্রীরা এই QR কোড স্ক্যান করে সরাসরি বাসের পরিষেবা ও ব্যবহার সম্পর্কে ১-৫ স্টার রেটিং দিতে পারবেন।" data-en="Passengers can scan this QR code to submit 1-5 star ratings and journey reviews directly.">যাত্রীরা এই QR কোড স্ক্যান করে সরাসরি বাসের পরিষেবা ও ব্যবহার সম্পর্কে ১-৫ স্টার রেটিং দিতে পারবেন।</p>
                     </div>
                 </div>
                 <div class="flex sm:flex-col gap-2 w-full sm:w-auto shrink-0">
@@ -1218,50 +1221,50 @@
         <!-- Tab 5: Captain (Conductor) Management -->
         <div id="tabCaptainsContent" class="space-y-6 hidden">
             <!-- Add Captain Section -->
-            <section class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200">
+            <section class="bg-white p-3.5 sm:p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200">
                 <div class="border-b pb-3 mb-4">
-                    <h2 class="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
-                        ➕ Add New Captain / Conductor (নতুন কন্ডাক্টর তৈরি করুন)
+                    <h2 class="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2" data-bn="➕ নতুন ক্যাপ্টেন / কন্ডাক্টর তৈরি করুন" data-en="➕ Add New Captain / Conductor">
+                        ➕ Add New Captain / Conductor
                     </h2>
-                    <p class="text-xs text-gray-500">Create a conductor account with a 10-digit mobile number and 4-digit PIN. The conductor logs into the Captain Portal (captain.html) on their phone to scan ticket QR codes, confirm boarding, and approve bookings.</p>
+                    <p class="text-xs text-gray-500" data-bn="১০-সংখ্যার মোবাইল ও ৪-সংখ্যার পিন দিয়ে কন্ডাক্টর একাউন্ট তৈরি করুন। কন্ডাক্টর captain.html পোর্টালে লগইন করে QR স্ক্যান ও বুকিং পরিচালনা করতে পারবেন।" data-en="Create a conductor account with a 10-digit mobile number and 4-digit PIN. Conductors log into Captain Portal to scan ticket QR codes and approve bookings.">Create a conductor account with a 10-digit mobile number and 4-digit PIN. The conductor logs into the Captain Portal on their phone to scan ticket QR codes, confirm boarding, and approve bookings.</p>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Assigned Bus</label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="নির্ধারিত বাস" data-en="Assigned Bus">Assigned Bus</label>
                         <select id="newCaptainBusSelect" class="w-full p-2.5 border rounded-xl text-xs font-semibold bg-gray-50">
                             <!-- Populated dynamically -->
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Captain Name</label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="ক্যাপ্টেনের নাম" data-en="Captain Name">Captain Name</label>
                         <input type="text" id="newCaptainName" placeholder="e.g. Ramesh Giri" class="w-full p-2.5 border rounded-xl text-xs font-semibold bg-gray-50">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Mobile Number (10 Digits)</label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="মোবাইল নম্বর (১০ সংখ্যা)" data-en="Mobile Number (10 Digits)">Mobile Number (10 Digits)</label>
                         <input type="tel" id="newCaptainPhone" maxlength="10" placeholder="10-digit mobile" class="w-full p-2.5 border rounded-xl text-xs font-semibold bg-gray-50">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">4-Digit PIN</label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="৪-সংখ্যার পিন" data-en="4-Digit PIN">4-Digit PIN</label>
                         <input type="password" id="newCaptainPin" maxlength="4" placeholder="••••" class="w-full p-2.5 border rounded-xl text-xs font-bold text-center tracking-widest bg-gray-50">
                     </div>
                 </div>
 
                 <div class="flex justify-end">
-                    <button type="button" onclick="addOwnerCaptain()" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition flex items-center gap-1.5">
-                        ➕ Add Captain & Save
+                    <button type="button" onclick="addOwnerCaptain()" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition flex items-center gap-1.5" data-bn="➕ ক্যাপ্টেন যুক্ত ও সেভ করুন" data-en="➕ Add Captain &amp; Save">
+                        ➕ Add Captain &amp; Save
                     </button>
                 </div>
             </section>
 
             <!-- Captains List Section -->
-            <section class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200">
-                <div class="flex justify-between items-center border-b pb-3 mb-4">
+            <section class="bg-white p-3.5 sm:p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200">
+                <div class="flex flex-wrap justify-between items-center gap-2 border-b pb-3 mb-4">
                     <div>
-                        <h2 class="text-base md:text-lg font-bold text-gray-900">👨‍✈️ My Assigned Captains (Conductors)</h2>
-                        <p class="text-xs text-gray-500">Manage conductor status, view or reset their 4-digit PIN, or send login details directly via WhatsApp.</p>
+                        <h2 class="text-base md:text-lg font-bold text-gray-900" data-bn="👨‍✈️ আমার নিযুক্ত ক্যাপ্টেন (কন্ডাক্টর)" data-en="👨‍✈️ My Assigned Captains (Conductors)">👨‍✈️ My Assigned Captains (Conductors)</h2>
+                        <p class="text-xs text-gray-500" data-bn="কন্ডাক্টরের স্ট্যাটাস, ৪-সংখ্যার পিন পরিবর্তন বা হোয়াটসঅ্যাপে লগইন তথ্য পাঠান।" data-en="Manage conductor status, view or reset their 4-digit PIN, or send login details directly via WhatsApp.">Manage conductor status, view or reset their 4-digit PIN, or send login details directly via WhatsApp.</p>
                     </div>
-                    <button onclick="loadOwnerCaptains()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold transition">
+                    <button onclick="loadOwnerCaptains()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold transition" data-bn="🔄 রিফ্রেশ" data-en="🔄 Refresh">
                         🔄 Refresh
                     </button>
                 </div>
@@ -1276,28 +1279,28 @@
         <!-- Tab 6: Notifications & Announcements -->
         <div id="tabNotificationsContent" class="space-y-6 hidden">
             <!-- Section 1: Announcements from Super Admin -->
-            <section class="bg-gradient-to-r from-amber-50 to-orange-50 p-5 rounded-2xl shadow-sm border border-amber-200 space-y-3">
-                <div class="flex items-center justify-between border-b border-amber-200/80 pb-2.5">
+            <section class="bg-gradient-to-r from-amber-50 to-orange-50 p-4 sm:p-5 rounded-2xl shadow-sm border border-amber-200 space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200/80 pb-2.5">
                     <div>
                         <h2 class="text-base font-bold text-gray-900 flex items-center gap-2">
-                            <span>📢</span> Admin Announcement Board (অ্যাডমিন নোটিশ বোর্ড)
+                            <span>📢</span> <span data-bn="অ্যাডমিন নোটিশ বোর্ড" data-en="Admin Announcement Board">Admin Announcement Board</span>
                         </h2>
-                        <p class="text-xs text-gray-600">Important notices and updates from Bus Yatra Super Administration.</p>
+                        <p class="text-xs text-gray-600" data-bn="Bus Yatra সুপার অ্যাডমিনিস্ট্রেশন থেকে গুরুত্বপূর্ণ নোটিশ ও আপডেট।" data-en="Important notices and updates from Bus Yatra Super Administration.">Important notices and updates from Bus Yatra Super Administration.</p>
                     </div>
-                    <button type="button" onclick="loadOwnerNotifications()" class="bg-white/80 hover:bg-white text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold transition border border-amber-200 shadow-xs">
+                    <button type="button" onclick="loadOwnerNotifications()" class="bg-white/80 hover:bg-white text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold transition border border-amber-200 shadow-xs" data-bn="🔄 রিফ্রেশ" data-en="🔄 Refresh">
                         🔄 Refresh
                     </button>
                 </div>
                 <div id="ownerReceivedNotifsList" class="space-y-2.5">
-                    <div class="text-center text-gray-400 py-4 text-xs">Loading announcements...</div>
+                    <div class="text-center text-gray-400 py-4 text-xs" data-bn="নোটিশ লোড হচ্ছে..." data-en="Loading announcements...">Loading announcements...</div>
                 </div>
             </section>
 
             <!-- Section 2: Compose & Send Notifications to Captains & Booked Passengers -->
-            <section class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
+            <section class="bg-white p-3.5 sm:p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
                 <div class="border-b pb-3">
                     <h2 class="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
-                        <span>🚀</span> Send Notification (কন্ডাক্টর ও যাত্রীদের নোটিফিকেশন পাঠান)
+                        <span>🚀</span> <span data-bn="কন্ডাক্টর ও যাত্রীদের নোটিফিকেশন পাঠান" data-en="Send Notification to Captains &amp; Passengers">Send Notification</span>
                     </h2>
                     <p class="text-xs text-gray-500 mt-0.5">
                         <span data-bn="আপনার বাসের কন্ডাক্টর এবং যারা আপনার বাস বুক করেছেন সেই সকল যাত্রীদের কাছে সরাসরি নোটিফিকেশন পাঠান।" data-en="Send direct notifications to your bus conductors and booked passengers.">আপনার বাসের কন্ডাক্টর এবং যারা আপনার বাস বুক করেছেন সেই সকল যাত্রীদের কাছে সরাসরি নোটিফিকেশন পাঠান।</span>
@@ -1306,58 +1309,58 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Target (কাদের পাঠাবেন)</label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="প্রাপক (কাদের পাঠাবেন)" data-en="Target Audience">Target</label>
                         <select id="ownerNotifTarget" class="w-full p-2.5 border rounded-xl text-xs bg-gray-50 font-bold">
-                            <option value="captains">👨‍✈️ My Captains (আমার বাসের কন্ডাক্টর)</option>
-                            <option value="booked_customers">🎟️ Booked Passengers (বুকিং করা যাত্রীরা)</option>
-                            <option value="both">👥 Both (কন্ডাক্টর ও যাত্রী উভয়ে)</option>
+                            <option value="captains" data-bn="👨‍✈️ আমার বাসের কন্ডাক্টর" data-en="👨‍✈️ My Captains">👨‍✈️ My Captains</option>
+                            <option value="booked_customers" data-bn="🎟️ বুকিং করা যাত্রীরা" data-en="🎟️ Booked Passengers">🎟️ Booked Passengers</option>
+                            <option value="both" data-bn="👥 কন্ডাক্টর ও যাত্রী উভয়ে" data-en="👥 Both (Captains &amp; Passengers)">👥 Both</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">For Bus (কোন বাসের জন্য)</label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="বাস নির্বাচন করুন" data-en="For Bus">For Bus</label>
                         <select id="ownerNotifBusSelect" class="w-full p-2.5 border rounded-xl text-xs bg-gray-50 font-medium">
-                            <option value="">-- All My Buses (আমার সকল বাস) --</option>
+                            <option value="" data-bn="-- আমার সকল বাস --" data-en="-- All My Buses --">-- All My Buses --</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Type (ধরণ)</label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="নোটিশের ধরণ" data-en="Notification Type">Type</label>
                         <select id="ownerNotifType" class="w-full p-2.5 border rounded-xl text-xs bg-gray-50 font-medium">
-                            <option value="info">ℹ️ Info (সাধারণ তথ্য)</option>
-                            <option value="alert">⚠️ Urgent Alert (জরুরি সতর্কবার্তা)</option>
-                            <option value="announcement">📢 Announcement (ঘোষণা)</option>
+                            <option value="info" data-bn="ℹ️ সাধারণ তথ্য" data-en="ℹ️ General Info">ℹ️ Info</option>
+                            <option value="alert" data-bn="⚠️ জরুরি সতর্কবার্তা" data-en="⚠️ Urgent Alert">⚠️ Urgent Alert</option>
+                            <option value="announcement" data-bn="📢 ঘোষণা" data-en="📢 Announcement">📢 Announcement</option>
                         </select>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Title (শিরোনাম)</label>
-                    <input type="text" id="ownerNotifTitle" placeholder="e.g. বাসের ছাড়ার সময় ১৫ মিনিট পরিবর্তন / বোর্ডিং সংক্রান্ত জরুরি নোটিশ..." class="w-full p-2.5 border rounded-xl text-xs bg-gray-50 font-semibold" maxlength="100">
+                    <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="শিরোনাম" data-en="Title">Title</label>
+                    <input type="text" id="ownerNotifTitle" placeholder="e.g. Departure time updated by 15 mins / Boarding notice..." data-bn-placeholder="যেমন: বাস ছাড়ার সময় ১৫ মিনিট পরিবর্তন / বোর্ডিং সংক্রান্ত জরুরি নোটিশ..." data-en-placeholder="e.g. Departure time updated by 15 mins / Boarding notice..." class="w-full p-2.5 border rounded-xl text-xs bg-gray-50 font-semibold" maxlength="100">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Message (বিস্তারিত বার্তা)</label>
-                    <textarea id="ownerNotifMessage" rows="3" placeholder="কন্ডাক্টর বা যাত্রীদের জন্য বিস্তারিত বার্তা এখানে লিখুন..." class="w-full p-2.5 border rounded-xl text-xs bg-gray-50" maxlength="500"></textarea>
+                    <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="বিস্তারিত বার্তা" data-en="Message">Message</label>
+                    <textarea id="ownerNotifMessage" rows="3" placeholder="Write message details for conductors or passengers..." data-bn-placeholder="কন্ডাক্টর বা যাত্রীদের জন্য বিস্তারিত বার্তা এখানে লিখুন..." data-en-placeholder="Write message details for conductors or passengers..." class="w-full p-2.5 border rounded-xl text-xs bg-gray-50" maxlength="500"></textarea>
                 </div>
 
                 <div class="flex justify-end">
                     <button type="button" onclick="submitOwnerNotification()" id="btnSendOwnerNotif" class="bg-gray-900 hover:bg-black text-white px-6 py-2.5 rounded-xl font-bold text-xs shadow-md transition flex items-center gap-2">
-                        <span>🚀</span> <span>Send Notification (নোটিফিকেশন পাঠান)</span>
+                        <span>🚀</span> <span data-bn="নোটিফিকেশন পাঠান" data-en="Send Notification">Send Notification</span>
                     </button>
                 </div>
             </section>
 
             <!-- Section 3: Sent Notifications History & Controls -->
-            <section class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
+            <section class="bg-white p-3.5 sm:p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
                     <div>
                         <h2 class="text-base font-bold text-gray-900 flex items-center gap-2">
-                            <span>📋</span> Sent Notifications History (প্রেরিত নোটিফিকেশন হিস্ট্রি)
+                            <span>📋</span> <span data-bn="প্রেরিত নোটিফিকেশন হিস্ট্রি" data-en="Sent Notifications History">Sent Notifications History</span>
                         </h2>
-                        <p class="text-xs text-gray-500">
+                        <p class="text-xs text-gray-500" data-bn="সাময়িক লুকানোর জন্য পজ করুন অথবা স্থায়ীভাবে ডিলিট করুন।" data-en="Pause to temporarily hide from passengers/captains, or Delete to permanently remove from all portals.">
                             Pause to temporarily hide from passengers/captains, or Delete to permanently remove from all portals.
                         </p>
                     </div>
-                    <button type="button" onclick="loadOwnerNotifications()" class="self-start sm:self-auto bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1">
+                    <button type="button" onclick="loadOwnerNotifications()" class="self-start sm:self-auto bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1" data-bn="🔄 রিফ্রেশ" data-en="🔄 Refresh">
                         🔄 Refresh
                     </button>
                 </div>
@@ -1418,7 +1421,7 @@
                         <span class="p-2.5 bg-emerald-500 text-white rounded-xl text-xl shadow-xs">💰</span>
                     </div>
                     <div class="mt-3 pt-2.5 border-t border-emerald-200/80 flex items-center justify-between text-xs text-emerald-900 font-medium">
-                        <span id="ledgerStatSeats">বুকিং আসন: 0 টি</span>
+                        <span id="ledgerStatSeats" data-bn="বুকিং আসন: 0 টি" data-en="Booked Seats: 0">বুকিং আসন: 0 টি</span>
                         <span class="text-[10px] font-bold bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full" data-bn="টিকিট সেল" data-en="Ticket Sales">টিকিট সেল</span>
                     </div>
                 </div>
@@ -1433,7 +1436,7 @@
                         <span class="p-2.5 bg-red-500 text-white rounded-xl text-xl shadow-xs">⛽</span>
                     </div>
                     <div class="mt-3 pt-2.5 border-t border-red-200/80 flex items-center justify-between text-xs text-red-900 font-medium">
-                        <span id="ledgerStatVoucherCount">ভাউচার: 0 টি</span>
+                        <span id="ledgerStatVoucherCount" data-bn="ভাউচার: 0 টি" data-en="Vouchers: 0">ভাউচার: 0 টি</span>
                         <span class="text-[10px] font-bold bg-red-200 text-red-900 px-2 py-0.5 rounded-full" data-bn="ডিজেল, টোল ও বিবিধ" data-en="Fuel, Toll &amp; Misc">ডিজেল, টোল ও বিবিধ</span>
                     </div>
                 </div>
@@ -1448,8 +1451,8 @@
                         <span id="ledgerProfitIcon" class="p-2.5 bg-blue-600 text-white rounded-xl text-xl shadow-xs">📈</span>
                     </div>
                     <div class="mt-3 pt-2.5 border-t border-blue-200/80 flex items-center justify-between text-xs font-bold">
-                        <span id="ledgerStatMargin">প্রফিট মার্জিন: 0%</span>
-                        <span id="ledgerProfitBadge" class="text-[10px] font-black bg-blue-200 text-blue-900 px-2 py-0.5 rounded-full">ব্যালেন্স</span>
+                        <span id="ledgerStatMargin" data-bn="প্রফিট মার্জিন: 0%" data-en="Profit Margin: 0%">প্রফিট মার্জিন: 0%</span>
+                        <span id="ledgerProfitBadge" class="text-[10px] font-black bg-blue-200 text-blue-900 px-2 py-0.5 rounded-full" data-bn="ব্যালেন্স" data-en="Balance">ব্যালেন্স</span>
                     </div>
                 </div>
             </div>
@@ -1472,17 +1475,17 @@
                             <option value="batta" data-bn="👨‍✈️ স্টাফ বাট্টা" data-en="👨‍✈️ Staff Batta">👨‍✈️ স্টাফ বাট্টা</option>
                             <option value="parking" data-bn="🅿️ পার্কিং ও স্ট্যান্ড ফি" data-en="🅿️ Stand & Parking Fee">🅿️ পার্কিং ও স্ট্যান্ড ফি</option>
                             <option value="police" data-bn="👮 ট্রাফিক ও চালান" data-en="👮 Traffic & Challan">👮 ট্রাফিক ও চালান</option>
-                            <option value="maintenance" data-bn="🔧 মেরামত ও মেকানিক" data-en="🔧 Repairs & Maintenance">🔧 মেরামত ও মেকানিক</option>
-                            <option value="misc">🍽️ চা/জলখাবার ও বিবিধ (Food &amp; Misc)</option>
+                            <option value="maintenance" data-bn="🔧 মেরামত ও মেকানিক" data-en="🔧 Repairs &amp; Maintenance">🔧 মেরামত ও মেকানিক</option>
+                            <option value="misc" data-bn="🍽️ চা/জলখাবার ও বিবিধ" data-en="🍽️ Food &amp; Misc">🍽️ চা/জলখাবার ও বিবিধ</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="টাকার পরিমাণ (Amount in ₹)" data-en="Amount in ₹">টাকার পরিমাণ (Amount in ₹)</label>
-                        <input type="number" id="newExpenseAmount" min="1" step="1" placeholder="₹ টাকার অঙ্ক (যেমন: 2500)" class="w-full p-2.5 border rounded-xl text-xs font-bold bg-gray-50 focus:bg-white text-gray-900">
+                        <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="টাকার পরিমাণ (₹)" data-en="Amount (₹)">টাকার পরিমাণ (₹)</label>
+                        <input type="number" id="newExpenseAmount" min="1" step="1" placeholder="e.g. 2500" data-bn-placeholder="₹ টাকার অঙ্ক (যেমন: 2500)" data-en-placeholder="Amount in ₹ (e.g. 2500)" class="w-full p-2.5 border rounded-xl text-xs font-bold bg-gray-50 focus:bg-white text-gray-900">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="বিবরণ / ভাউচার নোট" data-en="Description / Voucher Note">বিবরণ / ভাউচার নোট</label>
-                        <input type="text" id="newExpenseNote" placeholder="যেমন: মেচেদা পাম্পে ৬০ লিটার ডিজেল" class="w-full p-2.5 border rounded-xl text-xs font-medium bg-gray-50 focus:bg-white">
+                        <input type="text" id="newExpenseNote" placeholder="e.g. 60L Diesel at Mecheda Pump" data-bn-placeholder="যেমন: মেচেদা পাম্পে ৬০ লিটার ডিজেল" data-en-placeholder="e.g. 60L Diesel at Mecheda Pump" class="w-full p-2.5 border rounded-xl text-xs font-medium bg-gray-50 focus:bg-white">
                     </div>
                 </div>
 
@@ -1548,47 +1551,47 @@
 
     <!-- Add New Bus Modal for Owner -->
     <div id="ownerAddBusModal" class="hidden fixed inset-0 bg-black/70 z-[150] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl border text-left space-y-4 max-h-[90vh] overflow-y-auto">
+        <div class="bg-white rounded-2xl w-full max-w-md p-4 sm:p-6 shadow-2xl border text-left space-y-4 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center border-b pb-3">
                 <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
-                    <span>🚌</span> Add New Bus to Fleet (নতুন বাস যোগ করুন)
+                    <span>🚌</span> <span data-bn="বহরে নতুন বাস যোগ করুন" data-en="Add New Bus to Fleet">Add New Bus to Fleet</span>
                 </h3>
                 <button type="button" onclick="closeAddBusModal()" class="text-gray-400 hover:text-gray-700 text-lg font-bold">✕</button>
             </div>
-            <p class="text-xs text-gray-500">
+            <p class="text-xs text-gray-500" data-bn="আপনার বহরে আরেকটি বাস যুক্ত করুন (যেমন: ফিরতি রুটের বাস বা নতুন রুট)।" data-en="Add another bus coach to your fleet (e.g. a return-route coach or another route service).">
                 আপনার বহরে আরেকটি বাস যুক্ত করুন। যেমন: ফিরতি রুটের বাস (কলকাতা ➔ পিংলা) বা অন্য কোনো রুটের বাস।
             </p>
 
             <div class="space-y-3 text-xs">
                 <div>
-                    <label class="block font-bold text-gray-700 mb-1">Bus Coach Name (বাসের নাম)</label>
+                    <label class="block font-bold text-gray-700 mb-1" data-bn="বাসের নাম" data-en="Bus Coach Name">Bus Coach Name</label>
                     <input type="text" id="newBusName" placeholder="e.g. Bus Yatra Return Deluxe" class="w-full p-2.5 border rounded-xl bg-gray-50 font-semibold text-sm">
                 </div>
                 <div>
-                    <label class="block font-bold text-gray-700 mb-1">Bus Registration Number (বাস নম্বর)</label>
+                    <label class="block font-bold text-gray-700 mb-1" data-bn="বাস রেজিস্ট্রেশন নম্বর" data-en="Bus Registration Number">Bus Registration Number</label>
                     <input type="text" id="newBusNumber" placeholder="e.g. WB-34-5679" class="w-full p-2.5 border rounded-xl bg-gray-50 font-semibold text-sm uppercase">
                 </div>
                 <div>
-                    <label class="block font-bold text-gray-700 mb-1">Route (রুট - যেমন: Kolkata ➔ Pingla)</label>
+                    <label class="block font-bold text-gray-700 mb-1" data-bn="রুট (যেমন: Kolkata ➔ Pingla)" data-en="Route (e.g. Kolkata ➔ Pingla)">Route (e.g. Kolkata ➔ Pingla)</label>
                     <input type="text" id="newBusRoute" placeholder="e.g. Kolkata - Pingla" class="w-full p-2.5 border rounded-xl bg-gray-50 font-semibold">
                 </div>
                 <div>
-                    <label class="block font-bold text-gray-700 mb-1">Stoppages & Timetable (স্টপেজ ও ছাড়ার সময়সূচি)</label>
-                    <p class="text-[10px] text-gray-500 mb-1.5">প্রতিটি স্টপেজের নাম ও বাসের নির্দিষ্ট সময় লিখুন (যেমন: Kolkata - 04:30 PM, Pingla - 08:00 PM):</p>
+                    <label class="block font-bold text-gray-700 mb-1" data-bn="স্টপেজ ও ছাড়ার সময়সূচি" data-en="Stoppages &amp; Timetable">Stoppages &amp; Timetable</label>
+                    <p class="text-[10px] text-gray-500 mb-1.5" data-bn="প্রতিটি স্টপেজের নাম ও বাস ছাড়ার সময় লিখুন (যেমন: Kolkata - 04:30 PM):" data-en="Enter stoppage name and exact departure time (e.g. Kolkata - 04:30 PM, Pingla - 08:00 PM):">প্রতিটি স্টপেজের নাম ও বাসের নির্দিষ্ট সময় লিখুন:</p>
                     <div id="ownerNewBusStoppagesContainer" class="space-y-2"></div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block font-bold text-gray-700 mb-1">Departure Time (ছাড়ার সময়)</label>
+                        <label class="block font-bold text-gray-700 mb-1" data-bn="ছাড়ার সময়" data-en="Departure Time">Departure Time</label>
                         <input type="text" id="newBusTime" placeholder="e.g. 04:30 PM" class="w-full p-2.5 border rounded-xl bg-gray-50 font-semibold">
                     </div>
                     <div>
-                        <label class="block font-bold text-gray-700 mb-1">Base Ticket Fare (ভাড়া ₹)</label>
+                        <label class="block font-bold text-gray-700 mb-1" data-bn="মূল ভাড়া (₹)" data-en="Base Ticket Fare (₹)">Base Ticket Fare (₹)</label>
                         <input type="number" id="newBusFare" value="150" min="10" max="2000" class="w-full p-2.5 border rounded-xl bg-gray-50 font-bold text-sm">
                     </div>
                 </div>
                 <div>
-                    <label class="block font-bold text-gray-700 mb-1">Total Seats (মোট আসন সংখ্যা)</label>
+                    <label class="block font-bold text-gray-700 mb-1" data-bn="মোট আসন সংখ্যা" data-en="Total Seats">Total Seats</label>
                     <input type="number" id="newBusSeats" value="65" min="20" max="100" class="w-full p-2.5 border rounded-xl bg-gray-50 font-semibold">
                 </div>
 
@@ -1603,19 +1606,19 @@
                     <div id="newBusReturnFields" class="hidden space-y-2 pt-2 border-t border-blue-200 text-xs">
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label class="block font-semibold text-gray-700 mb-1">Return Time (ফিরতি সময়)</label>
+                                <label class="block font-semibold text-gray-700 mb-1" data-bn="ফিরতি সময়" data-en="Return Time">Return Time</label>
                                 <input type="text" id="newBusReturnTime" placeholder="e.g. 03:30 PM" class="w-full p-2 border rounded-lg bg-white font-semibold">
                             </div>
                             <div>
-                                <label class="block font-semibold text-gray-700 mb-1">Return Fare (ভাড়া ₹)</label>
+                                <label class="block font-semibold text-gray-700 mb-1" data-bn="ফিরতি ভাড়া (₹)" data-en="Return Fare (₹)">Return Fare (₹)</label>
                                 <input type="number" id="newBusReturnFare" placeholder="e.g. 150" class="w-full p-2 border rounded-lg bg-white font-bold">
                             </div>
                         </div>
                         <div>
                             <div class="flex items-center justify-between mb-1">
-                                <label class="font-semibold text-gray-700">Return Stoppages (ফিরতি স্টপেজ)</label>
-                                <button type="button" onclick="reverseAddBusStoppages()" class="text-[10px] text-blue-700 font-bold hover:underline">
-                                    🔁 আপ রুট উল্টে দিন
+                                <label class="font-semibold text-gray-700" data-bn="ফিরতি স্টপেজ" data-en="Return Stoppages">Return Stoppages</label>
+                                <button type="button" onclick="reverseAddBusStoppages()" class="text-[10px] text-blue-700 font-bold hover:underline" data-bn="🔁 আপ রুট উল্টে দিন" data-en="🔁 Reverse Up Route">
+                                    🔁 Reverse Up Route
                                 </button>
                             </div>
                             <div id="ownerNewBusReturnStoppagesContainer" class="space-y-1.5"></div>
@@ -1667,7 +1670,7 @@
                     </select>
                 </div>
                 <div class="flex items-center gap-2">
-                    <span id="ownerTrackingGpsBadge" class="px-2.5 py-1 rounded-full text-xs font-black bg-red-100 text-red-700 flex items-center gap-1">
+                    <span id="ownerTrackingGpsBadge" class="px-2.5 py-1 rounded-full text-xs font-black bg-red-100 text-red-700 flex items-center gap-1" data-bn="🔴 GPS বন্ধ" data-en="🔴 GPS OFF">
                         🔴 GPS বন্ধ
                     </span>
                     <button type="button" onclick="refreshOwnerTrackingLocation()" class="p-1.5 bg-white hover:bg-gray-100 text-gray-700 border rounded-lg text-xs font-bold transition shadow-xs" title="Refresh">🔄</button>
@@ -1680,16 +1683,16 @@
                 </div>
                 <div class="bg-white p-2 rounded-lg border shadow-2xs">
                     <span class="text-[10px] text-gray-400 uppercase font-bold block" data-bn="কাছাকাছি স্টপেজ" data-en="Near Stoppage">কাছাকাছি স্টপেজ</span>
-                    <span id="ownerTrackingStoppage" class="font-bold text-emerald-700 truncate block">অজানা</span>
+                    <span id="ownerTrackingStoppage" class="font-bold text-emerald-700 truncate block" data-bn="অজানা" data-en="On Route">অজানা</span>
                 </div>
                 <div class="bg-white p-2 rounded-lg border shadow-2xs col-span-2 sm:col-span-1">
-                    <span class="text-[10px] text-gray-400 uppercase font-bold block" data-bn="সিঙ্ক স্ট্যাটাস" data-en="Sync Status">সিঙ্ক স্ট্যাটাস</span>
-                    <span id="ownerTrackingSyncStatus" class="font-semibold text-gray-600 truncate block">Firebase Live Sync</span>
+                    <span class="text-[10px] text-gray-400 uppercase font-bold block" data-bn="জিপিএস সিস্টেম" data-en="GPS System">জিপিএস সিস্টেম</span>
+                    <span id="ownerTrackingSyncStatus" class="font-bold text-indigo-700 truncate block">Bus Yatra Own Map GPS System</span>
                 </div>
             </div>
             <div id="ownerTrackingMap" class="w-full h-80 sm:h-96 bg-gray-100"></div>
-            <div class="px-4 py-2.5 bg-gray-50 border-t flex justify-between items-center text-[10px] text-gray-400">
-                <span>⚡ Real-Time Firebase Firestore WebSocket (&lt;100ms) &amp; OpenStreetMap</span>
+            <div class="px-4 py-2.5 bg-gray-50 border-t flex justify-between items-center text-[10px] text-gray-500">
+                <span class="font-semibold">🛰️ Bus Yatra Own Map GPS System • Live Telemetry</span>
                 <button onclick="closeOwnerTracking()" class="text-xs font-bold text-gray-700 hover:text-black" data-bn="বন্ধ করুন" data-en="Close">বন্ধ করুন</button>
             </div>
         </div>
@@ -1728,11 +1731,11 @@
                 <div class="flex items-center gap-2.5">
                     <span class="text-2xl">📲</span>
                     <div>
-                        <h3 class="font-black text-base leading-tight flex items-center gap-2">
-                            <span>ওনার ও ক্যাপ্টেন Android APK</span>
-                            <span class="bg-yellow-400 text-gray-950 text-[9px] font-black px-2 py-0.5 rounded-full uppercase">GitHub APK</span>
+                        <h3 class="font-black text-base leading-tight flex flex-wrap items-center gap-2">
+                            <span data-bn="ওনার ও ক্যাপ্টেন Android APK" data-en="Owner &amp; Captain Android Apps">ওনার ও ক্যাপ্টেন Android APK</span>
+                            <span class="bg-yellow-400 text-gray-950 text-[9px] font-black px-2 py-0.5 rounded-full uppercase">Android APK</span>
                         </h3>
-                        <p class="text-[11px] text-amber-200 mt-0.5">সরাসরি APK ডাউনলোড, QR স্ক্যান ও WhatsApp শেয়ার</p>
+                        <p class="text-[11px] text-amber-200 mt-0.5" data-bn="সরাসরি APK ডাউনলোড, QR স্ক্যান ও WhatsApp শেয়ার" data-en="Direct APK download, QR scan &amp; WhatsApp share">সরাসরি APK ডাউনলোড, QR স্ক্যান ও WhatsApp শেয়ার</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeOwnerAppQrModal()" class="text-white/80 hover:text-white hover:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition">✕</button>
@@ -1743,10 +1746,10 @@
                 <!-- App Selector Tabs (Captain vs Owner) -->
                 <div class="grid grid-cols-2 gap-1.5 bg-gray-100 p-1 rounded-2xl border border-gray-200">
                     <button type="button" onclick="switchOwnerModalApkTab('captain')" id="btnOwnerApkTab_captain" class="py-2 px-3 rounded-xl text-xs font-black bg-white text-gray-900 shadow-sm border border-gray-200 transition text-center flex items-center justify-center gap-1.5">
-                        <span>👨‍✈️</span> <span>ক্যাপ্টেন APK</span>
+                        <span>👨‍✈️</span> <span data-bn="ক্যাপ্টেন APK" data-en="Captain App">ক্যাপ্টেন APK</span>
                     </button>
                     <button type="button" onclick="switchOwnerModalApkTab('owner')" id="btnOwnerApkTab_owner" class="py-2 px-3 rounded-xl text-xs font-bold text-gray-500 hover:text-gray-900 transition text-center flex items-center justify-center gap-1.5">
-                        <span>👑</span> <span>ওনার APK</span>
+                        <span>👑</span> <span data-bn="ওনার APK" data-en="Owner App">ওনার APK</span>
                     </button>
                 </div>
 
@@ -1757,10 +1760,10 @@
                             <img id="ownerApkModalIcon" src="/icons/captain-192.png" class="w-11 h-11 rounded-2xl border shadow-sm object-cover bg-white shrink-0" alt="App Icon">
                             <div>
                                 <div class="flex items-center gap-1.5 flex-wrap">
-                                    <h4 id="ownerApkModalTitle" class="font-black text-gray-900 text-sm sm:text-base">Bus Yatra — Captain (ক্যাপ্টেন)</h4>
-                                    <span id="ownerApkModalBadge" class="bg-emerald-100 text-emerald-800 text-[9px] font-black px-2 py-0.5 rounded-full uppercase">Conductor APK</span>
+                                    <h4 id="ownerApkModalTitle" class="font-black text-gray-900 text-sm sm:text-base">Bus Yatra — Captain</h4>
+                                    <span id="ownerApkModalBadge" class="bg-emerald-100 text-emerald-800 text-[9px] font-black px-2 py-0.5 rounded-full uppercase">Conductor App</span>
                                 </div>
-                                <p id="ownerApkModalDesc" class="text-[11px] text-gray-500 font-medium mt-0.5">বাসের কন্ডাক্টরদের জন্য সরাসরি টিকিট চেকিং ও লাইভ জিপিএস অ্যাপ।</p>
+                                <p id="ownerApkModalDesc" class="text-[11px] text-gray-500 font-medium mt-0.5" data-bn="বাসের কন্ডাক্টরদের জন্য সরাসরি টিকিট চেকিং ও লাইভ জিপিএস অ্যাপ।" data-en="Ticket scanner &amp; live GPS broadcast app for bus conductors.">বাসের কন্ডাক্টরদের জন্য সরাসরি টিকিট চেকিং ও লাইভ জিপিএস অ্যাপ।</p>
                             </div>
                         </div>
                     </div>
@@ -1772,22 +1775,22 @@
                         </div>
                     </div>
 
-                    <p id="ownerApkModalHint" class="text-[11px] text-amber-800 font-bold bg-amber-50 border border-amber-200 rounded-xl px-3 py-1.5 inline-block">
+                    <p id="ownerApkModalHint" class="text-[11px] text-amber-800 font-bold bg-amber-50 border border-amber-200 rounded-xl px-3 py-1.5 inline-block" data-bn="📷 ক্যাপ্টেনের ফোন দিয়ে QR কোড স্ক্যান করলেই সরাসরি APK ডাউনলোড হবে!" data-en="📷 Scan this QR code on phone to download the APK directly!">
                         📷 ক্যাপ্টেনের ফোন দিয়ে QR কোড স্ক্যান করলেই সরাসরি APK ডাউনলোড হবে!
                     </p>
 
                     <!-- Action Buttons: Direct Download APK, Download QR PNG, WhatsApp Share -->
                     <div class="space-y-2.5 pt-1">
                         <button type="button" onclick="downloadActiveOwnerModalApk()" class="w-full bg-gradient-to-r from-gray-900 via-gray-800 to-black hover:from-black hover:to-gray-900 text-yellow-300 py-3 rounded-2xl font-black text-xs sm:text-sm shadow-lg transition flex items-center justify-center gap-2 active:scale-95">
-                            <span>⬇️</span> <span id="ownerApkModalBtnText">ডাউনলোড BusYatra-Captain.apk (ইনস্টল করুন)</span>
+                            <span>⬇️</span> <span id="ownerApkModalBtnText" data-bn="ডাউনলোড BusYatra-Captain.apk (ইনস্টল করুন)" data-en="Download BusYatra-Captain.apk">ডাউনলোড BusYatra-Captain.apk (ইনস্টল করুন)</span>
                         </button>
 
                         <div class="grid grid-cols-2 gap-2">
                             <button type="button" onclick="downloadActiveOwnerModalQr()" class="bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 py-2.5 px-3 rounded-xl font-black text-xs shadow-xs transition flex items-center justify-center gap-1.5 active:scale-95">
-                                <span>📥</span> <span>QR ছবি ডাউনলোড</span>
+                                <span>📥</span> <span data-bn="QR ছবি ডাউনলোড" data-en="Download QR">QR ছবি ডাউনলোড</span>
                             </button>
                             <button type="button" onclick="shareActiveOwnerModalWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-3 rounded-xl font-black text-xs shadow-sm transition flex items-center justify-center gap-1.5 active:scale-95">
-                                <span>💬</span> <span>WhatsApp-এ পাঠান</span>
+                                <span>💬</span> <span data-bn="WhatsApp-এ পাঠান" data-en="Send via WhatsApp">WhatsApp-এ পাঠান</span>
                             </button>
                         </div>
 
@@ -1796,7 +1799,7 @@
                             <a id="ownerApkModalLinkText" href="https://github.com/gopalchjana0-netizen/bus-yatra/releases/download/v1.0.0/BusYatra-Captain.apk" target="_blank" class="font-mono text-gray-700 truncate text-[10px] hover:underline text-left flex-1">
                                 https://github.com/gopalchjana0-netizen/bus-yatra/releases/download/v1.0.0/BusYatra-Captain.apk
                             </a>
-                            <button type="button" onclick="copyActiveOwnerModalApkLink()" class="shrink-0 bg-white hover:bg-gray-50 text-gray-900 font-black px-2.5 py-1.5 rounded-lg border border-gray-300 shadow-xs text-[10px] transition active:scale-95">
+                            <button type="button" onclick="copyActiveOwnerModalApkLink()" class="shrink-0 bg-white hover:bg-gray-50 text-gray-900 font-black px-2.5 py-1.5 rounded-lg border border-gray-300 shadow-xs text-[10px] transition active:scale-95" data-bn="📋 কপি" data-en="📋 Copy">
                                 📋 কপি
                             </button>
                         </div>
@@ -1812,14 +1815,14 @@
             <div class="bg-red-700 text-white p-4 flex justify-between items-center">
                 <h3 class="font-bold text-base flex items-center gap-2">
                     <span>⭐</span>
-                    <span>বাসের ফিডব্যাক QR ও পোস্টার</span>
+                    <span data-bn="বাসের ফিডব্যাক QR ও পোস্টার" data-en="Bus Feedback QR &amp; Poster">বাসের ফিডব্যাক QR ও পোস্টার</span>
                 </h3>
                 <button onclick="closeOwnerFeedbackPosterModal()" class="text-white hover:bg-red-800 w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm">✕</button>
             </div>
             <div class="p-5 space-y-4">
                 <div class="space-y-1">
-                    <h4 class="font-black text-gray-900 text-base">যাত্রীদের জন্য ফিডব্যাক QR কোড</h4>
-                    <p class="text-xs text-gray-500">বাসের ভেতরে বা টিকিট কাউন্টারে এই পোস্টারটি লাগিয়ে রাখুন। যাত্রীরা সহজে রেটিং ও মতামত দিতে পারবেন।</p>
+                    <h4 class="font-black text-gray-900 text-base" data-bn="যাত্রীদের জন্য ফিডব্যাক QR কোড" data-en="Passenger Feedback QR Code">যাত্রীদের জন্য ফিডব্যাক QR কোড</h4>
+                    <p class="text-xs text-gray-500" data-bn="বাসের ভেতরে বা টিকিট কাউন্টারে এই পোস্টারটি লাগিয়ে রাখুন। যাত্রীরা সহজে রেটিং ও মতামত দিতে পারবেন।" data-en="Display this poster inside your coach or counter so passengers can easily submit ratings and feedback.">বাসের ভেতরে বা টিকিট কাউন্টারে এই পোস্টারটি লাগিয়ে রাখুন। যাত্রীরা সহজে রেটিং ও মতামত দিতে পারবেন।</p>
                 </div>
                 
                 <div class="flex justify-center">
@@ -1965,14 +1968,14 @@
     <!-- Firebase App & Firestore Compat SDKs for Real-Time Live Bus Tracking -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="common.js?v=10.44"></script>
-    <script src="app-owner.js?v=10.40"></script>
+    <script src="common.js?v=10.45"></script>
+    <script src="app-owner.js?v=10.45"></script>
     <script>
         if (typeof initFestivalThemeSync === 'function') {
             initFestivalThemeSync('owner');
         }
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js?v=10.37', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+            navigator.serviceWorker.register('/sw.js?v=10.45', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
         }
     </script>
 </body>

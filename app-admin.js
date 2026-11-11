@@ -554,7 +554,7 @@ function switchAdminTab(tab) {
         if (hubGrid) hubGrid.classList.add('hidden');
         if (backBar) backBar.classList.remove('hidden');
         if (tabTitleEl) {
-            const tabTitles = {
+            const tabTitlesBn = {
                 buses: '🚌 বাস ফ্লিট ও রুট',
                 customers: '🎫 বুকিংস ও টিকিট',
                 owners: '👥 বাস অপারেটর',
@@ -571,7 +571,28 @@ function switchAdminTab(tab) {
                 support: '🤖 এআই সাপোর্ট ডেস্ক',
                 sos: '🚨 জরুরি SOS ডেস্ক'
             };
-            tabTitleEl.innerText = tabTitles[tab] || capitalize(tab);
+            const tabTitlesEn = {
+                buses: '🚌 Fleet & Routes',
+                customers: '🎫 Bookings & Tickets',
+                owners: '👥 Bus Operators',
+                subscriptions: '💳 Subscriptions & Billing',
+                requests: '📝 Approvals & Requests',
+                feedback: '⭐ Customer Feedback',
+                finance: '💰 Finance & Reports',
+                coupons: '🏷️ Coupons & Promos',
+                promotions: '🎯 Ads & Promotions',
+                nextgen: '⚡ Next-Gen Features',
+                flags: '⚙️ Feature Toggles',
+                notifications: '📢 Broadcast Notices',
+                devices: '📱 Devices & Security',
+                support: '🤖 AI Support Desk',
+                sos: '🚨 Emergency SOS Desk'
+            };
+            const bnT = tabTitlesBn[tab] || capitalize(tab);
+            const enT = tabTitlesEn[tab] || capitalize(tab);
+            tabTitleEl.setAttribute('data-bn', bnT);
+            tabTitleEl.setAttribute('data-en', enT);
+            tabTitleEl.innerText = window.t(bnT, enT);
         }
         updateAdminNavHighlight(tab === 'buses' ? 'buses' : (tab === 'customers' ? 'customers' : ''));
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -762,19 +783,19 @@ function loadAdminBuses() {
                 </button>
             `;
         } else if (approvalStatus === 'rejected') {
-            approvalBadge = `<span class="bg-rose-100 text-rose-900 border border-rose-300 font-bold px-2 py-0.5 rounded text-xs flex items-center gap-1" title="${escapeHtml(b.rejectionReason || '')}">🔴 বাতিল করা হয়েছে</span>`;
+            approvalBadge = `<span class="bg-rose-100 text-rose-900 border border-rose-300 font-bold px-2 py-0.5 rounded text-xs flex items-center gap-1" title="${escapeHtml(b.rejectionReason || '')}">🔴 ${window.t('বাতিল করা হয়েছে', 'Rejected')}</span>`;
             approvalButtons = `
                 <button type="button" onclick="approveBus('${escapeHtml(b.id)}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm transition flex items-center gap-1 text-xs">
                     ✅ Re-Approve
                 </button>
             `;
         } else {
-            approvalBadge = `<span class="bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold px-2 py-0.5 rounded text-xs flex items-center gap-1">🟢 লাইভ</span>`;
+            approvalBadge = `<span class="bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold px-2 py-0.5 rounded text-xs flex items-center gap-1">🟢 ${window.t('লাইভ', 'Live')}</span>`;
         }
 
         // Return Trip Information
         const returnInfo = b.returnRouteEnabled
-            ? `<div class="text-blue-700 font-semibold bg-blue-50/80 border border-blue-200 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5 mt-1">🔄 ফিরতি ট্রিপ: ${escapeHtml(b.returnRoute || 'Return')} • সময়: ${escapeHtml(b.returnTime || 'N/A')} • ভাড়া: ₹${b.returnFare !== undefined ? b.returnFare : b.fare}</div>`
+            ? `<div class="text-blue-700 font-semibold bg-blue-50/80 border border-blue-200 px-2.5 py-1 rounded-lg inline-flex flex-wrap items-center gap-1.5 mt-1">🔄 ${window.t('ফিরতি ট্রিপ:', 'Return Trip:')} ${escapeHtml(b.returnRoute || 'Return')} • ${window.t('সময়:', 'Time:')} ${escapeHtml(b.returnTime || 'N/A')} • ${window.t('ভাড়া:', 'Fare:')} ₹${b.returnFare !== undefined ? b.returnFare : b.fare}</div>`
             : '';
 
         container.innerHTML += `
@@ -800,10 +821,10 @@ function loadAdminBuses() {
                         Total Seats: ${b.totalSeats || 65} • Photos: ${b.images ? b.images.length : 1}
                     </div>
                     <div class="flex items-center gap-2 flex-wrap pt-1">
-                        <button type="button" onclick="adminQuickToggleBusPaymentRule('${escapeHtml(b.id)}', 'screenshot', ${b.requirePaymentScreenshot !== false ? 'false' : 'true'})" class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${b.requirePaymentScreenshot !== false ? 'bg-green-50 text-green-700 border-green-300 hover:bg-green-100' : 'bg-gray-100 text-gray-500 border-gray-300 hover:bg-gray-200'}" title="ক্লিক করে স্ক্রিনশট অপশন অন/অফ করুন">
-                            📸 স্ক্রিনশট: ${b.requirePaymentScreenshot !== false ? '🟢 ON' : '🔴 OFF'}
+                        <button type="button" onclick="adminQuickToggleBusPaymentRule('${escapeHtml(b.id)}', 'screenshot', ${b.requirePaymentScreenshot !== false ? 'false' : 'true'})" class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${b.requirePaymentScreenshot !== false ? 'bg-green-50 text-green-700 border-green-300 hover:bg-green-100' : 'bg-gray-100 text-gray-500 border-gray-300 hover:bg-gray-200'}" title="Toggle Screenshot Requirement">
+                            📸 ${window.t('স্ক্রিনশট:', 'Screenshot:')} ${b.requirePaymentScreenshot !== false ? '🟢 ON' : '🔴 OFF'}
                         </button>
-                        <button type="button" onclick="adminQuickToggleBusPaymentRule('${escapeHtml(b.id)}', 'utr', ${b.enableUtr ? 'false' : 'true'})" class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${b.enableUtr ? 'bg-purple-50 text-purple-700 border-purple-300 hover:bg-purple-100' : 'bg-gray-100 text-gray-500 border-gray-300 hover:bg-gray-200'}" title="ক্লিক করে UTR অপশন অন/অফ করুন">
+                        <button type="button" onclick="adminQuickToggleBusPaymentRule('${escapeHtml(b.id)}', 'utr', ${b.enableUtr ? 'false' : 'true'})" class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${b.enableUtr ? 'bg-purple-50 text-purple-700 border-purple-300 hover:bg-purple-100' : 'bg-gray-100 text-gray-500 border-gray-300 hover:bg-gray-200'}" title="Toggle UTR Requirement">
                             🔢 UTR: ${b.enableUtr ? '🟢 ON' : '🔴 OFF'}
                         </button>
                     </div>
@@ -812,16 +833,16 @@ function loadAdminBuses() {
                 <div class="flex flex-wrap items-center gap-2">
                     ${approvalButtons}
                     <button type="button" onclick="adminAccessCaptainPortal('${escapeHtml(b.driverPhone || b.driver_phone || b.ownerPhone || '')}', '${escapeHtml(b.id)}', '${escapeHtml(b.name)}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm transition flex items-center gap-1" title="Direct Captain Portal Access">
-                        👨‍✈️ <span>ক্যাপ্টেন প্যানেল</span>
+                        👨‍✈️ <span data-bn="ক্যাপ্টেন প্যানেল" data-en="Captain Portal">${window.t('ক্যাপ্টেন প্যানেল', 'Captain Portal')}</span>
                     </button>
                     <button type="button" onclick="openAdminLiveTrackingModal('${escapeHtml(b.id)}')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm transition flex items-center gap-1">
-                        🗺️ <span data-bn="লাইভ অবস্থান" data-en="Live Track">লাইভ অবস্থান</span>
+                        🗺️ <span data-bn="লাইভ অবস্থান" data-en="Live Track">${window.t('লাইভ অবস্থান', 'Live Track')}</span>
                     </button>
                     <button type="button" onclick="openAdminQuickRatingModal('${escapeHtml(b.id)}', '${escapeHtml(b.name)}', ${currentRating})" class="bg-amber-500 hover:bg-amber-600 text-gray-900 px-3 py-1.5 rounded-lg font-bold shadow-sm transition flex items-center gap-1">
                         ⭐ Rating
                     </button>
                     <button type="button" onclick="openSeatLayoutDesigner('${escapeHtml(b.id)}', 'admin')" class="bg-purple-600 hover:bg-purple-700 text-white px-3.5 py-1.5 rounded-lg font-bold shadow-sm transition flex items-center gap-1">
-                        💺 <span data-bn="সিট লেআউট" data-en="Seat Map">সিট লেআউট</span>
+                        💺 <span data-bn="সিট লেআউট" data-en="Seat Map">${window.t('সিট লেআউট', 'Seat Map')}</span>
                     </button>
                     <button onclick="editBus('${escapeHtml(b.id)}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-lg font-bold shadow-sm transition">
                         Edit
@@ -869,11 +890,15 @@ function renderAdminBusPhotosGallery() {
     if (!gallery) return;
 
     if (badge) {
-        badge.textContent = `${adminCurrentBusPhotos.length} টি ছবি`;
+        const bnC = `${adminCurrentBusPhotos.length} টি ছবি`;
+        const enC = `${adminCurrentBusPhotos.length} Photo${adminCurrentBusPhotos.length === 1 ? '' : 's'}`;
+        badge.setAttribute('data-bn', bnC);
+        badge.setAttribute('data-en', enC);
+        badge.textContent = window.t(bnC, enC);
     }
 
     if (adminCurrentBusPhotos.length === 0) {
-        gallery.innerHTML = `<div class="text-xs text-gray-400 italic">কোনো ছবি নেই। নিচে ছবি বাছুন।</div>`;
+        gallery.innerHTML = `<div class="text-xs text-gray-400 italic">${window.t('কোনো ছবি নেই। নিচে ছবি বাছুন।', 'No photos yet. Choose images below.')}</div>`;
         return;
     }
 
@@ -1308,7 +1333,7 @@ function loadAdminPendingPhotoApprovals() {
     if (!container) return;
 
     if (pendingBuses.length === 0) {
-        container.innerHTML = '<div class="text-center text-gray-400 py-6 text-xs">কোনো অতিরিক্ত ছবির অনুমোদন রিকোয়েস্ট পেন্ডিং নেই। (No pending photo approval requests.)</div>';
+        container.innerHTML = `<div class="text-center text-gray-400 py-6 text-xs">${window.t('কোনো অতিরিক্ত ছবির অনুমোদন রিকোয়েস্ট পেন্ডিং নেই।', 'No pending photo approval requests.')}</div>`;
         return;
     }
 
@@ -1456,11 +1481,17 @@ function updateAdminSelectionToolbar() {
 
     if (btn) {
         btn.disabled = count === 0;
-        btn.innerHTML = `<span>🗑️</span> <span>নির্বাচিত ডিলিট (${count}টি)</span>`;
+        const bnLbl = `নির্বাচিত ডিলিট (${count}টি)`;
+        const enLbl = `Delete Selected (${count})`;
+        btn.innerHTML = `<span>🗑️</span> <span data-bn="${bnLbl}" data-en="${enLbl}">${window.t(bnLbl, enLbl)}</span>`;
     }
     if (badge) {
         if (count > 0) {
-            badge.innerText = `${count}টি নির্বাচিত`;
+            const bnB = `${count}টি নির্বাচিত`;
+            const enB = `${count} selected`;
+            badge.setAttribute('data-bn', bnB);
+            badge.setAttribute('data-en', enB);
+            badge.innerText = window.t(bnB, enB);
             badge.classList.remove('hidden');
         } else {
             badge.classList.add('hidden');
@@ -1534,7 +1565,7 @@ function renderAdminCustomersList() {
         const currentSelected = busSelect.value;
         const currentOptsCount = busSelect.options.length;
         if (currentOptsCount !== buses.length + 1) {
-            busSelect.innerHTML = '<option value="">🚌 All Fleet Buses (সকল বাস)</option>';
+            busSelect.innerHTML = `<option value="" data-bn="🚌 সকল বাস" data-en="🚌 All Fleet Buses">${window.t('🚌 সকল বাস', '🚌 All Fleet Buses')}</option>`;
             buses.forEach(b => {
                 const opt = document.createElement('option');
                 opt.value = b.id;
@@ -2040,15 +2071,15 @@ function renderAdminOwnersList() {
                         ${statusBadge}
                     </div>
                     <div>📱 <strong>Mobile:</strong> <a href="tel:${escapeHtml(o.phone)}" class="text-blue-600 font-bold">${escapeHtml(o.phone)}</a> • 🚌 <strong>Bus:</strong> ${escapeHtml(o.bus_number || 'N/A')}</div>
-                    <div>🔑 <strong>লগইন পিন (PIN):</strong> <span class="font-mono bg-yellow-100 text-yellow-900 border border-yellow-300 px-2.5 py-0.5 rounded font-black text-xs">${escapeHtml(o.pin || '••••')}</span></div>
+                    <div>🔑 <strong>${window.t('লগইন পিন (PIN):', 'Login PIN:')}</strong> <span class="font-mono bg-yellow-100 text-yellow-900 border border-yellow-300 px-2.5 py-0.5 rounded font-black text-xs">${escapeHtml(o.pin || '••••')}</span></div>
                     <div>${formatDeviceInlineBadge(o)}</div>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
                     <button type="button" onclick="adminAccessOwnerPortal('${escapeHtml(o.phone)}', '${escapeHtml(o.name || o.company_name)}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1.5 active:scale-95" title="Access Owner Panel Directly">
-                        👑 ওনার প্যানেল
+                        👑 ${window.t('ওনার প্যানেল', 'Owner Portal')}
                     </button>
                     <button type="button" onclick="openAdminOwnerPaymentRulesModal('${escapeHtml(o.phone)}', '${escapeHtml(o.name || o.company_name)}')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1" title="Configure Payment Rules for All Buses of this Owner">
-                        💳 পেমেন্ট রুলস
+                        💳 ${window.t('পেমেন্ট রুলস', 'Payment Rules')}
                     </button>
                     <button type="button" onclick="openAdminOwnerFeaturesNextGen('${escapeHtml(o.phone)}')" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1" title="Customize Next-Gen Features">
                         ⚡ Next-Gen Features
@@ -2353,10 +2384,10 @@ function renderAdminPromotionsList(promos) {
         container.innerHTML = `
             <div class="col-span-full bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center">
                 <span class="text-3xl block mb-2">🎯</span>
-                <p class="font-bold text-gray-700 text-sm mb-1">কোনো প্রমোশনাল বিজ্ঞাপন তৈরি করা হয়নি</p>
-                <p class="text-xs text-gray-400 mb-4">কাস্টমার বা বাস মালিকের জন্য নতুন পপআপ ব্যানার অ্যাড তৈরি করতে উপরের বাটনে ক্লিক করুন।</p>
+                <p class="font-bold text-gray-700 text-sm mb-1">${window.t('কোনো প্রমোশনাল বিজ্ঞাপন তৈরি করা হয়নি', 'No Promotional Banners Created')}</p>
+                <p class="text-xs text-gray-400 mb-4">${window.t('কাস্টমার বা বাস মালিকের জন্য নতুন পপআপ ব্যানার অ্যাড তৈরি করতে নিচের বাটনে ক্লিক করুন।', 'Click below to create a new promotional popup banner for customers or bus owners.')}</p>
                 <button type="button" onclick="openAdminPromoModal()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-bold text-xs shadow-md transition inline-flex items-center gap-1.5">
-                    <span>➕</span> <span>বিজ্ঞাপন তৈরি করুন</span>
+                    <span>➕</span> <span>${window.t('বিজ্ঞাপন তৈরি করুন', 'Create Ad Banner')}</span>
                 </button>
             </div>
         `;
@@ -2675,7 +2706,7 @@ function loadAdminFestivalTheme() {
 
     if (toggle) toggle.checked = theme.enabled === true;
     if (statusLbl) {
-        statusLbl.innerText = theme.enabled ? 'থিম সক্রিয় (ON)' : 'থিম বন্ধ (OFF)';
+        statusLbl.innerText = theme.enabled ? window.t('থিম সক্রিয় (ON)', 'Theme ON') : window.t('থিম বন্ধ (OFF)', 'Theme OFF');
         statusLbl.className = theme.enabled ? 'ml-3 text-xs font-black text-green-700' : 'ml-3 text-xs font-black text-gray-800';
     }
     if (select) select.value = theme.festival || 'none';
@@ -2740,8 +2771,8 @@ function updateAdminFestivalLivePreview() {
         previewBox.innerHTML = `
             <div class="py-6">
                 <span class="text-3xl">🔴</span>
-                <p class="font-bold text-gray-700 mt-2 text-sm">সাধারণ মোড (Normal Clean Theme)</p>
-                <p class="text-xs text-gray-500 mt-1">বর্তমানে কোনো উৎসব সক্রিয় নেই। সমস্ত প্যানেল সাধারণ লাল ডিজাইনে চলছে।</p>
+                <p class="font-bold text-gray-700 mt-2 text-sm">${window.t('সাধারণ মোড (Normal Clean Theme)', 'Normal Clean Theme')}</p>
+                <p class="text-xs text-gray-500 mt-1">${window.t('বর্তমানে কোনো উৎসব সক্রিয় নেই। সমস্ত প্যানেল সাধারণ লাল ডিজাইনে চলছে।', 'No festival active right now. All portals are using the standard clean red theme.')}</p>
             </div>`;
         return;
     }
@@ -3325,7 +3356,7 @@ function renderAdminCustomersPinList(items) {
     if (!container) return;
 
     if (!items || items.length === 0) {
-        container.innerHTML = '<div class="text-center text-gray-400 py-6 text-xs">কোনো লগইন বা পিন রেকর্ড পাওয়া যায়নি (No records found).</div>';
+        container.innerHTML = `<div class="text-center text-gray-400 py-6 text-xs">${window.t('কোনো লগইন বা পিন রেকর্ড পাওয়া যায়নি।', 'No login or PIN records found.')}</div>`;
         return;
     }
 
@@ -3372,24 +3403,24 @@ function renderAdminCustomersPinList(items) {
             <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
                 ${u.role === 'owner' ? `
                     <button type="button" onclick="adminAccessOwnerPortal('${escapeHtml(u.phone)}', '${escapeHtml(u.name || u.company_name)}')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1 active:scale-95" title="Access Owner Portal Directly">
-                        👑 ওনার প্যানেল
+                        👑 ${window.t('ওনার প্যানেল', 'Owner Portal')}
                     </button>
                     <button type="button" onclick="openAdminOwnerFeaturesNextGen('${escapeHtml(u.phone)}')" class="bg-purple-600 hover:bg-purple-700 text-white px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1" title="Customize Owner Features">
                         ⚡ Features
                     </button>
                 ` : u.role === 'captain' ? `
                     <button type="button" onclick="adminAccessCaptainPortal('${u.phone}', '${u.bus_id || ''}', '${escapeHtml(u.name || 'Captain')}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1 active:scale-95" title="Access Captain Portal Directly">
-                        👨‍✈️ এক্সেস প্যানেল
+                        👨‍✈️ ${window.t('এক্সেস প্যানেল', 'Access Portal')}
                     </button>
                     <button type="button" onclick="openAdminCaptainFeaturesNextGen('${u.phone}')" class="bg-purple-600 hover:bg-purple-700 text-white px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1" title="Customize Captain Features">
                         ⚡ Features
                     </button>
                 ` : `
-                    <button type="button" onclick="adminAccessCustomerPortal('${escapeHtml(u.phone || u.displayPhone)}', '${escapeHtml(u.name || u.displayName)}')" class="bg-purple-600 hover:bg-purple-700 text-white px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1 active:scale-95" title="Access Customer Portal Directly (কোনো পিন/ওটিপি ছাড়া সরাসরি প্রবেশ)">
-                        👤 এক্সেস প্যানেল
+                    <button type="button" onclick="adminAccessCustomerPortal('${escapeHtml(u.phone || u.displayPhone)}', '${escapeHtml(u.name || u.displayName)}')" class="bg-purple-600 hover:bg-purple-700 text-white px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1 active:scale-95" title="Access Customer Portal Directly">
+                        👤 ${window.t('এক্সেস প্যানেল', 'Access Portal')}
                     </button>
-                    <button type="button" onclick="openAdminEditCustomerModal('${escapeHtml(u.phone || u.displayPhone)}', '${escapeHtml(u.name || u.displayName)}', '${escapeHtml(u.email || '')}')" class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1 active:scale-95" title="Edit Customer Details (নাম, মোবাইল, ইমেইল এডিট)">
-                        ✏️ এডিট
+                    <button type="button" onclick="openAdminEditCustomerModal('${escapeHtml(u.phone || u.displayPhone)}', '${escapeHtml(u.name || u.displayName)}', '${escapeHtml(u.email || '')}')" class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1 active:scale-95" title="Edit Customer Details">
+                        ✏️ ${window.t('এডিট', 'Edit')}
                     </button>
                     <button type="button" onclick="openAdminCustomerFeaturesModal('${u.phone || u.displayPhone}')" class="bg-gray-800 hover:bg-black text-white px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1" title="Customize Customer Features">
                         ⚡ Features
@@ -3495,7 +3526,7 @@ function populateAdminCaptainBuses() {
         select.innerHTML = '<option value="">-- ' + window.t('কোনো বাস পাওয়া যায়নি', 'No Buses Found') + ' --</option>';
         return;
     }
-    select.innerHTML = '<option value="">-- বাস সিলেক্ট করুন (Select Bus & Owner) --</option>' +
+    select.innerHTML = `<option value="">${window.t('-- বাস ও মালিক নির্বাচন করুন --', '-- Select Bus & Owner --')}</option>` +
         buses.map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name)} (${escapeHtml(b.busNumber || b.id)}) - Owner: ${escapeHtml(b.ownerName || b.ownerPhone || 'N/A')}</option>`).join('');
 }
 window.populateAdminCaptainBuses = populateAdminCaptainBuses;
@@ -3612,7 +3643,7 @@ function renderAdminCaptainsList(captains) {
             </div>
             <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <button type="button" onclick="adminAccessCaptainPortal('${c.phone}', '${c.bus_id}', '${escapeHtml(c.name || 'Captain')}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1.5" title="Access Captain Panel Directly">
-                    👨‍✈️ এক্সেস প্যানেল
+                    👨‍✈️ ${window.t('এক্সেস প্যানেল', 'Access Portal')}
                 </button>
                 <button type="button" onclick="adminResetCaptainPin('${c.phone}', '${escapeHtml(c.name || 'Captain')}', '${escapeHtml(c.bus_name || '')}')" class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-xl font-bold text-xs shadow-sm transition">
                     🔑 PIN
@@ -3786,7 +3817,7 @@ async function loadAdminFeedback() {
     const busFilter = document.getElementById('feedbackFilterBus');
     if (busFilter) {
         const currentVal = busFilter.value;
-        busFilter.innerHTML = '<option value="">-- All Buses (সব বাস) --</option>';
+        busFilter.innerHTML = `<option value="">${window.t('-- সব বাস --', '-- All Buses --')}</option>`;
         (db.buses || []).forEach(b => {
             const opt = document.createElement('option');
             opt.value = b.id;
@@ -4538,22 +4569,28 @@ async function startTrackingAdminBus(busId) {
                 badge.className = 'px-2.5 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 flex items-center gap-1';
                 badge.innerHTML = '🟢 GPS সক্রিয় (Cloudflare D1)';
             }
+            if (timeEl) timeEl.innerText = `${window.t('সর্বশেষ আপডেট:', 'Last Updated:')} ${updatedAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+
+            if (badge) {
+                badge.className = 'px-2.5 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 flex items-center gap-1';
+                badge.innerHTML = `🟢 ${window.t('GPS সক্রিয়', 'GPS Active')}`;
+            }
             if (speedEl) speedEl.innerText = `${speed} km/h`;
             if (stopEl) stopEl.innerText = stoppage;
-            if (timeEl) timeEl.innerText = `সর্বশেষ আপডেট: ${updatedAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+            if (timeEl) timeEl.innerText = `${window.t('সর্বশেষ আপডেট:', 'Last Updated:')} ${updatedAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
 
             renderAdminBusMarker(lat, lng, speed, matchedBus?.name || loc.name, matchedBus?.busNumber || loc.bus_number, timeEl ? timeEl.innerText : '', 15);
         } else if (!hasReceivedFirestoreData && (!loc || loc.lat === null || loc.lng === null)) {
             if (badge) {
                 badge.className = 'px-2.5 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-800 flex items-center gap-1';
-                badge.innerHTML = '⚠️ GPS সিগন্যাল অপেক্ষারত';
+                badge.innerHTML = `⚠️ ${window.t('GPS সিগন্যাল অপেক্ষারত', 'Awaiting GPS Signal')}`;
             }
-            if (timeEl) timeEl.innerText = 'ক্যাপ্টেন এখনও জিপিএস অন করেননি।';
+            if (timeEl) timeEl.innerText = window.t('ক্যাপ্টেন এখনও জিপিএস অন করেননি।', 'Captain has not enabled GPS yet.');
             if (speedEl) speedEl.innerText = '0 km/h';
-            if (stopEl) stopEl.innerText = 'অজানা';
+            if (stopEl) stopEl.innerText = window.t('অজানা', 'Unknown');
         }
     } catch (apiErr) {
-        console.warn('Cloudflare D1 location API fallback error:', apiErr);
+        console.warn('Location API fallback error:', apiErr);
     }
 }
 window.startTrackingAdminBus = startTrackingAdminBus;
@@ -4568,11 +4605,11 @@ function renderAdminBusMarker(lat, lng, speed = 0, busName = 'Bus', busNumber = 
     if (!mapContainer || typeof L === 'undefined') return;
 
     if (!adminTrackingMap) {
-        adminTrackingMap = L.map('adminTrackingMap').setView([lat, lng], 15);
+        adminTrackingMap = L.map('adminTrackingMap', { attributionControl: false }).setView([lat, lng], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap | Bus Yatra Live'
+            maxZoom: 19
         }).addTo(adminTrackingMap);
+        L.control.attribution({ prefix: false, position: 'bottomright' }).addAttribution('🛰️ Bus Yatra Own Map GPS System').addTo(adminTrackingMap);
     } else {
         adminTrackingMap.setView([lat, lng], 15);
         setTimeout(() => adminTrackingMap.invalidateSize(), 150);
@@ -4632,6 +4669,8 @@ if (typeof window !== 'undefined') {
     window.addEventListener('portal-language-change', (e) => {
         const lang = e.detail?.lang || 'bn';
         console.log('Admin portal language switched to:', lang);
+        if (typeof updateAdminSelectionToolbar === 'function') updateAdminSelectionToolbar();
+        if (typeof renderAdminSupportTicketsList === 'function') renderAdminSupportTicketsList();
         if (typeof loadAdminBuses === 'function') loadAdminBuses();
         if (typeof renderAdminCustomersList === 'function') renderAdminCustomersList();
         if (typeof renderAdminCustomersPinList === 'function') renderAdminCustomersPinList(adminRegisteredCustomers);
@@ -4771,7 +4810,13 @@ function renderAdminSubscriptionsUI() {
     const banCountEl = document.getElementById('adminSubBannedCount');
 
     if (totalDueEl) totalDueEl.innerText = `₹${totalDueAmount.toLocaleString('en-IN')}`;
-    if (pendingCountEl) pendingCountEl.innerText = `${pendingCount} জন মালিকের বাকি`;
+    if (pendingCountEl) {
+        const bnP = `${pendingCount} জন মালিকের বাকি`;
+        const enP = `${pendingCount} ${pendingCount === 1 ? 'operator' : 'operators'} pending`;
+        pendingCountEl.setAttribute('data-bn', bnP);
+        pendingCountEl.setAttribute('data-en', enP);
+        pendingCountEl.innerText = window.t(bnP, enP);
+    }
     if (activeCountEl) activeCountEl.innerText = activeCount;
     if (suspCountEl) suspCountEl.innerText = suspendedCount;
     if (banCountEl) banCountEl.innerText = bannedCount;
@@ -4825,7 +4870,7 @@ function renderAdminSubscriptionsUI() {
     });
 
     if (cards.length === 0) {
-        container.innerHTML = `<div class="text-center py-10 bg-white rounded-2xl border text-gray-400 text-xs">কোনো অপারেটর সাবস্ক্রিপশন ডাটা পাওয়া যায়নি।</div>`;
+        container.innerHTML = `<div class="text-center py-10 bg-white rounded-2xl border text-gray-400 text-xs">${window.t('কোনো অপারেটর সাবস্ক্রিপশন ডাটা পাওয়া যায়নি।', 'No operator subscription records found.')}</div>`;
         return;
     }
 
@@ -6403,7 +6448,7 @@ function formatDeviceInlineBadge(u) {
 
     if (!brand && !os && !model) {
         return `<span class="inline-flex items-center gap-1 text-[11px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">
-            <span>📱</span> <span>ডিভাইস লগ এখনো মেলেনি</span>
+            <span>📱</span> <span>${window.t('ডিভাইস লগ এখনো মেলেনি', 'No device telemetry yet')}</span>
         </span>`;
     }
 
@@ -6537,7 +6582,7 @@ function renderAdminDevicesList(devices) {
         container.innerHTML = `
             <div class="text-center py-12 text-gray-400 text-xs">
                 <span class="text-3xl block mb-2">🔍</span>
-                এই ফিল্টারে কোনো ডিভাইস রেকর্ড পাওয়া যায়নি।
+                ${window.t('এই ফিল্টারে কোনো ডিভাইস রেকর্ড পাওয়া যায়নি।', 'No device records found for this filter.')}
             </div>
         `;
         return;
@@ -6638,7 +6683,7 @@ function renderAdminLoginLogsList(logs) {
     if (!container) return;
 
     if (!logs || logs.length === 0) {
-        container.innerHTML = '<div class="text-center text-gray-400 py-6 text-xs">কোনো লগইন লগ পাওয়া যায়নি।</div>';
+        container.innerHTML = `<div class="text-center text-gray-400 py-6 text-xs">${window.t('কোনো লগইন লগ পাওয়া যায়নি।', 'No login activity logs found.')}</div>`;
         return;
     }
 
@@ -7102,14 +7147,14 @@ function renderAdminSupportTicketsList() {
     const countEl = document.getElementById('adminTicketListCount');
     if (!listEl) return;
 
-    if (countEl) countEl.innerText = `টিকেট তালিকা (${adminTicketsData.length})`;
+    if (countEl) countEl.innerText = window.t(`টিকেট তালিকা (${adminTicketsData.length})`, `Ticket Queue (${adminTicketsData.length})`);
 
     if (adminTicketsData.length === 0) {
         listEl.innerHTML = `
             <div class="text-center py-16 text-gray-400">
                 <span class="text-3xl block mb-2">🎉</span>
-                <p class="text-xs font-semibold">কোনো টিকেট নেই</p>
-                <p class="text-[11px] text-gray-400 mt-0.5">সব সহায়তা অনুরোধ সমাধান করা হয়েছে অথবা ফিল্টারের সাথে মিলছে না।</p>
+                <p class="text-xs font-semibold">${window.t('কোনো টিকেট নেই', 'No Support Tickets')}</p>
+                <p class="text-[11px] text-gray-400 mt-0.5">${window.t('সব সহায়তা অনুরোধ সমাধান করা হয়েছে অথবা ফিল্টারের সাথে মিলছে না।', 'All support requests are resolved or no matches for current filter.')}</p>
             </div>
         `;
         return;
@@ -7730,8 +7775,8 @@ function renderAdminSosAlertsList() {
         container.innerHTML = `
             <div class="bg-white rounded-3xl p-10 text-center border border-gray-200 shadow-xs">
                 <span class="text-4xl">🛡️</span>
-                <h4 class="font-bold text-gray-800 text-sm mt-2">কোনো জরুরি SOS অ্যালার্ট নেই</h4>
-                <p class="text-xs text-gray-400 mt-1">যাত্রীদের সুরক্ষা সম্পর্কিত সমস্ত রিকোয়েস্ট নিরাপদ ও নিয়ন্ত্রণে রয়েছে।</p>
+                <h4 class="font-bold text-gray-800 text-sm mt-2">${window.t('কোনো জরুরি SOS অ্যালার্ট নেই', 'No Emergency SOS Alerts')}</h4>
+                <p class="text-xs text-gray-400 mt-1">${window.t('যাত্রীদের সুরক্ষা সম্পর্কিত সমস্ত রিকোয়েস্ট নিরাপদ ও নিয়ন্ত্রণে রয়েছে।', 'All passenger safety incidents are safe and under control.')}</p>
             </div>
         `;
         return;
@@ -7741,11 +7786,11 @@ function renderAdminSosAlertsList() {
         const isResolved = alert.status === 'Resolved';
         const phone = alert.customer_phone || '';
         const name = alert.customer_name || 'Passenger';
-        const type = alert.emergency_type || '🚨 জরুরি সহায়তা';
-        const timeStr = alert.created_at ? formatSosTimeAgoOrDate(alert.created_at) : 'সম্প্রতি';
+        const type = alert.emergency_type || window.t('🚨 জরুরি সহায়তা', '🚨 Emergency SOS');
+        const timeStr = alert.created_at ? formatSosTimeAgoOrDate(alert.created_at) : window.t('সম্প্রতি', 'Recently');
         const coords = (alert.latitude && alert.longitude) ? `${alert.latitude},${alert.longitude}` : '';
         const mapsLink = alert.maps_url || (coords ? `https://www.google.com/maps/search/?api=1&query=${coords}` : '');
-        const locationText = alert.current_location_text || (coords ? `জিপিএস (${alert.latitude}, ${alert.longitude})` : 'লোকেশন নির্দিষ্ট নেই');
+        const locationText = alert.current_location_text || (coords ? `GPS (${alert.latitude}, ${alert.longitude})` : window.t('লোকেশন নির্দিষ্ট নেই', 'Location not specified'));
         
         // Pre-filled WhatsApp greeting
         const waMsg = encodeURIComponent(`নমস্কার ${name},\nবাস যাত্রা (Bus Yatra) কন্ট্রোল রুম থেকে বলছি। আপনার পাঠানো জরুরি SOS অ্যালার্ট (${alert.alert_number}) আমরা পেয়েছি। আমরা আপনাকে তাৎক্ষণিক সহায়তা করতে প্রস্তুত। আপনার বর্তমান অবস্থা জানান।`);

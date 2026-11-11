@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.35">
     <title>Bus Yatra - Bus Captain & Conductor Portal</title>
     <meta name="description" content="Bus Yatra - বাস ক্যাপ্টেন ও কন্ডাক্টর পোর্টাল। রিয়েল-টাইম লাইভ জিপিএস লোকেশন ব্রডকাস্ট এবং ডিজিটাল টিকিট ভেরিফায়ার।">
     <meta name="keywords" content="Bus Yatra Captain, Bus Conductor, বাস ক্যাপ্টেন পোর্টাল, লাইভ জিপিএস ট্র্যাকিং, বাস কন্ডাক্টর">
@@ -15,8 +15,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preload" href="common.js?v=10.44" as="script">
-    <link rel="preload" href="app-captain.js?v=10.37" as="script">
+    <link rel="preload" href="common.js?v=10.45" as="script">
+    <link rel="preload" href="app-captain.js?v=10.45" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
     <script src="tailwind.js?v=10.37" defer></script>
@@ -28,9 +28,12 @@
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
     <style>
+        *, *::before, *::after { box-sizing: border-box; }
         .hidden { display: none !important; }
         img { max-width: 100%; height: auto; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f3f4f6; margin: 0; }
+        html, body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f3f4f6; margin: 0; max-width: 100%; overflow-x: clip; -webkit-text-size-adjust: 100%; }
+        .grid > * { min-width: 0; }
+        input:not([type="checkbox"]):not([type="radio"]), select, textarea { max-width: 100%; min-width: 0; }
         .w-9 { width: 2.25rem !important; height: 2.25rem !important; }
         .w-8 { width: 2rem !important; height: 2rem !important; }
         .rounded-full { border-radius: 9999px !important; }
@@ -158,11 +161,11 @@
                 <div class="flex items-center gap-2">
                     <span class="text-xl">📲</span>
                     <div>
-                        <p class="text-xs font-bold text-gray-900 leading-tight">Captain মোবাইল অ্যাপ</p>
-                        <p class="text-[10px] text-gray-600">লগইনের আগে ক্যাপ্টেন অ্যাপ ইনস্টল করুন</p>
+                        <p class="text-xs font-bold text-gray-900 leading-tight" data-bn="Captain মোবাইল অ্যাপ" data-en="Captain Mobile App">Captain মোবাইল অ্যাপ</p>
+                        <p class="text-[10px] text-gray-600" data-bn="লগইনের আগে ক্যাপ্টেন অ্যাপ ইনস্টল করুন" data-en="Install Captain App before login">লগইনের আগে ক্যাপ্টেন অ্যাপ ইনস্টল করুন</p>
                     </div>
                 </div>
-                <button type="button" onclick="triggerPwaInstall('Bus Yatra - Captain Portal')" class="bg-blue-600 hover:bg-blue-700 text-white font-black text-xs px-2.5 py-1.5 rounded-lg shadow-sm whitespace-nowrap transition">
+                <button type="button" onclick="triggerPwaInstall('Bus Yatra - Captain Portal')" class="bg-blue-600 hover:bg-blue-700 text-white font-black text-xs px-2.5 py-1.5 rounded-lg shadow-sm whitespace-nowrap transition" data-bn="ইনস্টল" data-en="Install">
                     ইনস্টল
                 </button>
             </div>
@@ -199,11 +202,11 @@
                     <span class="text-base shrink-0">👨‍✈️</span>
                     <div class="truncate">
                         <strong class="text-yellow-300 block leading-tight" data-bn="অ্যাডমিন এক্সেস মোড" data-en="Admin Control Mode">অ্যাডমিন এক্সেস মোড</strong>
-                        <p id="adminImpersonationText" class="text-[11px] text-gray-200 truncate">আপনি অ্যাডমিন হিসেবে এই বাসের ক্যাপ্টেন প্যানেল পরিচালনা করছেন।</p>
+                        <p id="adminImpersonationText" class="text-[11px] text-gray-200 truncate" data-bn="আপনি অ্যাডমিন হিসেবে এই বাসের ক্যাপ্টেন প্যানেল পরিচালনা করছেন।" data-en="You are managing this bus captain portal as Super Admin.">আপনি অ্যাডমিন হিসেবে এই বাসের ক্যাপ্টেন প্যানেল পরিচালনা করছেন।</p>
                     </div>
                 </div>
                 <button type="button" onclick="exitAdminImpersonation()" class="bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-black text-xs px-3 py-1.5 rounded-lg shadow-sm transition flex items-center gap-1 active:scale-95 shrink-0 whitespace-nowrap">
-                    <span>⬅️</span> <span>অ্যাডমিন প্যানেলে ফিরুন</span>
+                    <span>⬅️</span> <span data-bn="অ্যাডমিন প্যানেলে ফিরুন" data-en="Back to Admin Panel">অ্যাডমিন প্যানেলে ফিরুন</span>
                 </button>
             </div>
 
@@ -294,16 +297,16 @@
             <img src="icons/captain-192.png" class="w-8 h-8 rounded-xl shadow border border-white/30 object-cover shrink-0" alt="Captain App">
             <div class="text-left leading-tight">
                 <p class="text-xs font-black tracking-tight text-white flex items-center gap-1">
-                    <span>👨‍✈️ Bus Captain মোবাইল অ্যাপ</span>
+                    <span data-bn="👨‍✈️ Bus Captain মোবাইল অ্যাপ" data-en="👨‍✈️ Bus Captain Mobile App">👨‍✈️ Bus Captain মোবাইল অ্যাপ</span>
                 </p>
-                <p class="text-[10px] text-blue-200 font-medium">১-ক্লিকে ইনস্টল ও দ্রুত টিকিট ভেরিফাই করুন</p>
+                <p class="text-[10px] text-blue-200 font-medium" data-bn="১-ক্লিকে ইনস্টল ও দ্রুত টিকিট ভেরিফাই করুন" data-en="1-tap install &amp; fast ticket verification">১-ক্লিকে ইনস্টল ও দ্রুত টিকিট ভেরিফাই করুন</p>
             </div>
         </div>
         <div class="flex items-center gap-1.5">
-            <button type="button" onclick="triggerPwaInstall('Bus Yatra - Captain Portal')" class="bg-yellow-400 hover:bg-yellow-300 text-gray-950 font-black text-xs px-3 py-1.5 rounded-xl shadow-sm whitespace-nowrap active:scale-95 transition">
+            <button type="button" onclick="triggerPwaInstall('Bus Yatra - Captain Portal')" class="bg-yellow-400 hover:bg-yellow-300 text-gray-950 font-black text-xs px-3 py-1.5 rounded-xl shadow-sm whitespace-nowrap active:scale-95 transition" data-bn="📲 ইনস্টল" data-en="📲 Install">
                 📲 ইনস্টল
             </button>
-            <button type="button" onclick="dismissInstallBanner('mobileCaptainAppInstallBanner')" class="text-white/80 hover:text-white text-sm p-1 leading-none" title="বন্ধ করুন">✕</button>
+            <button type="button" onclick="dismissInstallBanner('mobileCaptainAppInstallBanner')" class="text-white/80 hover:text-white text-sm p-1 leading-none" title="Close">✕</button>
         </div>
     </div>
 
@@ -348,7 +351,7 @@
                         <span id="captainSidebarNotifBadge" class="hidden bg-yellow-500 text-gray-900 text-[10px] px-2 py-0.5 rounded-full font-black">0</span>
                     </button>
                     <button type="button" onclick="toggleCaptainSidebar(); openCaptainFeedbackPosterModal();" class="w-full text-left p-3.5 rounded-2xl bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs flex items-center gap-3 transition border border-red-200 active:scale-98">
-                        <span>⭐</span> <span>বাসের ফিডব্যাক QR ও পোস্টার (Print &amp; Download)</span>
+                        <span>⭐</span> <span data-bn="বাসের ফিডব্যাক QR ও পোস্টার" data-en="Bus Feedback QR &amp; Poster (Print &amp; Download)">বাসের ফিডব্যাক QR ও পোস্টার (Print &amp; Download)</span>
                     </button>
                     <button type="button" onclick="toggleCaptainSidebar(); openCaptainAppQrModal();" class="w-full text-left p-3.5 rounded-2xl bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-sm flex items-center gap-3 transition border border-blue-200 active:scale-98">
                         <span>📲</span> <span data-bn="ক্যাপ্টেন অ্যাপ ইনস্টল" data-en="Install Captain App">ক্যাপ্টেন অ্যাপ ইনস্টল</span>
@@ -401,19 +404,19 @@
                         <h2 class="text-base sm:text-lg font-black text-gray-900 flex items-center gap-2">
                             <span>🎫</span> <span data-bn="যাত্রী বুকিং তালিকা ও অনুমোদন" data-en="Trip Bookings & Approvals">যাত্রী বুকিং তালিকা ও অনুমোদন</span>
                         </h2>
-                        <p class="text-xs text-gray-500">তারিখ অনুযায়ী বুকিং দেখুন, অনুমোদন দিন এবং পুরোনো বুকিং হিস্ট্রি এক ক্লিকে ডিলিট করুন যাতে স্ক্রিন পরিষ্কার থাকে।</p>
+                        <p class="text-xs text-gray-500" data-bn="তারিখ অনুযায়ী বুকিং দেখুন, অনুমোদন দিন এবং পুরোনো বুকিং হিস্ট্রি এক ক্লিকে ডিলিট করুন যাতে স্ক্রিন পরিষ্কার থাকে।" data-en="View bookings by date, approve requests, and clean up past history.">তারিখ অনুযায়ী বুকিং দেখুন, অনুমোদন দিন এবং পুরোনো বুকিং হিস্ট্রি এক ক্লিকে ডিলিট করুন যাতে স্ক্রিন পরিষ্কার থাকে।</p>
                     </div>
                 </div>
 
                 <!-- Filters: Date & Status -->
                 <div class="flex flex-wrap items-center gap-2 text-xs">
                     <div class="flex items-center gap-1.5 flex-1 min-w-[200px]">
-                        <span class="font-bold text-gray-700 whitespace-nowrap">📅 তারিখ:</span>
+                        <span class="font-bold text-gray-700 whitespace-nowrap" data-bn="📅 তারিখ:" data-en="📅 Date:">📅 তারিখ:</span>
                         <input type="date" id="captainBookingDateFilter" onchange="renderCaptainApprovals()" class="flex-1 p-2 border rounded-xl bg-gray-50 font-bold text-xs">
-                        <button type="button" onclick="clearCaptainDateFilter()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-2.5 py-2 rounded-xl font-bold text-xs" title="সব তারিখ দেখুন">সব</button>
+                        <button type="button" onclick="clearCaptainDateFilter()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-2.5 py-2 rounded-xl font-bold text-xs" title="View all dates" data-bn="সব" data-en="All">সব</button>
                     </div>
                     <div class="flex items-center gap-1.5 min-w-[150px]">
-                        <span class="font-bold text-gray-700 whitespace-nowrap">📌 স্ট্যাটাস:</span>
+                        <span class="font-bold text-gray-700 whitespace-nowrap" data-bn="📌 স্ট্যাটাস:" data-en="📌 Status:">📌 স্ট্যাটাস:</span>
                         <select id="captainBookingStatusFilter" onchange="renderCaptainApprovals()" class="p-2 border rounded-xl bg-gray-50 font-bold text-xs">
                             <option value="ALL" data-bn="সব স্ট্যাটাস" data-en="All Statuses">সব স্ট্যাটাস</option>
                             <option value="Pending Approval" data-bn="অপেক্ষারত" data-en="Pending">অপেক্ষারত</option>
@@ -433,12 +436,12 @@
                         <span id="captainSelectedCountBadge" class="text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full text-[11px] font-black hidden">০টি নির্বাচিত</span>
                     </label>
 
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <button type="button" id="btnCaptainBulkDelete" onclick="deleteCaptainSelectedBookings()" disabled class="bg-red-600 hover:bg-red-700 disabled:opacity-30 disabled:cursor-not-allowed text-white text-xs font-black px-3.5 py-2 rounded-xl shadow-xs transition flex items-center gap-1.5">
                             <span>🗑️</span> <span data-bn="নির্বাচিত মুছুন" data-en="Delete Selected">নির্বাচিত মুছুন</span>
                         </button>
                         <button type="button" onclick="deleteCaptainAllOnDate()" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold px-3 py-2 rounded-xl shadow-xs transition flex items-center gap-1.5" title="Clear all bookings for selected date">
-                            <span>🧹</span> <span>তারিখের সব মুছুন</span>
+                            <span>🧹</span> <span data-bn="তারিখের সব মুছুন" data-en="Clear Date">তারিখের সব মুছুন</span>
                         </button>
                     </div>
                 </div>
@@ -464,8 +467,8 @@
 
                 <!-- Camera QR Scanner Viewport -->
                 <div class="space-y-3">
-                    <button type="button" id="btnToggleCamera" onclick="toggleCameraQrScanner()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold text-xs shadow-md transition flex items-center justify-center gap-2">
-                        <span>📷 Start Camera Scanner (ক্যামেরা দিয়ে স্ক্যান করুন)</span>
+                    <button type="button" id="btnToggleCamera" onclick="toggleCameraQrScanner()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold text-xs shadow-md transition flex items-center justify-center gap-2" data-bn="📷 ক্যামেরা দিয়ে QR স্ক্যান শুরু করুন" data-en="📷 Start Camera QR Scanner">
+                        <span>📷</span> <span>Start Camera QR Scanner</span>
                     </button>
 
                     <div id="qrReaderContainer" class="hidden relative bg-black rounded-2xl overflow-hidden border-2 border-blue-500 shadow-inner">
@@ -517,38 +520,38 @@
             <div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200">
                 <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
                     <div>
-                        <h2 class="text-base md:text-lg font-bold text-gray-900">📋 Passenger Manifest & Trip Sheet</h2>
-                        <p class="text-xs text-gray-500">বাস ট্রিপের অনুমোদিত যাত্রীদের চূড়ান্ত তালিকা ও ট্রিপ শিট।</p>
+                        <h2 class="text-base md:text-lg font-bold text-gray-900" data-bn="📋 যাত্রী তালিকা ও ট্রিপ শিট" data-en="📋 Passenger Manifest &amp; Trip Sheet">📋 Passenger Manifest & Trip Sheet</h2>
+                        <p class="text-xs text-gray-500" data-bn="বাস ট্রিপের অনুমোদিত যাত্রীদের চূড়ান্ত তালিকা ও ট্রিপ শিট।" data-en="Approved boarding passengers list and trip sheet.">বাস ট্রিপের অনুমোদিত যাত্রীদের চূড়ান্ত তালিকা ও ট্রিপ শিট।</p>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <input type="date" id="captainManifestDate" onchange="renderCaptainManifest()" class="text-xs p-2 border rounded-xl bg-gray-50 font-bold">
                         <button type="button" onclick="deleteCaptainManifestDateBookings()" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shadow-xs" title="Delete all passengers for selected date">
-                            <span>🗑️</span> <span>ট্রিপ শিট ক্লিয়ার</span>
+                            <span>🗑️</span> <span data-bn="ট্রিপ শিট ক্লিয়ার" data-en="Clear Trip Sheet">ট্রিপ শিট ক্লিয়ার</span>
                         </button>
                     </div>
                 </div>
 
                 <!-- Trip Reminder Control Panel for Captain (WhatsApp & Normal SMS - 100% Free) -->
-                <div id="captainReminderCard" class="bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 p-4 sm:p-5 rounded-2xl border-2 border-emerald-300 shadow-xs space-y-3 mb-4">
+                <div id="captainReminderCard" class="bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 p-3.5 sm:p-5 rounded-2xl border-2 border-emerald-300 shadow-xs space-y-3 mb-4">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-emerald-200 pb-2.5">
                         <div class="flex items-center gap-2.5">
                             <span class="text-2xl">📲</span>
                             <div>
-                                <h3 class="font-black text-emerald-950 text-sm sm:text-base flex items-center gap-2">
-                                    <span>যাত্রীদের ২-৩ ঘণ্টা আগের ট্রিপ রিমাইন্ডার</span>
+                                <h3 class="font-black text-emerald-950 text-sm sm:text-base flex flex-wrap items-center gap-2">
+                                    <span data-bn="যাত্রীদের ২-৩ ঘণ্টা আগের ট্রিপ রিমাইন্ডার" data-en="2-3 Hour Pre-Trip Passenger Reminders">যাত্রীদের ২-৩ ঘণ্টা আগের ট্রিপ রিমাইন্ডার</span>
                                     <span class="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">100% Free</span>
                                 </h3>
-                                <p class="text-[11px] text-emerald-800">কন্ডাক্টর মোবাইল থেকে যাত্রীদের বাংলা+ইংরেজি হোয়াটসঅ্যাপ ও সাধারণ SMS রিমাইন্ডার এবং লাইভ GPS ট্র্যাক লিংক পাঠান।</p>
+                                <p class="text-[11px] text-emerald-800" data-bn="কন্ডাক্টর মোবাইল থেকে যাত্রীদের হোয়াটসঅ্যাপ ও সাধারণ SMS রিমাইন্ডার এবং লাইভ GPS ট্র্যাক লিংক পাঠান।" data-en="Send WhatsApp &amp; SMS boarding reminders with live GPS links from conductor phone.">কন্ডাক্টর মোবাইল থেকে যাত্রীদের বাংলা+ইংরেজি হোয়াটসঅ্যাপ ও সাধারণ SMS রিমাইন্ডার এবং লাইভ GPS ট্র্যাক লিংক পাঠান।</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-2">
                             <label class="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
-                                <span>সময়:</span>
+                                <span data-bn="সময়:" data-en="Time:">সময়:</span>
                                 <select id="captainReminderHoursSelect" class="text-xs p-1.5 border border-emerald-300 rounded-lg bg-white font-bold text-gray-800">
-                                    <option value="2">২ ঘণ্টা আগে (2 Hours)</option>
-                                    <option value="3">৩ ঘণ্টা আগে (3 Hours)</option>
-                                    <option value="1">১ ঘণ্টা আগে (1 Hour)</option>
-                                    <option value="4">৪ ঘণ্টা আগে (4 Hours)</option>
+                                    <option value="2" data-bn="২ ঘণ্টা আগে" data-en="2 Hours Before">২ ঘণ্টা আগে (2 Hours)</option>
+                                    <option value="3" data-bn="৩ ঘণ্টা আগে" data-en="3 Hours Before">৩ ঘণ্টা আগে (3 Hours)</option>
+                                    <option value="1" data-bn="১ ঘণ্টা আগে" data-en="1 Hour Before">১ ঘণ্টা আগে (1 Hour)</option>
+                                    <option value="4" data-bn="৪ ঘণ্টা আগে" data-en="4 Hours Before">৪ ঘণ্টা আগে (4 Hours)</option>
                                 </select>
                             </label>
                         </div>
@@ -558,27 +561,27 @@
                     <div class="flex flex-wrap items-center justify-between gap-2.5 pt-1">
                         <label class="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-xl border border-emerald-300 shadow-xs text-xs font-black text-gray-900 select-none">
                             <input type="checkbox" id="captainManifestSelectAll" onchange="toggleCaptainManifestSelectAll(this.checked)" class="w-4 h-4 text-emerald-600 rounded">
-                            <span>[✓] Select All (সবাইকে নির্বাচন করুন)</span>
+                            <span data-bn="সবাইকে নির্বাচন করুন" data-en="Select All Passengers">সবাইকে নির্বাচন করুন</span>
                         </label>
                         
                         <div class="flex flex-wrap items-center gap-2 text-xs font-bold">
                             <span class="text-emerald-900 bg-emerald-100/80 px-2.5 py-1.5 rounded-xl border border-emerald-200">
-                                নির্বাচিত যাত্রী: <strong id="captainSelectedCount" class="text-emerald-950 font-black">0</strong> জন
+                                <span data-bn="নির্বাচিত:" data-en="Selected:">নির্বাচিত:</span> <strong id="captainSelectedCount" class="text-emerald-950 font-black">0</strong>
                             </span>
                             <!-- WhatsApp Send Button -->
                             <button type="button" id="btnCaptainSendWhatsApp" onclick="sendCaptainSelectedWhatsAppReminders()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95">
-                                <span>🟢</span> <span>WhatsApp রিমাইন্ডার</span>
+                                <span>🟢</span> <span data-bn="WhatsApp রিমাইন্ডার" data-en="WhatsApp Reminder">WhatsApp রিমাইন্ডার</span>
                             </button>
                             <!-- Normal SMS Send Button -->
                             <button type="button" id="btnCaptainSendNormalSms" onclick="sendCaptainSelectedNormalSmsReminders()" class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95">
-                                <span>💬</span> <span>নরমাল SMS পাঠান</span>
+                                <span>💬</span> <span data-bn="নরমাল SMS পাঠান" data-en="Send Normal SMS">নরমাল SMS পাঠান</span>
                             </button>
                         </div>
                     </div>
 
                     <!-- Admin Disabled Notice Banner (Hidden when enabled) -->
                     <div id="captainReminderAdminDisabledNotice" class="hidden bg-amber-100 border border-amber-300 p-2.5 rounded-xl text-amber-900 text-xs font-semibold flex items-center gap-2">
-                        <span>⚠️</span> <span>সুপার অ্যাডমিন কর্তৃক ট্রিপ রিমাইন্ডার ফিচারটি সাময়িকভাবে বন্ধ রাখা হয়েছে।</span>
+                        <span>⚠️</span> <span data-bn="সুপার অ্যাডমিন কর্তৃক ট্রিপ রিমাইন্ডার ফিচারটি সাময়িকভাবে বন্ধ রাখা হয়েছে।" data-en="Trip reminder feature is temporarily disabled by Super Admin.">সুপার অ্যাডমিন কর্তৃক ট্রিপ রিমাইন্ডার ফিচারটি সাময়িকভাবে বন্ধ রাখা হয়েছে।</span>
                     </div>
                 </div>
 
@@ -596,27 +599,27 @@
                         <h2 class="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
                             <span>📡</span> <span data-bn="লাইভ জিপিএস ট্র্যাকিং কন্ট্রোল" data-en="Live GPS Tracking Control">লাইভ জিপিএস ট্র্যাকিং কন্ট্রোল</span>
                         </h2>
-                        <p class="text-xs text-gray-500">বাসের রিয়েল-টাইম লাইভ অবস্থান সম্প্রচার করুন যাতে যাত্রী ও মালিক ম্যাপে বাস দেখতে পান।</p>
+                        <p class="text-xs text-gray-500" data-bn="বাসের রিয়েল-টাইম লাইভ অবস্থান সম্প্রচার করুন যাতে যাত্রী ও মালিক ম্যাপে বাস দেখতে পান।" data-en="Broadcast real-time bus GPS location so passengers and the operator can track on live map.">বাসের রিয়েল-টাইম লাইভ অবস্থান সম্প্রচার করুন যাতে যাত্রী ও মালিক ম্যাপে বাস দেখতে পান।</p>
                     </div>
                 </div>
 
                 <!-- Main Status & Toggle Card -->
-                <div id="gpsToggleBox" class="p-5 bg-gradient-to-br from-gray-50 to-blue-50/40 rounded-2xl border-2 border-gray-200 space-y-4 text-center">
+                <div id="gpsToggleBox" class="p-4 sm:p-5 bg-gradient-to-br from-gray-50 to-blue-50/40 rounded-2xl border-2 border-gray-200 space-y-4 text-center">
                     <div id="gpsSwitchStatus" class="text-2xl sm:text-3xl font-black text-red-600 flex items-center justify-center gap-2">
                         <span>🔴</span> <span>GPS BROADCAST OFF</span>
                     </div>
-                    <p id="gpsSwitchDesc" class="text-xs text-gray-600">
+                    <p id="gpsSwitchDesc" class="text-xs text-gray-600" data-bn="জিপিএস চালু করলে আপনার মোবাইল থেকে বাসের অবস্থান প্রতি কয়েক সেকেন্ডে যাত্রী ও মালিকের কাছে সরাসরি লাইভ আপডেট হবে।" data-en="Turn GPS ON to broadcast your live coach location to passengers and fleet owner.">
                         জিপিএস চালু করলে আপনার মোবাইল থেকে বাসের অবস্থান প্রতি কয়েক সেকেন্ডে যাত্রী ও মালিকের কাছে সরাসরি লাইভ আপডেট হবে।
                     </p>
 
                     <!-- Pocket Mode & Background Status Badge -->
                     <div id="pocketModeBadge" class="hidden inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 border border-emerald-300 text-emerald-900 rounded-full text-[11px] font-bold shadow-xs">
-                        <span>📱</span> <span>পকেট মোড সক্রিয়: ফোন মিনিমাইজ বা লক করে পকেটে রাখলেও ট্র্যাকিং চালু থাকবে</span>
+                        <span>📱</span> <span data-bn="পকেট মোড সক্রিয়: ফোন লক করে পকেটে রাখলেও ট্র্যাকিং চালু থাকবে" data-en="Pocket Mode Active: Live tracking continues in background">পকেট মোড সক্রিয়: ফোন মিনিমাইজ বা লক করে পকেটে রাখলেও ট্র্যাকিং চালু থাকবে</span>
                     </div>
 
                     <!-- Primary Action Button -->
                     <button id="gpsToggleBtn" type="button" onclick="toggleCaptainGpsBroadcast()" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white py-3.5 rounded-2xl font-black text-sm sm:text-base shadow-lg transition flex items-center justify-center gap-2">
-                        <span>📡</span> <span>লাইভ জিপিএস চালু করুন (Turn GPS ON 🟢)</span>
+                        <span>📡</span> <span data-bn="লাইভ জিপিএস চালু করুন" data-en="Turn GPS ON 🟢">Turn GPS ON 🟢</span>
                     </button>
 
                     <!-- Real-Time Telemetry Row -->
@@ -631,7 +634,7 @@
                         </div>
                         <div class="bg-white p-2.5 rounded-xl border border-gray-200 shadow-xs">
                             <span class="text-[10px] uppercase font-bold text-gray-400 block" data-bn="GPS নির্ভুলতা" data-en="GPS Accuracy">GPS নির্ভুলতা</span>
-                            <span id="captainGpsAccuracy" class="text-xs font-bold text-emerald-700">±-- m (লকিং...)</span>
+                            <span id="captainGpsAccuracy" class="text-xs font-bold text-emerald-700" data-bn="±-- m (লকিং...)" data-en="±-- m (Locking...)">±-- m (লকিং...)</span>
                         </div>
                         <div class="bg-white p-2.5 rounded-xl border border-gray-200 shadow-xs">
                             <span class="text-[10px] uppercase font-bold text-gray-400 block" data-bn="সর্বশেষ আপডেট" data-en="Last Updated">সর্বশেষ আপডেট</span>
@@ -645,9 +648,9 @@
                             <span>💡</span> <span data-bn="ক্যাপ্টেন ট্র্যাকিং নির্দেশিকা:" data-en="Captain Tracking Guide:">ক্যাপ্টেন ট্র্যাকিং নির্দেশিকা:</span>
                         </p>
                         <ul class="list-disc list-inside text-[11px] text-blue-800 space-y-1">
-                            <li><strong>ফোন পকেটে রাখার নিয়ম:</strong> উপরে <em>লাইভ জিপিএস চালু করুন</em> বাটনে চাপলে ব্যাকগ্রাউন্ড অডিও ও মিডিয়া সেশন চালু হয়। এরপর ফোন স্ক্রিন লক করে পকেটে রাখলেও প্রতি ৮-১০ সেকেন্ডে বাসের লাইভ লোকেশন আপডেট হতে থাকবে।</li>
-                            <li><strong>পেজ রিলোড বা রিফ্রেশ হলেও নিরাপদ:</strong> ক্যাপ্টেন পেজ রিফ্রেশ করলেও সিস্টেম স্বয়ংক্রিয়ভাবে জিপিএস ট্র্যাকিং পুনরায় চালু রাখে।</li>
-                            <li><strong>উন্নত নেটওয়ার্কের জন্য:</strong> বাসের চার্জারে ফোনটি কানেক্ট করে উইন্ডশিল্ড বা জানলার কাছে রাখলে স্যাটেলাইট থেকে সেরা লোকেশন পাওয়া যায়।</li>
+                            <li data-bn="<strong>ফোন পকেটে রাখার নিয়ম:</strong> উপরে লাইভ জিপিএস চালু করুন বাটনে চাপলে ব্যাকগ্রাউন্ড সেশন চালু হয়। ফোন পকেটে রাখলেও লোকেশন আপডেট হতে থাকবে।" data-en="<strong>Background Pocket Mode:</strong> Keep live GPS enabled; bus coordinates continue broadcasting every few seconds."><strong>ফোন পকেটে রাখার নিয়ম:</strong> লাইভ জিপিএস চালু রাখুন — ফোন পকেটে রাখলেও লোকেশন আপডেট হতে থাকবে।</li>
+                            <li data-bn="<strong>পেজ রিলোড হলেও নিরাপদ:</strong> পেজ রিফ্রেশ করলেও সিস্টেম স্বয়ংক্রিয়ভাবে জিপিএস ট্র্যাকিং চালু রাখে।" data-en="<strong>Auto Resume on Refresh:</strong> Tracking automatically restores even if you reload the app."><strong>পেজ রিলোড হলেও নিরাপদ:</strong> সিস্টেম স্বয়ংক্রিয়ভাবে ট্র্যাকিং পুনরায় চালু রাখে।</li>
+                            <li data-bn="<strong>উন্নত নেটওয়ার্কের জন্য:</strong> জানলার কাছে বা ড্যাশবোর্ডে ফোন রাখলে সেরা স্যাটেলাইট নির্ভুলতা পাওয়া যায়।" data-en="<strong>Best Signal:</strong> Keep phone near dashboard or window for optimal satellite accuracy."><strong>উন্নত নেটওয়ার্কের জন্য:</strong> জানলার কাছে ফোন রাখলে সেরা স্যাটেলাইট সিগন্যাল পাওয়া যায়।</li>
                         </ul>
                     </div>
                 </div>
@@ -658,20 +661,20 @@
                         <div class="flex items-center gap-2 text-amber-950 font-black text-sm">
                             <span class="text-xl">⚠️</span> <span data-bn="মোবাইলে লোকেশন পারমিশন দিন" data-en="Allow Location Permission">মোবাইলে লোকেশন পারমিশন দিন</span>
                         </div>
-                        <span class="text-[10px] font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">নির্দেশিকা</span>
+                        <span class="text-[10px] font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full" data-bn="নির্দেশিকা" data-en="Guide">নির্দেশিকা</span>
                     </div>
                     <p id="gpsErrorMessage" class="text-xs text-amber-900 leading-relaxed font-medium">
                         <span data-bn="আপনার ব্রাউজারে লোকেশন পারমিশন বন্ধ আছে। যাত্রী ও মালিককে বাসের সঠিক অবস্থান দেখাতে লোকেশন অন করা প্রয়োজন।" data-en="Location permission is blocked. Location is required to broadcast live bus position to passengers and owner.">আপনার ব্রাউজারে লোকেশন পারমিশন বন্ধ আছে। যাত্রী ও মালিককে বাসের সঠিক অবস্থান দেখাতে লোকেশন অন করা প্রয়োজন।</span>
                     </p>
                     <div class="bg-white/95 p-3.5 rounded-xl border border-amber-200 text-xs text-amber-950 space-y-2">
                         <p class="font-bold flex items-center gap-1.5 text-gray-900">
-                            <span>📱</span> <span>কিভাবে ৩ সেকেন্ডে লোকেশন চালু করবেন:</span>
+                            <span>📱</span> <span data-bn="কিভাবে ৩ সেকেন্ডে লোকেশন চালু করবেন:" data-en="How to enable location in 3 seconds:">কিভাবে ৩ সেকেন্ডে লোকেশন চালু করবেন:</span>
                         </p>
                         <ol class="list-decimal list-inside space-y-1.5 text-[11px] text-gray-700 leading-relaxed pl-1">
-                            <li>ক্রোম ব্রাউজারের উপরে অ্যাড্রেস বারের পাশে <strong>তালা (Lock 🔒)</strong> অথবা <strong>সেটিংস (Tune ℹ️)</strong> আইকনে চাপুন।</li>
-                            <li><strong>Permissions</strong> অথবা <strong>Site settings</strong> এ চাপুন।</li>
-                            <li><strong>Location</strong> অপশনটি <strong>Allow (অনুমতি দিন)</strong> করুন।</li>
-                            <li>তারপর নিচের সবুজ <strong>"অনুমতি দেওয়ার পর পুনরায় চেষ্টা করুন"</strong> বাটনে চাপুন।</li>
+                            <li data-bn="ব্রাউজার অ্যাড্রেস বারের পাশে <strong>তালা (Lock 🔒)</strong> আইকনে চাপুন।" data-en="Tap the <strong>Lock 🔒</strong> or settings icon in browser address bar.">ব্রাউজার অ্যাড্রেস বারের পাশে Lock আইকনে চাপুন।</li>
+                            <li data-bn="<strong>Permissions</strong> বা <strong>Site settings</strong> খুলুন।" data-en="Open <strong>Permissions</strong> or <strong>Site settings</strong>.">Permissions খুলুন।</li>
+                            <li data-bn="<strong>Location</strong> অপশনটি <strong>Allow</strong> করুন।" data-en="Set <strong>Location</strong> permission to <strong>Allow</strong>.">Location Allow করুন।</li>
+                            <li data-bn="তারপর নিচের <strong>পুনরায় চেষ্টা করুন</strong> বাটনে চাপুন।" data-en="Tap <strong>Retry GPS</strong> below.">তারপর Retry বাটনে চাপুন।</li>
                         </ol>
                     </div>
                     <div class="flex flex-col sm:flex-row gap-2 pt-1">
@@ -679,18 +682,15 @@
                             <span>🔄</span> <span data-bn="অনুমতি দেওয়ার পর পুনরায় চেষ্টা করুন" data-en="Retry GPS after Allowing">অনুমতি দেওয়ার পর পুনরায় চেষ্টা করুন</span>
                         </button>
                     </div>
-                    <p class="text-[11px] text-blue-800 bg-blue-50 p-2 rounded-lg border border-blue-200 text-center font-medium">
-                        💡 <strong>বিকল্প সহজ উপায়:</strong> মোবাইল জিপিএস সমস্যা করলে নিচের <em>"রুট স্টপেজ কুইক ব্রডকাস্ট"</em> থেকে বর্তমান স্টপেজে চাপুন — তৎক্ষণাৎ ম্যাপে বাস আপডেট হবে!
-                    </p>
                 </div>
 
                 <!-- Live Map Viewport for Captain -->
                 <div class="space-y-2 text-left">
                     <div class="flex justify-between items-center">
                         <span class="text-xs font-bold text-gray-700 flex items-center gap-1.5">
-                            <span>🗺️</span> <span data-bn="লাইভ রোড ম্যাপ" data-en="Live Bus Location on Map">লাইভ রোড ম্যাপ</span>
+                            <span>🗺️</span> <span data-bn="লাইভ রোড ম্যাপ (Bus Yatra Map GPS)" data-en="Live Road Map (Bus Yatra Map GPS)">লাইভ রোড ম্যাপ</span>
                         </span>
-                        <span id="captainMapStatusBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">ম্যাপ প্রস্তুত</span>
+                        <span id="captainMapStatusBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600" data-bn="ম্যাপ প্রস্তুত" data-en="Map Ready">ম্যাপ প্রস্তুত</span>
                     </div>
                     <div id="captainLiveMap" class="w-full h-56 rounded-2xl border-2 border-blue-200 overflow-hidden shadow-inner bg-gray-100"></div>
                 </div>
@@ -701,39 +701,21 @@
                         <h4 class="text-xs font-black text-gray-900 flex items-center gap-1.5">
                             <span>📍</span> <span data-bn="রুট স্টপেজ কুইক ব্রডকাস্ট" data-en="Quick Route Stoppage Checkpoint">রুট স্টপেজ কুইক ব্রডকাস্ট</span>
                         </h4>
-                        <span class="text-[10px] text-blue-600 font-bold">১ ক্লিকে আপডেট</span>
+                        <span class="text-[10px] text-blue-600 font-bold" data-bn="১ ক্লিকে আপডেট" data-en="1-Tap Update">১ ক্লিকে আপডেট</span>
                     </div>
-                    <p class="text-[11px] text-gray-500 leading-tight">
-                        মোবাইল জিপিএস সিগন্যাল দুর্বল হলে বা কোনো কারণে সমস্যা হলে আপনি বর্তমানে যে স্টপেজে আছেন সেটি চাপুন — তৎক্ষণাৎ বাস সেখানে আপডেট হবে:
+                    <p class="text-[11px] text-gray-500 leading-tight" data-bn="মোবাইল জিপিএস সিগন্যাল দুর্বল হলে আপনি যে স্টপেজে আছেন সেটি চাপুন — সাথে সাথে ম্যাপে বাস আপডেট হবে:" data-en="If GPS signal is weak, tap your current stoppage below to update bus position instantly on the live map:">
+                        মোবাইল জিপিএস সিগন্যাল দুর্বল হলে আপনি বর্তমানে যে স্টপেজে আছেন সেটি চাপুন:
                     </p>
                     <div class="grid grid-cols-3 gap-1.5 pt-1" id="checkpointButtonsGrid">
-                        <button type="button" onclick="broadcastCheckpoint('Pingla', 22.2742, 87.5925)" class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs rounded-xl border border-blue-200 transition text-center shadow-2xs">
-                            📍 পিংলা
-                        </button>
-                        <button type="button" onclick="broadcastCheckpoint('Jalchak', 22.2980, 87.6200)" class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs rounded-xl border border-blue-200 transition text-center shadow-2xs">
-                            📍 জলচক
-                        </button>
-                        <button type="button" onclick="broadcastCheckpoint('Debra', 22.3880, 87.5650)" class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs rounded-xl border border-blue-200 transition text-center shadow-2xs">
-                            📍 ডেবরা
-                        </button>
-                        <button type="button" onclick="broadcastCheckpoint('Kharagpur', 22.3300, 87.3200)" class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs rounded-xl border border-blue-200 transition text-center shadow-2xs">
-                            📍 খড়গপুর
-                        </button>
-                        <button type="button" onclick="broadcastCheckpoint('Mecheda', 22.4410, 87.8760)" class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs rounded-xl border border-blue-200 transition text-center shadow-2xs">
-                            📍 মেচেদা
-                        </button>
-                        <button type="button" onclick="broadcastCheckpoint('Kolaghat', 22.4280, 87.8680)" class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs rounded-xl border border-blue-200 transition text-center shadow-2xs">
-                            📍 কোলাঘাট
-                        </button>
-                        <button type="button" onclick="broadcastCheckpoint('Santragachi', 22.5800, 88.2800)" class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs rounded-xl border border-blue-200 transition text-center shadow-2xs">
-                            📍 সাঁতরাগাছি
-                        </button>
-                        <button type="button" onclick="broadcastCheckpoint('Howrah', 22.5850, 88.3430)" class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs rounded-xl border border-blue-200 transition text-center shadow-2xs">
-                            📍 হাওড়া
-                        </button>
-                        <button type="button" onclick="broadcastCheckpoint('Kolkata', 22.5726, 88.3639)" class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs rounded-xl border border-blue-200 transition text-center shadow-2xs">
-                            📍 কলকাতা
-                        </button>
+                        <button type="button" onclick="broadcastCheckpoint('Pingla', 22.2742, 87.5925)" class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs rounded-xl border border-blue-200 transition text-center shadow-2xs" data-bn="📍 পিংলা" data-en="📍 Pingla">📍 পিংলা</button>
+                        <button type="button" onclick="broadcastCheckpoint('Jalchak', 22.2980, 87.6200)" class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs rounded-xl border border-blue-200 transition text-center shadow-2xs" data-bn="📍 জলচক" data-en="📍 Jalchak">📍 জলচক</button>
+                        <button type="button" onclick="broadcastCheckpoint('Debra', 22.3880, 87.5650)" class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs rounded-xl border border-blue-200 transition text-center shadow-2xs" data-bn="📍 ডেবরা" data-en="📍 Debra">📍 ডেবরা</button>
+                        <button type="button" onclick="broadcastCheckpoint('Kharagpur', 22.3300, 87.3200)" class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs rounded-xl border border-blue-200 transition text-center shadow-2xs" data-bn="📍 খড়গপুর" data-en="📍 Kharagpur">📍 খড়গপুর</button>
+                        <button type="button" onclick="broadcastCheckpoint('Mecheda', 22.4410, 87.8760)" class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs rounded-xl border border-blue-200 transition text-center shadow-2xs" data-bn="📍 মেচেদা" data-en="📍 Mecheda">📍 মেচেদা</button>
+                        <button type="button" onclick="broadcastCheckpoint('Kolaghat', 22.4280, 87.8680)" class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs rounded-xl border border-blue-200 transition text-center shadow-2xs" data-bn="📍 কোলাঘাট" data-en="📍 Kolaghat">📍 কোলাঘাট</button>
+                        <button type="button" onclick="broadcastCheckpoint('Santragachi', 22.5800, 88.2800)" class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs rounded-xl border border-blue-200 transition text-center shadow-2xs" data-bn="📍 সাঁতরাগাছি" data-en="📍 Santragachi">📍 সাঁতরাগাছি</button>
+                        <button type="button" onclick="broadcastCheckpoint('Howrah', 22.5850, 88.3430)" class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs rounded-xl border border-blue-200 transition text-center shadow-2xs" data-bn="📍 হাওড়া" data-en="📍 Howrah">📍 হাওড়া</button>
+                        <button type="button" onclick="broadcastCheckpoint('Kolkata', 22.5726, 88.3639)" class="p-2 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-xs rounded-xl border border-blue-200 transition text-center shadow-2xs" data-bn="📍 কলকাতা" data-en="📍 Kolkata">📍 কলকাতা</button>
                     </div>
                 </div>
             </div>
@@ -761,8 +743,8 @@
                 <div class="flex items-center gap-2.5">
                     <img src="icons/captain-192.png" class="w-7 h-7 rounded-full shadow-sm border border-white/20" alt="Captain">
                     <div class="text-left leading-tight">
-                        <h3 class="font-black text-sm tracking-wide">Bus Captain &amp; Passenger অ্যাপ শেয়ার হাব</h3>
-                        <p class="text-[10px] text-blue-200 font-medium">ইনস্টল, কিউআর কোড ও হোয়াটসঅ্যাপ ডিস্ট্রিবিউশন</p>
+                        <h3 class="font-black text-sm tracking-wide" data-bn="Bus Captain ও Passenger অ্যাপ শেয়ার" data-en="Bus Captain &amp; Passenger App Hub">Bus Captain &amp; Passenger App Hub</h3>
+                        <p class="text-[10px] text-blue-200 font-medium" data-bn="ইনস্টল, কিউআর কোড ও হোয়াটসঅ্যাপ শেয়ার" data-en="Install, QR Code &amp; WhatsApp Share">ইনস্টল, কিউআর কোড ও হোয়াটসঅ্যাপ শেয়ার</p>
                     </div>
                 </div>
                 <button onclick="closeCaptainAppQrModal()" class="text-white/80 hover:text-white hover:bg-white/10 w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm transition">✕</button>
@@ -770,10 +752,10 @@
 
             <!-- Tab Switcher -->
             <div class="flex border-b border-gray-100 bg-gray-50/80 p-1.5 gap-1.5">
-                <button type="button" id="tabCapCaptain" onclick="switchCaptainModalTab('captain')" class="flex-1 py-2 rounded-xl text-xs font-black bg-white text-blue-900 shadow-xs border border-gray-200 transition">
+                <button type="button" id="tabCapCaptain" onclick="switchCaptainModalTab('captain')" class="flex-1 py-2 rounded-xl text-xs font-black bg-white text-blue-900 shadow-xs border border-gray-200 transition" data-bn="👨‍✈️ ক্যাপ্টেন অ্যাপ" data-en="👨‍✈️ Captain App">
                     👨‍✈️ ক্যাপ্টেন অ্যাপ
                 </button>
-                <button type="button" id="tabCapCustomer" onclick="switchCaptainModalTab('customer')" class="flex-1 py-2 rounded-xl text-xs font-black text-gray-500 hover:text-gray-900 transition">
+                <button type="button" id="tabCapCustomer" onclick="switchCaptainModalTab('customer')" class="flex-1 py-2 rounded-xl text-xs font-black text-gray-500 hover:text-gray-900 transition" data-bn="🚌 যাত্রী বুকিং অ্যাপ" data-en="🚌 Passenger Booking App">
                     🚌 যাত্রী বুকিং অ্যাপ
                 </button>
             </div>
@@ -782,8 +764,8 @@
                 <!-- Tab Pane 1: Captain App -->
                 <div id="capPaneCaptain" class="space-y-3">
                     <div class="space-y-0.5">
-                        <h4 class="font-black text-gray-900 text-sm">বাস ক্যাপ্টেন ও কন্ডাক্টর মোবাইল অ্যাপ</h4>
-                        <p class="text-[11px] text-gray-500">অন্যান্য ড্রাইভার বা কন্ডাক্টরদের সাথে শেয়ার করুন অথবা নিজের ফোনে ইনস্টল করুন।</p>
+                        <h4 class="font-black text-gray-900 text-sm" data-bn="বাস ক্যাপ্টেন ও কন্ডাক্টর মোবাইল অ্যাপ" data-en="Bus Captain &amp; Conductor Mobile App">বাস ক্যাপ্টেন ও কন্ডাক্টর মোবাইল অ্যাপ</h4>
+                        <p class="text-[11px] text-gray-500" data-bn="অন্যান্য ড্রাইভার বা কন্ডাক্টরদের সাথে শেয়ার করুন অথবা নিজের ফোনে ইনস্টল করুন।" data-en="Share with drivers/conductors or install directly on your phone.">অন্যান্য ড্রাইভার বা কন্ডাক্টরদের সাথে শেয়ার করুন অথবা নিজের ফোনে ইনস্টল করুন।</p>
                     </div>
 
                     <div class="flex justify-center">
@@ -794,15 +776,15 @@
 
                     <div class="grid grid-cols-2 gap-2">
                         <button type="button" onclick="shareCaptainAppWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-3 rounded-xl font-bold text-xs shadow-sm transition flex items-center justify-center gap-1.5 active:scale-95">
-                            <span>💬</span> <span>হোয়াটসঅ্যাপে পাঠান</span>
+                            <span>💬</span> <span data-bn="হোয়াটসঅ্যাপে পাঠান" data-en="Send WhatsApp">হোয়াটসঅ্যাপে পাঠান</span>
                         </button>
                         <button type="button" onclick="copyCaptainAppLink()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 py-2.5 px-3 rounded-xl font-bold text-xs border border-gray-300 transition flex items-center justify-center gap-1.5 active:scale-95">
-                            <span>📋</span> <span>লিঙ্ক কপি করুন</span>
+                            <span>📋</span> <span data-bn="লিঙ্ক কপি করুন" data-en="Copy Link">লিঙ্ক কপি করুন</span>
                         </button>
                     </div>
 
                     <button type="button" onclick="triggerPwaInstall('Bus Yatra - Captain Portal')" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-black text-xs shadow-md transition flex items-center justify-center gap-2 active:scale-95">
-                        <span>📲</span> <span>এই ফোনে ক্যাপ্টেন অ্যাপ ইনস্টল করুন</span>
+                        <span>📲</span> <span data-bn="এই ফোনে ক্যাপ্টেন অ্যাপ ইনস্টল করুন" data-en="Install Captain App on This Phone">এই ফোনে ক্যাপ্টেন অ্যাপ ইনস্টল করুন</span>
                     </button>
                     <p class="text-[10px] text-gray-400 font-mono">https://busyatra.pages.dev/captain</p>
                 </div>
@@ -810,8 +792,8 @@
                 <!-- Tab Pane 2: Customer Passenger App (For passengers boarding the bus) -->
                 <div id="capPaneCustomer" class="space-y-3 hidden">
                     <div class="space-y-0.5">
-                        <h4 class="font-black text-gray-900 text-sm">যাত্রী টিকিট বুকিং অ্যাপ (যাত্রীদের দেখান)</h4>
-                        <p class="text-[11px] text-gray-500">বাসে ওঠা যাত্রীদের এই কিউআর স্ক্যান করতে বলুন — তারা সরাসরি টিকিট কাটতে পারবেন।</p>
+                        <h4 class="font-black text-gray-900 text-sm" data-bn="যাত্রী টিকিট বুকিং অ্যাপ (যাত্রীদের দেখান)" data-en="Passenger Ticket Booking App">যাত্রী টিকিট বুকিং অ্যাপ (যাত্রীদের দেখান)</h4>
+                        <p class="text-[11px] text-gray-500" data-bn="বাসে ওঠা যাত্রীদের এই কিউআর স্ক্যান করতে বলুন — তারা সরাসরি টিকিট কাটতে পারবেন।" data-en="Ask boarding passengers to scan this QR to open the app and book tickets directly.">বাসে ওঠা যাত্রীদের এই কিউআর স্ক্যান করতে বলুন — তারা সরাসরি টিকিট কাটতে পারবেন।</p>
                     </div>
 
                     <div class="flex justify-center">
@@ -822,10 +804,10 @@
 
                     <div class="grid grid-cols-2 gap-2">
                         <button type="button" onclick="shareCustomerAppWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-3 rounded-xl font-bold text-xs shadow-sm transition flex items-center justify-center gap-1.5 active:scale-95">
-                            <span>💬</span> <span>যাত্রীকে WhatsApp করুন</span>
+                            <span>💬</span> <span data-bn="যাত্রীকে WhatsApp করুন" data-en="WhatsApp Passenger">যাত্রীকে WhatsApp করুন</span>
                         </button>
                         <button type="button" onclick="copyCustomerAppLink()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 py-2.5 px-3 rounded-xl font-bold text-xs border border-gray-300 transition flex items-center justify-center gap-1.5 active:scale-95">
-                            <span>📋</span> <span>যাত্রী লিঙ্ক কপি</span>
+                            <span>📋</span> <span data-bn="যাত্রী লিঙ্ক কপি" data-en="Copy App Link">যাত্রী লিঙ্ক কপি</span>
                         </button>
                     </div>
 
@@ -842,14 +824,14 @@
             <div class="bg-red-700 text-white p-4 flex justify-between items-center">
                 <h3 class="font-bold text-base flex items-center gap-2">
                     <span>⭐</span>
-                    <span>বাসের ফিডব্যাক QR ও পোস্টার</span>
+                    <span data-bn="বাসের ফিডব্যাক QR ও পোস্টার" data-en="Bus Feedback QR &amp; Poster">বাসের ফিডব্যাক QR ও পোস্টার</span>
                 </h3>
                 <button onclick="closeCaptainFeedbackPosterModal()" class="text-white hover:bg-red-800 w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm">✕</button>
             </div>
             <div class="p-5 space-y-4">
                 <div class="space-y-1">
-                    <h4 class="font-black text-gray-900 text-base">যাত্রীদের জন্য ফিডব্যাক QR কোড</h4>
-                    <p class="text-xs text-gray-500">বাসের ভেতরে বা টিকিট কাউন্টারে এই পোস্টারটি লাগিয়ে রাখুন। যাত্রীরা সহজে রেটিং ও মতামত দিতে পারবেন।</p>
+                    <h4 class="font-black text-gray-900 text-base" data-bn="যাত্রীদের জন্য ফিডব্যাক QR কোড" data-en="Passenger Feedback QR Code">যাত্রীদের জন্য ফিডব্যাক QR কোড</h4>
+                    <p class="text-xs text-gray-500" data-bn="বাসের ভেতরে বা টিকিট কাউন্টারে এই পোস্টারটি লাগিয়ে রাখুন। যাত্রীরা সহজে রেটিং ও মতামত দিতে পারবেন।" data-en="Display this poster inside your coach or counter so passengers can submit ratings and feedback.">বাসের ভেতরে বা টিকিট কাউন্টারে এই পোস্টারটি লাগিয়ে রাখুন। যাত্রীরা সহজে রেটিং ও মতামত দিতে পারবেন।</p>
                 </div>
                 
                 <div class="flex justify-center">
@@ -931,10 +913,10 @@
                     <span class="text-2xl">🟢</span>
                     <div>
                         <h3 class="font-black text-base flex items-center gap-2">
-                            <span>ক্যাপ্টেন WhatsApp রিমাইন্ডার তালিকা</span>
-                            <span id="captainBatchModalBadge" class="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">0 জন</span>
+                            <span data-bn="ক্যাপ্টেন WhatsApp রিমাইন্ডার তালিকা" data-en="Captain WhatsApp Reminder List">ক্যাপ্টেন WhatsApp রিমাইন্ডার তালিকা</span>
+                            <span id="captainBatchModalBadge" class="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
                         </h3>
-                        <p class="text-[11px] text-emerald-100">যাত্রীদের এক এক করে হোয়াটসঅ্যাপে ট্রিপ রিমাইন্ডার পাঠান</p>
+                        <p class="text-[11px] text-emerald-100" data-bn="যাত্রীদের এক এক করে হোয়াটসঅ্যাপে ট্রিপ রিমাইন্ডার পাঠান" data-en="Tap each button to send trip reminders on WhatsApp">যাত্রীদের এক এক করে হোয়াটসঅ্যাপে ট্রিপ রিমাইন্ডার পাঠান</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeCaptainBatchWhatsAppModal()" class="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition">✕</button>
@@ -943,7 +925,7 @@
                 <!-- Dynamically loaded list of selected passengers with 1-tap Send button -->
             </div>
             <div class="p-3 bg-gray-50 border-t flex justify-between items-center text-xs shrink-0">
-                <span class="text-gray-500 font-medium">বাটনে ট্যাপ করলে হোয়াটসঅ্যাপ মেসেজ সরাসরি ওপেন হবে</span>
+                <span class="text-gray-500 font-medium" data-bn="বাটনে ট্যাপ করলে হোয়াটসঅ্যাপ মেসেজ সরাসরি ওপেন হবে" data-en="Tap any Send button to launch WhatsApp chat">বাটনে ট্যাপ করলে হোয়াটসঅ্যাপ মেসেজ সরাসরি ওপেন হবে</span>
                 <button type="button" onclick="closeCaptainBatchWhatsAppModal()" class="bg-gray-800 hover:bg-black text-white px-4 py-2 rounded-xl font-bold transition">
                     <span data-bn="বন্ধ করুন" data-en="Close">বন্ধ করুন</span>
                 </button>
@@ -954,8 +936,8 @@
     <!-- Firebase App & Firestore Compat SDKs for Real-Time Live Bus Tracking -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="common.js?v=10.44"></script>
-    <script src="app-captain.js?v=10.37"></script>
+    <script src="common.js?v=10.45"></script>
+    <script src="app-captain.js?v=10.45"></script>
     <script>
         function toggleCaptainSidebar() {
             const sb = document.getElementById('captainSidebar');
@@ -986,7 +968,7 @@
             initFestivalThemeSync('captain');
         }
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js?v=10.37', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+            navigator.serviceWorker.register('/sw.js?v=10.45', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
         }
     </script>
 
@@ -1002,13 +984,13 @@
             </div>
             <div class="p-4 space-y-3 overflow-y-auto flex-1">
                 <div class="flex items-center justify-between border-b pb-2">
-                    <span class="text-xs text-gray-500 font-medium">বাস মালিক ও অ্যাডমিন থেকে প্রাপ্ত বার্তা</span>
-                    <button type="button" onclick="loadCaptainNotifications()" class="text-xs text-blue-700 font-bold hover:underline flex items-center gap-1">
+                    <span class="text-xs text-gray-500 font-medium" data-bn="বাস মালিক ও অ্যাডমিন থেকে প্রাপ্ত বার্তা" data-en="Messages from Bus Owner &amp; Admin">বাস মালিক ও অ্যাডমিন থেকে প্রাপ্ত বার্তা</span>
+                    <button type="button" onclick="loadCaptainNotifications()" class="text-xs text-blue-700 font-bold hover:underline flex items-center gap-1" data-bn="🔄 রিফ্রেশ" data-en="🔄 Refresh">
                         🔄 Refresh
                     </button>
                 </div>
                 <div id="captainNotificationList" class="space-y-3">
-                    <div class="text-center text-gray-400 py-6 text-xs">নোটিফিকেশন লোড হচ্ছে...</div>
+                    <div class="text-center text-gray-400 py-6 text-xs" data-bn="নোটিফিকেশন লোড হচ্ছে..." data-en="Loading notifications...">নোটিফিকেশন লোড হচ্ছে...</div>
                 </div>
             </div>
             <div class="p-3 bg-gray-50 border-t text-center">

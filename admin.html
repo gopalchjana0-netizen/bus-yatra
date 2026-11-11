@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.35">
     <title>Bus Yatra - Super Admin Portal</title>
     <meta name="robots" content="noindex, nofollow, noarchive">
     <!-- High-Speed DNS Prefetch & Preconnect for Sub-Second CDN Loading -->
@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preload" href="common.js?v=10.44" as="script">
-    <link rel="preload" href="app-admin.js?v=10.44" as="script">
+    <link rel="preload" href="common.js?v=10.45" as="script">
+    <link rel="preload" href="app-admin.js?v=10.45" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
     <script src="tailwind.js?v=10.37" defer></script>
@@ -24,6 +24,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <style>
+        *, *::before, *::after { box-sizing: border-box; }
         .hidden { display: none !important; }
         @media (max-width: 767px) {
             .hide-on-mobile { display: none !important; }
@@ -36,7 +37,9 @@
             .show-on-desktop-flex { display: flex !important; }
         }
         img { max-width: 100%; height: auto; }
-        html, body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f3f4f6; margin: 0; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
+        html, body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f3f4f6; margin: 0; max-width: 100%; overflow-x: clip; -webkit-text-size-adjust: 100%; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
+        .grid > * { min-width: 0; }
+        input:not([type="checkbox"]):not([type="radio"]), select, textarea { max-width: 100%; min-width: 0; }
         .w-9 { width: 2.25rem !important; height: 2.25rem !important; }
         .w-8 { width: 2rem !important; height: 2rem !important; }
         .rounded-full { border-radius: 9999px !important; }
@@ -348,16 +351,16 @@
                 <img src="icons/admin-192.png" class="w-8 h-8 rounded-xl shadow border border-white/20 object-cover shrink-0" alt="Admin App">
                 <div class="text-left leading-tight">
                     <p class="text-xs font-black tracking-tight text-white flex items-center gap-1">
-                        <span>🛡️ Bus Admin মোবাইল অ্যাপ</span>
+                        <span data-bn="🛡️ Bus Admin মোবাইল অ্যাপ" data-en="🛡️ Bus Admin Mobile App">🛡️ Bus Admin মোবাইল অ্যাপ</span>
                     </p>
-                    <p class="text-[10px] text-purple-200 font-medium">১-ক্লিকে এডমিন কন্ট্রোল ও ফ্লিট ম্যানেজমেন্ট</p>
+                    <p class="text-[10px] text-purple-200 font-medium" data-bn="১-ক্লিকে এডমিন কন্ট্রোল ও ফ্লিট ম্যানেজমেন্ট" data-en="1-tap Admin control &amp; fleet management">১-ক্লিকে এডমিন কন্ট্রোল ও ফ্লিট ম্যানেজমেন্ট</p>
                 </div>
             </div>
             <div class="flex items-center gap-1.5">
-                <button type="button" onclick="triggerPwaInstall('Bus Yatra - Super Admin')" class="bg-purple-600 hover:bg-purple-500 text-white font-black text-xs px-3 py-1.5 rounded-xl shadow-sm whitespace-nowrap active:scale-95 transition">
+                <button type="button" onclick="triggerPwaInstall('Bus Yatra - Super Admin')" class="bg-purple-600 hover:bg-purple-500 text-white font-black text-xs px-3 py-1.5 rounded-xl shadow-sm whitespace-nowrap active:scale-95 transition" data-bn="📲 ইনস্টল" data-en="📲 Install">
                     📲 ইনস্টল
                 </button>
-                <button type="button" onclick="dismissInstallBanner('mobileAdminAppInstallBanner')" class="text-white/80 hover:text-white text-sm p-1 leading-none" title="বন্ধ করুন">✕</button>
+                <button type="button" onclick="dismissInstallBanner('mobileAdminAppInstallBanner')" class="text-white/80 hover:text-white text-sm p-1 leading-none" title="Close">✕</button>
             </div>
         </div>
 
@@ -625,14 +628,14 @@
             <div class="gemini-aurora-bg rounded-3xl p-4 sm:p-5 text-white shadow-lg relative overflow-hidden">
                 <div class="gemini-shimmer-bar"></div>
                 <div class="flex items-center justify-between gap-3 relative z-10">
-                    <div>
+                    <div class="min-w-0">
                         <span class="bg-yellow-400 text-gray-950 px-2 py-0.5 rounded text-[10px] font-black uppercase">Super Admin Hub</span>
-                        <h2 class="text-lg font-black leading-tight mt-1 text-white">স্বাগতম, অ্যাডমিন!</h2>
-                        <p class="text-xs text-yellow-100/90 mt-0.5">সব সার্ভিস ও ফ্লিট পরিচালনা করুন</p>
+                        <h2 class="text-lg font-black leading-tight mt-1 text-white" data-bn="স্বাগতম, অ্যাডমিন!" data-en="Welcome, Admin!">স্বাগতম, অ্যাডমিন!</h2>
+                        <p class="text-xs text-yellow-100/90 mt-0.5" data-bn="সব সার্ভিস ও ফ্লিট পরিচালনা করুন" data-en="Manage all services, fleet &amp; operations">সব সার্ভিস ও ফ্লিট পরিচালনা করুন</p>
                     </div>
                     <button type="button" onclick="openAdminAppQrModal()" class="bg-white/20 hover:bg-white/30 active:scale-95 text-white p-2.5 rounded-2xl border border-white/30 text-center flex flex-col items-center shrink-0 transition shadow-sm cursor-pointer">
                         <span class="text-xl">📲</span>
-                        <span class="text-[9px] font-black mt-0.5 whitespace-nowrap">৪টি অ্যাপ</span>
+                        <span class="text-[9px] font-black mt-0.5 whitespace-nowrap" data-bn="৪টি অ্যাপ" data-en="4 Apps">৪টি অ্যাপ</span>
                     </button>
                 </div>
             </div>
@@ -919,16 +922,16 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1" for="newBusPaymentMethod">Payment Options Allowed (পেমেন্ট পদ্ধতি)</label>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1" for="newBusPaymentMethod" data-bn="পেমেন্ট পদ্ধতি" data-en="Payment Options Allowed">Payment Options Allowed</label>
                         <select id="newBusPaymentMethod" class="w-full p-2.5 border rounded-xl text-sm bg-gray-50 font-bold">
-                            <option value="both">💳 Both (Online UPI + Cash / উভয়ই চালু)</option>
-                            <option value="online_only">📱 Online UPI Only (শুধুমাত্র অনলাইন পেমেন্ট)</option>
-                            <option value="cash_only">💵 Cash Only (শুধুমাত্র বাসে ক্যাশ পেমেন্ট)</option>
+                            <option value="both" data-bn="💳 উভয়ই চালু (অনলাইন + ক্যাশ)" data-en="💳 Both (Online UPI + Cash)">💳 Both (Online UPI + Cash)</option>
+                            <option value="online_only" data-bn="📱 শুধুমাত্র অনলাইন UPI" data-en="📱 Online UPI Only">📱 Online UPI Only</option>
+                            <option value="cash_only" data-bn="💵 শুধুমাত্র বাসে ক্যাশ" data-en="💵 Cash Only">💵 Cash Only</option>
                         </select>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1" for="newBusRequireScreenshot">Payment Screenshot Requirement (স্ক্রিনশট অপশন)</label>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1" for="newBusRequireScreenshot" data-bn="পেমেন্ট স্ক্রিনশট অপশন" data-en="Payment Screenshot Requirement">Payment Screenshot Requirement</label>
                         <select id="newBusRequireScreenshot" class="w-full p-2.5 border rounded-xl text-sm bg-gray-50 font-bold">
                             <option value="1" data-bn="🟢 চালু / বাধ্যতামূলক" data-en="🟢 Enabled / Required">🟢 চালু / বাধ্যতামূলক</option>
                             <option value="0" data-bn="🔴 বন্ধ / প্রয়োজন নেই" data-en="🔴 Disabled / Not Required">🔴 বন্ধ / প্রয়োজন নেই</option>
@@ -936,109 +939,109 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1" for="newBusEnableUtr">UTR / Transaction Number Option (ইউটিআর অপশন)</label>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1" for="newBusEnableUtr" data-bn="UTR / ট্রানজ্যাকশন নম্বর অপশন" data-en="UTR / Transaction Number Option">UTR / Transaction Number Option</label>
                         <select id="newBusEnableUtr" class="w-full p-2.5 border rounded-xl text-sm bg-gray-50 font-bold">
                             <option value="0" data-bn="🔴 বন্ধ / প্রয়োজন নেই" data-en="🔴 Hidden / Not Required">🔴 বন্ধ / প্রয়োজন নেই</option>
-                            <option value="1">🟢 চালু (UTR Number Enabled & Required)</option>
+                            <option value="1" data-bn="🟢 চালু (UTR নম্বর বাধ্যতামূলক)" data-en="🟢 Enabled (UTR Required)">🟢 Enabled (UTR Required)</option>
                         </select>
                     </div>
 
                     <div class="md:col-span-2">
-                        <label class="block text-xs font-semibold text-gray-700 mb-1" for="newBusRoute">Operating Route (e.g. Pingla to Kolkata, Kolkata to Digha)</label>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1" for="newBusRoute" data-bn="অপারেটিং রুট (যেমন: Pingla to Kolkata)" data-en="Operating Route (e.g. Pingla to Kolkata, Kolkata to Digha)">Operating Route (e.g. Pingla to Kolkata, Kolkata to Digha)</label>
                         <input type="text" id="newBusRoute" placeholder="e.g. Pingla to Kolkata" value="Pingla to Kolkata" class="w-full p-2.5 border rounded-xl text-sm bg-gray-50 font-medium">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1" for="newBusTime">Origin Scheduled Departure Time</label>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1" for="newBusTime" data-bn="মূল ছাড়ার সময়" data-en="Origin Scheduled Departure Time">Origin Scheduled Departure Time</label>
                         <input type="text" id="newBusTime" placeholder="e.g. 05:00 AM" class="w-full p-2.5 border rounded-xl text-sm bg-gray-50 font-medium">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1" for="newBusFare">Standard End-to-End Fare (₹)</label>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1" for="newBusFare" data-bn="সম্পূর্ণ রুটের ভাড়া (₹)" data-en="Standard End-to-End Fare (₹)">Standard End-to-End Fare (₹)</label>
                         <input type="number" id="newBusFare" value="399" class="w-full p-2.5 border rounded-xl text-sm bg-gray-50 font-semibold">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Fare Per Stop (₹)</label>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1" data-bn="প্রতি স্টপেজ ভাড়া (₹)" data-en="Fare Per Stop (₹)">Fare Per Stop (₹)</label>
                         <input type="number" id="newBusFarePerStop" value="45" class="w-full p-2.5 border rounded-xl text-sm bg-gray-50 font-medium">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1" for="newBusRating">Customer Rating (⭐ 1.0 - 5.0)</label>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1" for="newBusRating" data-bn="কাস্টমার রেটিং (⭐ 1.0 - 5.0)" data-en="Customer Rating (⭐ 1.0 - 5.0)">Customer Rating (⭐ 1.0 - 5.0)</label>
                         <input type="number" id="newBusRating" step="0.1" min="1.0" max="5.0" value="4.8" class="w-full p-2.5 border rounded-xl text-sm bg-gray-50 font-bold text-amber-600">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1" for="newBusBookingMode">Online Booking Status (বুকিং মোড)</label>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1" for="newBusBookingMode" data-bn="অনলাইন বুকিং মোড" data-en="Online Booking Status">Online Booking Status</label>
                         <select id="newBusBookingMode" class="w-full p-2.5 border rounded-xl text-sm bg-gray-50 font-bold">
-                            <option value="active">🟢 Active (অনলাইন বুকিং চালু)</option>
-                            <option value="disabled">⏸️ Maintenance / Suspended (বুকিং সাময়িক বন্ধ)</option>
+                            <option value="active" data-bn="🟢 সক্রিয় (অনলাইন বুকিং চালু)" data-en="🟢 Active (Online Booking ON)">🟢 Active</option>
+                            <option value="disabled" data-bn="⏸️ সাময়িক বন্ধ" data-en="⏸️ Maintenance / Suspended">⏸️ Maintenance / Suspended</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1" for="newBusDriverPhone">Captain / Driver Mobile (ক্যাপ্টেনের নম্বর)</label>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1" for="newBusDriverPhone" data-bn="ক্যাপ্টেন / ড্রাইভারের মোবাইল" data-en="Captain / Driver Mobile">Captain / Driver Mobile</label>
                         <input type="tel" id="newBusDriverPhone" placeholder="10-digit mobile number" class="w-full p-2.5 border rounded-xl text-sm bg-gray-50 font-medium" maxlength="10">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1" for="newBusEmergencyPhone">Emergency Support Helpline (জরুরি হেল্পলাইন নম্বর)</label>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1" for="newBusEmergencyPhone" data-bn="জরুরি হেল্পলাইন নম্বর" data-en="Emergency Support Helpline">Emergency Support Helpline</label>
                         <input type="tel" id="newBusEmergencyPhone" placeholder="Helpline phone number" class="w-full p-2.5 border rounded-xl text-sm bg-gray-50 font-medium">
                     </div>
 
                     <div class="md:col-span-2">
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Stoppages & Timetable (স্টপেজ ও ছাড়ার সময়সূচি)</label>
-                        <p class="text-[11px] text-gray-500 mb-2">প্রতিটি স্টপেজের নাম ও ছাড়ার নির্দিষ্ট সময় সেট করুন (যেমন: Pingla - 05:00 AM, Balaipanda - 05:40 AM):</p>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1" data-bn="স্টপেজ ও ছাড়ার সময়সূচি" data-en="Stoppages &amp; Timetable">Stoppages &amp; Timetable</label>
+                        <p class="text-[11px] text-gray-500 mb-2" data-bn="প্রতিটি স্টপেজের নাম ও ছাড়ার নির্দিষ্ট সময় সেট করুন (যেমন: Pingla - 05:00 AM):" data-en="Set each stoppage name and departure time (e.g. Pingla - 05:00 AM, Balaipanda - 05:40 AM):">প্রতিটি স্টপেজের নাম ও ছাড়ার নির্দিষ্ট সময় সেট করুন:</p>
                         <div id="adminStoppagesContainer" class="space-y-2"></div>
                     </div>
 
                     <!-- Admin Return Route (Round Trip) Settings -->
-                    <div class="md:col-span-2 p-4 bg-blue-50/70 border border-blue-200 rounded-2xl space-y-3">
+                    <div class="md:col-span-2 p-3 sm:p-4 bg-blue-50/70 border border-blue-200 rounded-2xl space-y-3">
                         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-blue-200 pb-2">
                             <div>
                                 <div class="flex items-center gap-2">
                                     <input type="checkbox" id="adminReturnRouteEnabled" onchange="toggleAdminReturnRouteFields()" class="w-4 h-4 text-blue-600 rounded">
-                                    <label for="adminReturnRouteEnabled" class="text-xs font-bold text-blue-950 uppercase tracking-wider cursor-pointer">
-                                        🔄 Return / Round Trip (একই বাসের ফিরতি ট্রিপ সক্রিয় করুন)
+                                    <label for="adminReturnRouteEnabled" class="text-xs font-bold text-blue-950 uppercase tracking-wider cursor-pointer" data-bn="🔄 একই বাসের ফিরতি ট্রিপ সক্রিয় করুন" data-en="🔄 Enable Return / Round Trip">
+                                        🔄 Return / Round Trip
                                     </label>
                                 </div>
-                                <p class="text-[11px] text-gray-500 mt-0.5">
+                                <p class="text-[11px] text-gray-500 mt-0.5" data-bn="একই বাসের আপ ও ডাউন ট্রিপে যাত্রীরা আলাদা আলাদাভাবে সিট বুক করতে পারবেন।" data-en="Passengers can book seats separately for up and return journeys of the same coach.">
                                     একই বাসের আপ ও ডাউন ট্রিপে যাত্রীরা আলাদা আলাদাভাবে সিট বুক করতে পারবেন।
                                 </p>
                             </div>
-                            <button type="button" onclick="reverseAdminUpRouteForReturn()" class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-xl text-[11px] font-bold shadow-xs transition flex items-center gap-1 self-start sm:self-auto">
-                                🔁 আপ রুট থেকে রিভার্স করুন
+                            <button type="button" onclick="reverseAdminUpRouteForReturn()" class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-xl text-[11px] font-bold shadow-xs transition flex items-center gap-1 self-start sm:self-auto" data-bn="🔁 আপ রুট থেকে রিভার্স করুন" data-en="🔁 Reverse Up Route">
+                                🔁 Reverse Up Route
                             </button>
                         </div>
 
                         <div id="adminReturnRouteFields" class="space-y-3 hidden">
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <div>
-                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Return Route Title (ফিরতি রুট)</label>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1" data-bn="ফিরতি রুটের নাম" data-en="Return Route Title">Return Route Title</label>
                                     <input type="text" id="adminReturnRoute" placeholder="e.g. Kolkata to Pingla" class="w-full p-2.5 border rounded-xl text-sm bg-white font-medium">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Return Departure Time (ফিরতি ছাড়ার সময়)</label>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1" data-bn="ফিরতি ছাড়ার সময়" data-en="Return Departure Time">Return Departure Time</label>
                                     <input type="text" id="adminReturnTime" placeholder="e.g. 03:30 PM" class="w-full p-2.5 border rounded-xl text-sm bg-white font-medium">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Return Base Fare (ফিরতি ভাড়া ₹)</label>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1" data-bn="ফিরতি মূল ভাড়া (₹)" data-en="Return Base Fare (₹)">Return Base Fare (₹)</label>
                                     <input type="number" id="adminReturnFare" placeholder="e.g. 399" class="w-full p-2.5 border rounded-xl text-sm bg-white font-bold text-blue-700">
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Return Stoppages & Timings (ফিরতি স্টপেজ ও সময়সূচি)</label>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1" data-bn="ফিরতি স্টপেজ ও সময়সূচি" data-en="Return Stoppages &amp; Timings">Return Stoppages &amp; Timings</label>
                                 <div id="adminReturnStoppagesContainer" class="space-y-2"></div>
                             </div>
                         </div>
                     </div>
                     <div class="md:col-span-2 space-y-2">
-                        <div class="flex items-center justify-between">
-                            <label class="block text-xs font-semibold text-gray-700">📸 Bus Photos Gallery (অ্যাডমিন যত খুশি ছবি আপলোড করতে পারেন - তাৎক্ষণিক লাইভ)</label>
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <label class="block text-xs font-semibold text-gray-700" data-bn="📸 বাসের ফটো গ্যালারি (তাৎক্ষণিক লাইভ)" data-en="📸 Bus Photos Gallery (Instant Live Upload)">📸 Bus Photos Gallery</label>
                             <span id="adminBusPhotoCountBadge" class="bg-gray-200 text-gray-800 text-[10px] font-bold px-2 py-0.5 rounded-full">0 টি ছবি</span>
                         </div>
                         <!-- Admin Photos Gallery Grid -->
                         <div id="adminBusPhotosGallery" class="flex flex-wrap gap-2.5 p-2.5 bg-gray-50 border border-gray-200 rounded-xl min-h-[75px] items-center">
-                            <div class="text-xs text-gray-400 italic">কোনো ছবি নেই। নিচে ছবি বাছুন।</div>
+                            <div class="text-xs text-gray-400 italic" data-bn="কোনো ছবি নেই। নিচে ছবি বাছুন।" data-en="No photos yet. Choose images below.">কোনো ছবি নেই। নিচে ছবি বাছুন।</div>
                         </div>
                         <div class="flex items-center gap-3">
-                            <input type="file" id="newBusImagesFiles" accept="image/*" multiple onchange="previewAdminBusImages(event)" class="flex-1 p-2 border rounded-xl text-xs bg-white file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-red-600 file:text-white hover:file:bg-red-700 cursor-pointer">
+                            <input type="file" id="newBusImagesFiles" accept="image/*" multiple onchange="previewAdminBusImages(event)" class="w-full max-w-full overflow-hidden p-2 border rounded-xl text-xs bg-white file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-red-600 file:text-white hover:file:bg-red-700 cursor-pointer">
                         </div>
-                        <p class="text-[11px] text-gray-500">অ্যাডমিন হিসেবে আপনি যত খুশি ছবি আপলোড করতে পারেন। কোনো অনুমোদনের প্রয়োজন নেই, সাথে সাথে যাত্রীদের কাছে দৃশ্যমান হবে। ডিলিট করতে চাইলে ছবির 🗑️ বাটনে চাপুন।</p>
+                        <p class="text-[11px] text-gray-500" data-bn="অ্যাডমিন হিসেবে আপনি যত খুশি ছবি আপলোড করতে পারেন এবং সাথে সাথে যাত্রীদের কাছে দৃশ্যমান হবে।" data-en="Admin uploads go live immediately to all passengers. Tap ✕ on any photo to delete.">অ্যাডমিন হিসেবে আপনি যত খুশি ছবি আপলোড করতে পারেন।</p>
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-xs font-semibold text-gray-700 mb-1">Ticket Terms & Conditions</label>
@@ -1102,11 +1105,11 @@
                         <h2 class="text-base md:text-lg font-bold text-gray-900">All Passenger Bookings</h2>
                         <p class="text-xs text-gray-500">View real-time customer bookings across all buses. Super admin can approve, reject, or export bookings.</p>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="printAdminTripManifest()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm whitespace-nowrap cursor-pointer">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="printAdminTripManifest()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm whitespace-nowrap cursor-pointer" data-bn="📋 প্রিন্ট ট্রিপ তালিকা" data-en="📋 Print Trip Manifest">
                             📋 Print Trip Manifest
                         </button>
-                        <button onclick="exportBookingsToCSV()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm whitespace-nowrap cursor-pointer">
+                        <button onclick="exportBookingsToCSV()" class="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm whitespace-nowrap cursor-pointer" data-bn="📥 CSV / Excel ডাউনলোড" data-en="📥 Export to CSV / Excel">
                             📥 Export to CSV / Excel
                         </button>
                     </div>
@@ -1116,7 +1119,7 @@
                     <input type="text" id="customerSearchInput" oninput="renderAdminCustomersList()" placeholder="Search by Passenger Name, Phone or Booking ID..." class="w-full p-2.5 border rounded-xl text-xs bg-gray-50 font-medium">
                     <input type="date" id="customerDateFilter" onchange="renderAdminCustomersList()" class="w-full p-2.5 border rounded-xl text-xs bg-gray-50 font-medium">
                     <select id="customerBusFilter" onchange="renderAdminCustomersList()" class="w-full p-2.5 border rounded-xl text-xs bg-gray-50 font-bold text-gray-800">
-                        <option value="">🚌 All Fleet Buses (সকল বাস)</option>
+                        <option value="" data-bn="🚌 সকল বাস" data-en="🚌 All Fleet Buses">🚌 All Fleet Buses</option>
                     </select>
                 </div>
 
@@ -1128,12 +1131,12 @@
                         <span id="adminSelectedCountBadge" class="text-purple-800 bg-purple-100 px-2 py-0.5 rounded-full text-[11px] font-black hidden">০টি নির্বাচিত</span>
                     </label>
 
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <button type="button" id="btnAdminBulkDelete" onclick="deleteAdminSelectedBookings()" disabled class="bg-red-600 hover:bg-red-700 disabled:opacity-30 disabled:cursor-not-allowed text-white text-xs font-black px-3.5 py-2 rounded-xl shadow-xs transition flex items-center gap-1.5">
                             <span>🗑️</span> <span data-bn="নির্বাচিত মুছুন" data-en="Delete Selected">নির্বাচিত মুছুন</span>
                         </button>
                         <button type="button" onclick="deleteAdminAllOnDate()" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold px-3 py-2 rounded-xl shadow-xs transition flex items-center gap-1.5" title="Clear all bookings for selected date">
-                            <span>🧹</span> <span>তারিখের সব মুছুন</span>
+                            <span>🧹</span> <span data-bn="তারিখের সব মুছুন" data-en="Clear Date">তারিখের সব মুছুন</span>
                         </button>
                     </div>
                 </div>
@@ -1162,21 +1165,21 @@
                 <!-- Role Filter Tabs -->
                 <div class="flex flex-wrap items-center gap-2 mb-3">
                     <button type="button" onclick="setAdminPinFilter('all')" id="pinFilterBtn_all" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-gray-900 text-white shadow-xs transition">
-                        🌐 সকল লগইন (<span id="pinCountAll">0</span>)
+                        🌐 <span data-bn="সকল লগইন" data-en="All Logins">সকল লগইন</span> (<span id="pinCountAll">0</span>)
                     </button>
                     <button type="button" onclick="setAdminPinFilter('customer')" id="pinFilterBtn_customer" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-gray-100 hover:bg-purple-50 text-gray-700 transition">
-                        👤 কাস্টমার (<span id="pinCountCustomer">0</span>)
+                        👤 <span data-bn="কাস্টমার" data-en="Customers">কাস্টমার</span> (<span id="pinCountCustomer">0</span>)
                     </button>
                     <button type="button" onclick="setAdminPinFilter('owner')" id="pinFilterBtn_owner" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-gray-100 hover:bg-indigo-50 text-gray-700 transition">
-                        👑 বাস মালিক (<span id="pinCountOwner">0</span>)
+                        👑 <span data-bn="বাস মালিক" data-en="Bus Owners">বাস মালিক</span> (<span id="pinCountOwner">0</span>)
                     </button>
                     <button type="button" onclick="setAdminPinFilter('captain')" id="pinFilterBtn_captain" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-gray-100 hover:bg-emerald-50 text-gray-700 transition">
-                        👨‍✈️ বাস ক্যাপ্টেন (<span id="pinCountCaptain">0</span>)
+                        👨‍✈️ <span data-bn="বাস ক্যাপ্টেন" data-en="Bus Captains">বাস ক্যাপ্টেন</span> (<span id="pinCountCaptain">0</span>)
                     </button>
                 </div>
 
                 <div class="mb-4">
-                    <input type="text" id="adminCustomerPinSearch" oninput="filterAdminCustomersList()" placeholder="🔍 মোবাইল নম্বর, নাম বা বাসের নাম দিয়ে পিন সার্চ করুন..." class="w-full p-2.5 border rounded-xl text-xs bg-gray-50 font-medium focus:ring-2 focus:ring-purple-500">
+                    <input type="text" id="adminCustomerPinSearch" oninput="filterAdminCustomersList()" placeholder="🔍 Search PIN by mobile number, name or bus name..." data-bn-placeholder="🔍 মোবাইল নম্বর, নাম বা বাসের নাম দিয়ে পিন সার্চ করুন..." data-en-placeholder="🔍 Search PIN by mobile number, name or bus name..." class="w-full p-2.5 border rounded-xl text-xs bg-gray-50 font-medium focus:ring-2 focus:ring-purple-500">
                 </div>
 
                 <div id="adminCustomersPinList" class="space-y-3">
@@ -1208,31 +1211,31 @@
             <!-- Section: Register New Captain on Behalf of Bus Owner -->
             <section class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
                 <div class="border-b pb-3">
-                    <h2 class="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
-                        ➕ Register New Captain / Conductor (বাসের নতুন কন্ডাক্টর তৈরি করুন)
+                    <h2 class="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2" data-bn="➕ বাসের নতুন ক্যাপ্টেন / কন্ডাক্টর তৈরি করুন" data-en="➕ Register New Captain / Conductor">
+                        ➕ Register New Captain / Conductor
                     </h2>
-                    <p class="text-xs text-gray-500 mt-0.5">
-                        সুপার অ্যাডমিন হিসেবে যে কোনো বাস ওনারের বাসের জন্য কন্ডাক্টর অ্যাকাউন্ট তৈরি করে দিন। ক্যাপ্টেন তার ১০-সংখ্যার মোবাইল ও ৪-ডিজিটের পিন দিয়ে সরাসরি ক্যাপ্টেন পোর্টালে (captain.html) লগইন করতে পারবেন।
+                    <p class="text-xs text-gray-500 mt-0.5" data-bn="সুপার অ্যাডমিন হিসেবে যে কোনো বাসের জন্য কন্ডাক্টর অ্যাকাউন্ট তৈরি করে দিন।" data-en="Create a conductor login account with mobile number and 4-digit PIN for any fleet bus.">
+                        সুপার অ্যাডমিন হিসেবে যে কোনো বাস ওনারের বাসের জন্য কন্ডাক্টর অ্যাকাউন্ট তৈরি করে দিন।
                     </p>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Select Bus &amp; Owner</label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="বাস ও মালিক নির্বাচন" data-en="Select Bus &amp; Owner">Select Bus &amp; Owner</label>
                         <select id="adminNewCaptainBusSelect" class="w-full p-2.5 border rounded-xl text-xs font-semibold bg-gray-50">
-                            <option value="">-- বাসের তালিকা লোড হচ্ছে... --</option>
+                            <option value="" data-bn="-- বাসের তালিকা লোড হচ্ছে... --" data-en="-- Loading Fleet Buses... --">-- Loading Fleet Buses... --</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Captain Name (কন্ডাক্টরের নাম)</label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="কন্ডাক্টরের নাম" data-en="Captain Name">Captain Name</label>
                         <input type="text" id="adminNewCaptainName" placeholder="e.g. Ramesh Giri" class="w-full p-2.5 border rounded-xl text-xs font-semibold bg-gray-50">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Mobile Number (১০ সংখ্যার মোবাইল)</label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="১০ সংখ্যার মোবাইল" data-en="Mobile Number (10 Digits)">Mobile Number (10 Digits)</label>
                         <input type="tel" id="adminNewCaptainPhone" maxlength="10" placeholder="10-digit mobile" class="w-full p-2.5 border rounded-xl text-xs font-semibold bg-gray-50">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Set 4-Digit PIN (৪-সংখ্যার পিন)</label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="৪-সংখ্যার পিন" data-en="Set 4-Digit PIN">Set 4-Digit PIN</label>
                         <input type="password" id="adminNewCaptainPin" maxlength="4" placeholder="••••" class="w-full p-2.5 border rounded-xl text-xs font-bold text-center tracking-widest bg-gray-50">
                     </div>
                 </div>
@@ -1265,17 +1268,17 @@
 
         <!-- Tab 4: Dedicated Owner Registration Requests -->
         <div id="tabRequestsContent" class="space-y-6 hidden">
-            <section class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
+            <section class="bg-white p-3.5 sm:p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b pb-4">
                     <div>
                         <h2 class="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
-                            <span>📝</span> Pending Bus Owner Requests (ওনার রেজিস্ট্রেশন রিকোয়েস্ট)
+                            <span>📝</span> <span data-bn="ওনার রেজিস্ট্রেশন রিকোয়েস্ট" data-en="Pending Bus Owner Requests">Pending Bus Owner Requests</span>
                         </h2>
-                        <p class="text-xs text-gray-500 mt-0.5">
+                        <p class="text-xs text-gray-500 mt-0.5" data-bn="নতুন বাস মালিকরা আবেদন করলে এখানে জমা হবে। অনুমোদন করলেই ওনার লগইন করতে পারবেন।" data-en="New bus operator applications appear here. Owners can sign in immediately once approved.">
                             নতুন বাস মালিকরা আবেদন করলে এখানে জমা হবে। অ্যাডমিন অনুমোদন করলেই ওনার পিন দিয়ে লগইন করতে পারবেন।
                         </p>
                     </div>
-                    <button onclick="loadAdminOwnerRequests()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 self-start md:self-auto">
+                    <button onclick="loadAdminOwnerRequests()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 self-start md:self-auto" data-bn="🔄 রিফ্রেশ" data-en="🔄 Refresh Requests">
                         🔄 Refresh Requests
                     </button>
                 </div>
@@ -1285,18 +1288,18 @@
             </section>
 
             <!-- Pending Bus Fleet Approvals Section (নতুন বাসের অনুমোদন রিকোয়েস্ট) -->
-            <section class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
+            <section class="bg-white p-3.5 sm:p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b pb-4">
                     <div>
                         <h2 class="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
-                            <span>🚌</span> Pending Bus Fleet Approvals (নতুন বাসের অনুমোদন রিকোয়েস্ট)
+                            <span>🚌</span> <span data-bn="নতুন বাসের অনুমোদন রিকোয়েস্ট" data-en="Pending Bus Fleet Approvals">Pending Bus Fleet Approvals</span>
                             <span id="badgePendingBusApprovals" class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-0.5 rounded-full border border-amber-300">0</span>
                         </h2>
-                        <p class="text-xs text-gray-500 mt-0.5">
-                            বাস মালিকরা তাদের বহরে নতুন বাস যোগ করলে এখানে জমা হয়। অ্যাডমিন অনুমোদন দিলেই বাসটি কাস্টমার অ্যাপে সার্চ ও বুকিংয়ের জন্য লাইভ হবে।
+                        <p class="text-xs text-gray-500 mt-0.5" data-bn="বাস মালিকরা বহরে নতুন বাস যোগ করলে এখানে জমা হয়। অনুমোদন দিলেই বাসটি যাত্রী অ্যাপে লাইভ হবে।" data-en="Newly added coaches from owners await approval here before appearing live to passengers.">
+                            বাস মালিকরা তাদের বহরে নতুন বাস যোগ করলে এখানে জমা হয়।
                         </p>
                     </div>
-                    <button onclick="loadAdminPendingBusApprovals()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 self-start md:self-auto">
+                    <button onclick="loadAdminPendingBusApprovals()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 self-start md:self-auto" data-bn="🔄 রিফ্রেশ" data-en="🔄 Refresh Buses">
                         🔄 Refresh Buses
                     </button>
                 </div>
@@ -1306,18 +1309,18 @@
             </section>
 
             <!-- Pending Bus Photos Approval Section (বাসের অতিরিক্ত ফটো অনুমোদন রিকোয়েস্ট) -->
-            <section class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
+            <section class="bg-white p-3.5 sm:p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b pb-4">
                     <div>
                         <h2 class="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
-                            <span>📸</span> Pending Bus Photo Approvals (বাসের অতিরিক্ত ছবি অনুমোদন রিকোয়েস্ট)
+                            <span>📸</span> <span data-bn="বাসের অতিরিক্ত ছবি অনুমোদন" data-en="Pending Bus Photo Approvals">Pending Bus Photo Approvals</span>
                             <span id="badgePendingPhotoApprovals" class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-0.5 rounded-full border border-amber-300">0</span>
                         </h2>
-                        <p class="text-xs text-gray-500 mt-0.5">
-                            বাস মালিকরা ৩টির বেশি (৪ বা তার অধিক) ছবি আপলোড করলে এখানে অনুমোদনের জন্য জমা হয়। অ্যাডমিন অনুমোদন দিলেই যাত্রীরা সব ছবি একসাথে স্লাইডশোতে দেখতে পাবেন।
+                        <p class="text-xs text-gray-500 mt-0.5" data-bn="বাস মালিকরা ৩টির বেশি ছবি আপলোড করলে এখানে অনুমোদনের জন্য জমা হয়।" data-en="Extra coach photos beyond the first 3 are reviewed here before going live.">
+                            বাস মালিকরা ৩টির বেশি ছবি আপলোড করলে এখানে অনুমোদনের জন্য জমা হয়।
                         </p>
                     </div>
-                    <button onclick="loadAdminPendingPhotoApprovals()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 self-start md:self-auto">
+                    <button onclick="loadAdminPendingPhotoApprovals()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 self-start md:self-auto" data-bn="🔄 রিফ্রেশ" data-en="🔄 Refresh Photos">
                         🔄 Refresh Photos
                     </button>
                 </div>
@@ -1354,24 +1357,24 @@
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b pb-4">
                     <div>
                         <h2 class="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
-                            <span>⭐</span> Customer Feedback &amp; Ratings (যাত্রী মতামত)
+                            <span>⭐</span> <span data-bn="যাত্রী ফিডব্যাক ও রেটিং" data-en="Customer Feedback &amp; Ratings">Customer Feedback &amp; Ratings</span>
                         </h2>
-                        <p class="text-xs text-gray-500 mt-0.5">
+                        <p class="text-xs text-gray-500 mt-0.5" data-bn="যাত্রীদের সরাসরি মতামত, রেটিং ও পরামর্শ। PDF ডাউনলোড বা বাস মালিককে হোয়াটসঅ্যাপ করুন।" data-en="Live passenger reviews and ratings. Download PDF reports or forward feedback to operators via WhatsApp.">
                             যাত্রীদের সরাসরি মতামত, রেটিং ও পরামর্শ। এখান থেকে যেকোনো ফিডব্যাক PDF ডাউনলোড করতে পারবেন অথবা হোয়াটসঅ্যাপে সংশ্লিষ্ট বাস মালিককে পাঠাতে পারবেন।
                         </p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
                         
                         <button type="button" onclick="downloadFeedbackQrImage('Bus-Yatra-Feedback-QR.png')" class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                            <span>📥</span> <span>Download Feedback QR (PNG)</span>
+                            <span>📥</span> <span data-bn="ফিডব্যাক QR ডাউনলোড" data-en="Download Feedback QR">Download Feedback QR (PNG)</span>
                         </button>
                         <button type="button" onclick="openAdminFeedbackPosterModal()" class="bg-gray-900 hover:bg-black text-white px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                            <span>🖨️</span> <span>Print A4 Bus Poster</span>
+                            <span>🖨️</span> <span data-bn="প্রিন্ট A4 পোস্টার" data-en="Print A4 Bus Poster">Print A4 Bus Poster</span>
                         </button>
                         <button onclick="printAllFeedbackReport()" class="bg-red-600 hover:bg-red-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                            📄 <span>Download All PDF / Print</span>
+                            📄 <span data-bn="সব PDF প্রিন্ট" data-en="Download All PDF / Print">Download All PDF / Print</span>
                         </button>
-                        <button onclick="loadAdminFeedback()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1">
+                        <button onclick="loadAdminFeedback()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1" data-bn="🔄 রিফ্রেশ" data-en="🔄 Refresh">
                             🔄 Refresh
                         </button>
                     </div>
@@ -1380,10 +1383,10 @@
                 <!-- Filters -->
                 <div class="flex flex-col sm:flex-row gap-3">
                     <select id="feedbackFilterBus" onchange="filterAdminFeedbackList()" class="p-2.5 border rounded-xl text-xs bg-gray-50 font-medium flex-1">
-                        <option value="">-- All Buses (সব বাস) --</option>
+                        <option value="" data-bn="-- সব বাস --" data-en="-- All Buses --">-- All Buses --</option>
                     </select>
                     <select id="feedbackFilterRating" onchange="filterAdminFeedbackList()" class="p-2.5 border rounded-xl text-xs bg-gray-50 font-medium sm:w-48">
-                        <option value="">All Ratings (সকল রেটিং)</option>
+                        <option value="" data-bn="সকল রেটিং" data-en="All Ratings">All Ratings</option>
                         <option value="5">⭐⭐⭐⭐⭐ (5 Stars)</option>
                         <option value="4">⭐⭐⭐⭐ (4 Stars)</option>
                         <option value="3">⭐⭐⭐ (3 Stars)</option>
@@ -1470,18 +1473,18 @@
                             <span>🎯</span>
                             <span data-bn="প্রমোশনাল পপআপ ব্যানার ও বিজ্ঞাপন পরিচালনা" data-en="Promotional Popup Ads &amp; Banners">প্রমোশনাল পপআপ ব্যানার ও বিজ্ঞাপন পরিচালনা</span>
                         </h2>
-                        <p class="text-xs text-gray-500 mt-0.5">কাস্টমার বা বাস মালিক প্যানেলের জন্য পপআপ ব্যানার বিজ্ঞাপন তৈরি করুন, ছবি আপলোড করুন, গোপন লিঙ্ক যুক্ত করুন এবং যেকোনো সময় পজ বা ডিলিট করুন।</p>
+                        <p class="text-xs text-gray-500 mt-0.5" data-bn="কাস্টমার বা বাস মালিক প্যানেলের জন্য পপআপ ব্যানার বিজ্ঞাপন তৈরি, পজ বা ডিলিট করুন।" data-en="Create, publish, pause or delete promotional popup banner ads for customer or owner portals.">কাস্টমার বা বাস মালিক প্যানেলের জন্য পপআপ ব্যানার বিজ্ঞাপন তৈরি করুন, ছবি আপলোড করুন, গোপন লিঙ্ক যুক্ত করুন এবং যেকোনো সময় পজ বা ডিলিট করুন।</p>
                     </div>
                     <button type="button" onclick="openAdminPromoModal()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md transition flex items-center gap-2 whitespace-nowrap active:scale-95">
                         <span>➕</span>
-                        <span>নতুন বিজ্ঞাপন তৈরি করুন</span>
+                        <span data-bn="নতুন বিজ্ঞাপন তৈরি করুন" data-en="Create New Promo Ad">নতুন বিজ্ঞাপন তৈরি করুন</span>
                     </button>
                 </div>
 
                 <!-- Live Status & Stats Bar -->
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
                     <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-200">
-                        <div class="text-[10px] uppercase font-bold text-gray-400">মোট বিজ্ঞাপন</div>
+                        <div class="text-[10px] uppercase font-bold text-gray-400" data-bn="মোট বিজ্ঞাপন" data-en="Total Ads">মোট বিজ্ঞাপন</div>
                         <div id="statTotalPromos" class="text-2xl font-black text-gray-900 mt-1">0</div>
                     </div>
                     <div class="bg-emerald-50 p-3.5 rounded-xl border border-emerald-200">
@@ -1500,24 +1503,24 @@
 
                 <!-- Promotions List Grid -->
                 <div id="adminPromotionsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div class="col-span-full text-center text-gray-400 py-10 text-xs">বিজ্ঞাপন লোড হচ্ছে...</div>
+                    <div class="col-span-full text-center text-gray-400 py-10 text-xs" data-bn="বিজ্ঞাপন লোড হচ্ছে..." data-en="Loading promotions...">বিজ্ঞাপন লোড হচ্ছে...</div>
                 </div>
             </section>
         </div>
 
         <!-- Tab: Next-Gen Features & Permissions Control -->
         <div id="tabNextgenContent" class="space-y-6 hidden">
-            <section class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-purple-200">
+            <section class="bg-white p-3.5 sm:p-5 md:p-6 rounded-2xl shadow-sm border border-purple-200">
                 <div class="border-b pb-4 mb-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
                     <div>
                         <div class="inline-flex items-center gap-1.5 bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs font-black uppercase mb-1">
                             <span>⚡</span> Next-Gen Feature Control Center
                         </div>
                         <h2 class="text-base md:text-lg font-bold text-gray-900" data-bn="মালিক ও যাত্রী ফিচার পারমিশন" data-en="Feature Visibility Control">মালিক ও যাত্রী ফিচার পারমিশন</h2>
-                        <p class="text-xs text-gray-500">এখানে আপনি কোনো নির্দিষ্ট বাস মালিক বা কোনো নির্দিষ্ট কাস্টমারের জন্য ফিচার অন বা অফ করতে পারবেন। অফ করলে তা তাদের প্যানেলে দেখানো হবে না।</p>
+                        <p class="text-xs text-gray-500" data-bn="এখানে আপনি কোনো নির্দিষ্ট বাস মালিক বা কাস্টমারের জন্য ফিচার অন বা অফ করতে পারবেন।" data-en="Toggle individual next-gen features per bus owner, passenger, or captain portal.">এখানে আপনি কোনো নির্দিষ্ট বাস মালিক বা কোনো নির্দিষ্ট কাস্টমারের জন্য ফিচার অন বা অফ করতে পারবেন।</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button type="button" onclick="loadAdminNextGenData()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1">
+                        <button type="button" onclick="loadAdminNextGenData()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1" data-bn="🔄 রিফ্রেশ ডেটা" data-en="🔄 Refresh Data">
                             🔄 রিফ্রেশ ডেটা
                         </button>
                     </div>
@@ -1560,7 +1563,7 @@
                                 <span class="text-xl">📊</span>
                                 <div>
                                     <div class="text-xs font-bold text-gray-900" data-bn="দৈনিক আয় ও খরচের খতিয়ান" data-en="Daily Ledger & Finance">দৈনিক আয় ও খরচের খতিয়ান</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">মালিকের প্যানেলে লাভ, তেল, টোল ও খরচের ডিজিটাল হিসাব রাখা।</p>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="মালিকের প্যানেলে লাভ, তেল, টোল ও খরচের ডিজিটাল হিসাব রাখা।" data-en="Track profit, fuel, toll & trip expenses digitally in Owner Panel.">মালিকের প্যানেলে লাভ, তেল, টোল ও খরচের ডিজিটাল হিসাব রাখা।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenOwner_finance" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1571,8 +1574,8 @@
                             <div class="flex items-start gap-2.5">
                                 <span class="text-xl">👨‍✈️</span>
                                 <div>
-                                    <div class="text-xs font-bold text-gray-900">ক্যাপ্টেন ও কন্ডাক্টর পোর্টাল (Captain & QR Scanner)</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">কন্ডাক্টরের ফোন দিয়ে যাত্রীদের টিকিট QR স্ক্যান ও বোর্ডিং ম্যানেজমেন্ট।</p>
+                                    <div class="text-xs font-bold text-gray-900" data-bn="ক্যাপ্টেন ও কন্ডাক্টর পোর্টাল" data-en="Captain & QR Scanner Portal">ক্যাপ্টেন ও কন্ডাক্টর পোর্টাল (Captain & QR Scanner)</div>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="কন্ডাক্টরের ফোন দিয়ে যাত্রীদের টিকিট QR স্ক্যান ও বোর্ডিং ম্যানেজমেন্ট।" data-en="Passenger QR ticket scanning and boarding verification on conductor phones.">কন্ডাক্টরের ফোন দিয়ে যাত্রীদের টিকিট QR স্ক্যান ও বোর্ডিং ম্যানেজমেন্ট।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenOwner_captains" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1584,7 +1587,7 @@
                                 <span class="text-xl">🛰️</span>
                                 <div>
                                     <div class="text-xs font-bold text-gray-900" data-bn="লাইভ জিপিএস ট্র্যাকিং" data-en="Live GPS Tracking">লাইভ জিপিএস ট্র্যাকিং</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">মালিক তার বাসের বর্তমান অবস্থান ও গতিবেগ লাইভ ম্যাপে দেখা।</p>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="মালিক তার বাসের বর্তমান অবস্থান ও গতিবেগ লাইভ ম্যাপে দেখা।" data-en="Allow owner to view live bus location and speed on Bus Yatra map.">মালিক তার বাসের বর্তমান অবস্থান ও গতিবেগ লাইভ ম্যাপে দেখা।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenOwner_live_tracking" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1596,7 +1599,7 @@
                                 <span class="text-xl">📢</span>
                                 <div>
                                     <div class="text-xs font-bold text-gray-900" data-bn="ওনার নোটিফিকেশন সিস্টেম" data-en="Owner Notifications">ওনার নোটিফিকেশন সিস্টেম</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">যাত্রীদের নোটিফিকেশন ও এসএমএস অ্যালার্ট পাঠানোর সুবিধা।</p>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="যাত্রীদের নোটিফিকেশন ও এসএমএস অ্যালার্ট পাঠানোর সুবিধা।" data-en="Send passenger announcements and trip alerts from Owner Panel.">যাত্রীদের নোটিফিকেশন ও এসএমএস অ্যালার্ট পাঠানোর সুবিধা।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenOwner_notifications" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1607,8 +1610,8 @@
                             <div class="flex items-start gap-2.5">
                                 <span class="text-xl">⚙️</span>
                                 <div>
-                                    <div class="text-xs font-bold text-gray-900">রুট, স্টপেজ ও ফেয়ার কনফিগারেশন (Fare & Route Settings)</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">মালিক নিজে তার বাসের বিভিন্ন স্টপেজের টাইম ও টিকিট ভাড়া ঠিক করতে পারবে।</p>
+                                    <div class="text-xs font-bold text-gray-900" data-bn="রুট, স্টপেজ ও ফেয়ার কনফিগারেশন" data-en="Fare & Route Settings">রুট, স্টপেজ ও ফেয়ার কনফিগারেশন (Fare & Route Settings)</div>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="মালিক নিজে তার বাসের বিভিন্ন স্টপেজের টাইম ও টিকিট ভাড়া ঠিক করতে পারবে।" data-en="Allow owner to configure stoppage timings and ticket fares directly.">মালিক নিজে তার বাসের বিভিন্ন স্টপেজের টাইম ও টিকিট ভাড়া ঠিক করতে পারবে।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenOwner_edit_bus" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1619,8 +1622,8 @@
                             <div class="flex items-start gap-2.5">
                                 <span class="text-xl">🤖</span>
                                 <div>
-                                    <div class="text-xs font-bold text-gray-900">অটো-পাইলট বুকিং মোড (Auto-Pilot Booking Mode)</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">টিকিট কাটার সাথে সাথে নিজে থেকেই বুকিং কনফার্ম হওয়ার সুবিধা।</p>
+                                    <div class="text-xs font-bold text-gray-900" data-bn="অটো-পাইলট বুকিং মোড" data-en="Auto-Pilot Booking Mode">অটো-পাইলট বুকিং মোড (Auto-Pilot Booking Mode)</div>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="টিকিট কাটার সাথে সাথে নিজে থেকেই বুকিং কনফার্ম হওয়ার সুবিধা।" data-en="Instant automatic ticket confirmation upon booking payment.">টিকিট কাটার সাথে সাথে নিজে থেকেই বুকিং কনফার্ম হওয়ার সুবিধা।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenOwner_auto_pilot" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1631,8 +1634,8 @@
                             <div class="flex items-start gap-2.5">
                                 <span class="text-xl">📦</span>
                                 <div>
-                                    <div class="text-xs font-bold text-gray-900">বাস পার্সেল ও লাগেজ বুকিং (Parcel & Luggage Booking)</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">বাসের ডিকিতে মালপত্র নিয়ে বাড়তি আয়ের অপশন মালিকের প্যানেলে দেখানো।</p>
+                                    <div class="text-xs font-bold text-gray-900" data-bn="বাস পার্সেল ও লাগেজ বুকিং" data-en="Parcel & Luggage Booking">বাস পার্সেল ও লাগেজ বুকিং (Parcel & Luggage Booking)</div>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="বাসের ডিকিতে মালপত্র নিয়ে বাড়তি আয়ের অপশন মালিকের প্যানেলে দেখানো।" data-en="Show cargo & luggage earnings options in the Owner Panel.">বাসের ডিকিতে মালপত্র নিয়ে বাড়তি আয়ের অপশন মালিকের প্যানেলে দেখানো।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenOwner_parcel_booking" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1644,7 +1647,7 @@
                                 <span class="text-xl">🎫</span>
                                 <div>
                                     <div class="text-xs font-bold text-gray-900" data-bn="মান্থলি ও ডেইলি বাস পাস" data-en="Digital Commuter Pass">মান্থলি ও ডেইলি বাস পাস</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">প্রতিদিনের রেগুলার যাত্রীদের মান্থলি ডিজিটাল পাসের হিসেব দেখার অপশন।</p>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="প্রতিদিনের রেগুলার যাত্রীদের মান্থলি ডিজিটাল পাসের হিসেব দেখার অপশন।" data-en="View digital monthly commuter passes used by regular passengers.">প্রতিদিনের রেগুলার যাত্রীদের মান্থলি ডিজিটাল পাসের হিসেব দেখার অপশন।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenOwner_monthly_pass" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1656,7 +1659,7 @@
                                 <span class="text-xl">🚀</span>
                                 <div>
                                     <div class="text-xs font-bold text-gray-900" data-bn="ডায়নামিক ফেয়ার ও সার্জ প্রাইসিং" data-en="Dynamic AI Surge Pricing">ডায়নামিক ফেয়ার ও সার্জ প্রাইসিং</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">উৎসব বা ছুটির দিনে অতিরিক্ত যাত্রী চাহিদায় স্বয়ংক্রিয় ভাড়া সমন্বয় করে মালিকের আয় বৃদ্ধি।</p>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="উৎসব বা ছুটির দিনে অতিরিক্ত যাত্রী চাহিদায় স্বয়ংক্রিয় ভাড়া সমন্বয় করে মালিকের আয় বৃদ্ধি।" data-en="Auto-adjust fares during peak festival demand to maximize owner revenue.">উৎসব বা ছুটির দিনে অতিরিক্ত যাত্রী চাহিদায় স্বয়ংক্রিয় ভাড়া সমন্বয় করে মালিকের আয় বৃদ্ধি।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenOwner_dynamic_ai_pricing" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1668,7 +1671,7 @@
                                 <span class="text-xl">💳</span>
                                 <div>
                                     <div class="text-xs font-bold text-gray-900" data-bn="দৈনিক ব্যাংক ও ইউপিআই সেটেলমেন্ট" data-en="Daily Bank Payout">দৈনিক ব্যাংক ও ইউপিআই সেটেলমেন্ট</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">টিকিট বিক্রির টাকা প্রতিদিন রাত ১২টায় বা তাৎক্ষণিক মালিকের ব্যাংক একাউন্টে ট্রান্সফার।</p>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="টিকিট বিক্রির টাকা প্রতিদিন রাত ১২টায় বা তাৎক্ষণিক মালিকের ব্যাংক একাউন্টে ট্রান্সফার।" data-en="Automated daily bank or UPI payouts for ticket sales revenue.">টিকিট বিক্রির টাকা প্রতিদিন রাত ১২টায় বা তাৎক্ষণিক মালিকের ব্যাংক একাউন্টে ট্রান্সফার।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenOwner_instant_payout" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1679,8 +1682,8 @@
                             <div class="flex items-start gap-2.5">
                                 <span class="text-xl">📦</span>
                                 <div>
-                                    <div class="text-xs font-bold text-gray-900">স্মার্ট কার্গো ও বি২বি পার্সেল ট্র্যাকিং (B2B Cargo Logistics)</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">বাসের ডিকিতে বড় কার্টন বা ব্যবসায়িক পার্সেল বহনের জন্য আলাদা কার্গো রেট ও বুকিং।</p>
+                                    <div class="text-xs font-bold text-gray-900" data-bn="স্মার্ট কার্গো ও বি২বি পার্সেল ট্র্যাকিং" data-en="B2B Cargo Logistics">স্মার্ট কার্গো ও বি২বি পার্সেল ট্র্যাকিং (B2B Cargo Logistics)</div>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="বাসের ডিকিতে বড় কার্টন বা ব্যবসায়িক পার্সেল বহনের জন্য আলাদা কার্গো রেট ও বুকিং।" data-en="Dedicated cargo rates and tracking for commercial bus luggage transport.">বাসের ডিকিতে বড় কার্টন বা ব্যবসায়িক পার্সেল বহনের জন্য আলাদা কার্গো রেট ও বুকিং।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenOwner_cargo_tracking" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1692,7 +1695,7 @@
                                 <span class="text-xl">🛡️</span>
                                 <div>
                                     <div class="text-xs font-bold text-gray-900" data-bn="ড্রাইভার সেফটি স্কোর ও রেটিং" data-en="Driver Safety Rating">ড্রাইভার সেফটি স্কোর ও রেটিং</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">নিরাপদ ড্রাইভিং আচরণের মূল্যায়ন ও বাসের জন্য গোল্ড সেফটি ব্যাজ প্রদান।</p>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="নিরাপদ ড্রাইভিং আচরণের মূল্যায়ন ও বাসের জন্য গোল্ড সেফটি ব্যাজ প্রদান।" data-en="Safe driving score evaluation and Gold Safety Badge verification.">নিরাপদ ড্রাইভিং আচরণের মূল্যায়ন ও বাসের জন্য গোল্ড সেফটি ব্যাজ প্রদান।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenOwner_driver_safety_score" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1730,8 +1733,8 @@
                             <div class="flex items-start gap-2.5">
                                 <span class="text-xl">📱</span>
                                 <div>
-                                    <div class="text-xs font-bold text-gray-900">অফলাইন টিকিট ও QR কোড ভিউ (Offline Ticket & QR View)</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">ফোনে ইন্টারনেট না থাকলেও সেভ করা টিকিট ও QR কোড খুলে দেখার সুবিধা।</p>
+                                    <div class="text-xs font-bold text-gray-900" data-bn="অফলাইন টিকিট ও QR কোড ভিউ" data-en="Offline Ticket & QR View">অফলাইন টিকিট ও QR কোড ভিউ (Offline Ticket & QR View)</div>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="ফোনে ইন্টারনেট না থাকলেও সেভ করা টিকিট ও QR কোড খুলে দেখার সুবিধা।" data-en="View saved e-tickets and QR passes even without an internet connection.">ফোনে ইন্টারনেট না থাকলেও সেভ করা টিকিট ও QR কোড খুলে দেখার সুবিধা।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenCust_offline_tickets" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1742,8 +1745,8 @@
                             <div class="flex items-start gap-2.5">
                                 <span class="text-xl">🎁</span>
                                 <div>
-                                    <div class="text-xs font-bold text-gray-900">রেফারেল ও ক্যাশব্যাক কুপন (Refer & Earn Rewards)</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">বন্ধুকে রেফার করে বোনাস পয়েন্ট বা ক্যাশব্যাক ডিসকাউন্ট পাওয়ার অপশন।</p>
+                                    <div class="text-xs font-bold text-gray-900" data-bn="রেফারেল ও ক্যাশব্যাক কুপন" data-en="Refer & Earn Rewards">রেফারেল ও ক্যাশব্যাক কুপন (Refer & Earn Rewards)</div>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="বন্ধুকে রেফার করে বোনাস পয়েন্ট বা ক্যাশব্যাক ডিসকাউন্ট পাওয়ার অপশন।" data-en="Refer friends to earn bonus reward points and cashback discounts.">বন্ধুকে রেফার করে বোনাস পয়েন্ট বা ক্যাশব্যাক ডিসকাউন্ট পাওয়ার অপশন।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenCust_referral_rewards" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1754,8 +1757,8 @@
                             <div class="flex items-start gap-2.5">
                                 <span class="text-xl">🎙️</span>
                                 <div>
-                                    <div class="text-xs font-bold text-gray-900" data-bn="বাংলা ভয়েস সার্চ" data-en="Bengali Voice Route Search">বাংলা ভয়েস সার্চ</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">মুখে বাংলায় বাসের রুট বললে স্বয়ংক্রিয়ভাবে বাস খুঁজে বের করা।</p>
+                                    <div class="text-xs font-bold text-gray-900" data-bn="বাংলা ভয়েস সার্চ" data-en="Voice Route Search">বাংলা ভয়েস সার্চ</div>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="মুখে বাংলায় বাসের রুট বললে স্বয়ংক্রিয়ভাবে বাস খুঁজে বের করা।" data-en="Speak bus routes naturally to search available buses automatically.">মুখে বাংলায় বাসের রুট বললে স্বয়ংক্রিয়ভাবে বাস খুঁজে বের করা।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenCust_voice_search" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1767,7 +1770,7 @@
                                 <span class="text-xl">📦</span>
                                 <div>
                                     <div class="text-xs font-bold text-gray-900" data-bn="পার্সেল ও লাগেজ বুকিং" data-en="Parcel Courier Booking">পার্সেল ও লাগেজ বুকিং</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">যাত্রীদের বাসে পার্সেল পাঠানোর আবেদন করার সুবিধা চালু/বন্ধ রাখা।</p>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="যাত্রীদের বাসে পার্সেল পাঠানোর আবেদন করার সুবিধা চালু/বন্ধ রাখা।" data-en="Enable or disable passenger parcel shipping request options.">যাত্রীদের বাসে পার্সেল পাঠানোর আবেদন করার সুবিধা চালু/বন্ধ রাখা।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenCust_parcel_booking" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1778,8 +1781,8 @@
                             <div class="flex items-start gap-2.5">
                                 <span class="text-xl">🍽️</span>
                                 <div>
-                                    <div class="text-xs font-bold text-gray-900">হাইওয়ে ধাবা খাবার প্রি-অর্ডার (Highway Meal Pre-order)</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">মাঝপথে বাস থামার হোটেলে খাবার আগে থেকেই অর্ডার করার সুবিধা।</p>
+                                    <div class="text-xs font-bold text-gray-900" data-bn="হাইওয়ে ধাবা খাবার প্রি-অর্ডার" data-en="Highway Meal Pre-order">হাইওয়ে ধাবা খাবার প্রি-অর্ডার (Highway Meal Pre-order)</div>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="মাঝপথে বাস থামার হোটেলে খাবার আগে থেকেই অর্ডার করার সুবিধা।" data-en="Pre-order highway dhaba meals before the scheduled rest stop.">মাঝপথে বাস থামার হোটেলে খাবার আগে থেকেই অর্ডার করার সুবিধা।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenCust_meal_preorder" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1790,8 +1793,8 @@
                             <div class="flex items-start gap-2.5">
                                 <span class="text-xl">🛡️</span>
                                 <div>
-                                    <div class="text-xs font-bold text-gray-900">লেডিস অনলি সিট ও এসওএস সুরক্ষা (Women Safety & SOS)</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">মহিলাদের জন্য সংরক্ষিত সিট ব্যাজ ও জরুরি ট্রিপ হেল্পলাইন বাটন।</p>
+                                    <div class="text-xs font-bold text-gray-900" data-bn="লেডিস অনলি সিট ও এসওএস সুরক্ষা" data-en="Women Safety & SOS">লেডিস অনলি সিট ও এসওএস সুরক্ষা (Women Safety & SOS)</div>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="মহিলাদের জন্য সংরক্ষিত সিট ব্যাজ ও জরুরি ট্রিপ হেল্পলাইন বাটন।" data-en="Reserved ladies seat badges and one-tap emergency SOS helpline button.">মহিলাদের জন্য সংরক্ষিত সিট ব্যাজ ও জরুরি ট্রিপ হেল্পলাইন বাটন।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenCust_women_safety" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1803,7 +1806,7 @@
                                 <span class="text-xl">🤖</span>
                                 <div>
                                     <div class="text-xs font-bold text-gray-900" data-bn="হোয়াটসঅ্যাপ এআই বুকিং" data-en="WhatsApp AI Booking">হোয়াটসঅ্যাপ এআই বুকিং</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">কোনো অ্যাপ ছাড়া সরাসরি হোয়াটসঅ্যাপে চ্যাট করে বাসের টিকিট কাটার সুবিধা।</p>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="কোনো অ্যাপ ছাড়া সরাসরি হোয়াটসঅ্যাপে চ্যাট করে বাসের টিকিট কাটার সুবিধা।" data-en="Book bus tickets via WhatsApp chat without opening another app.">কোনো অ্যাপ ছাড়া সরাসরি হোয়াটসঅ্যাপে চ্যাট করে বাসের টিকিট কাটার সুবিধা।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenCust_whatsapp_booking" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1814,8 +1817,8 @@
                             <div class="flex items-start gap-2.5">
                                 <span class="text-xl">📡</span>
                                 <div>
-                                    <div class="text-xs font-bold text-gray-900">জিরো-ইন্টারনেট ব্লুটুথ মেশ পাস (Zero-Internet BLE Pass)</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">নেটওয়ার্কবিহীন গ্রামীণ এলাকায় ব্লুটুথ দিয়ে কন্ডাক্টরকে টিকিট দেখানোর অফলাইন মোড।</p>
+                                    <div class="text-xs font-bold text-gray-900" data-bn="জিরো-ইন্টারনেট ব্লুটুথ মেশ পাস" data-en="Zero-Internet BLE Pass">জিরো-ইন্টারনেট ব্লুটুথ মেশ পাস (Zero-Internet BLE Pass)</div>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="নেটওয়ার্কবিহীন গ্রামীণ এলাকায় ব্লুটুথ দিয়ে কন্ডাক্টরকে টিকিট দেখানোর অফলাইন মোড।" data-en="Offline Bluetooth mode to verify tickets with conductors in no-network zones.">নেটওয়ার্কবিহীন গ্রামীণ এলাকায় ব্লুটুথ দিয়ে কন্ডাক্টরকে টিকিট দেখানোর অফলাইন মোড।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenCust_bluetooth_offline" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1827,7 +1830,7 @@
                                 <span class="text-xl">🎫</span>
                                 <div>
                                     <div class="text-xs font-bold text-gray-900" data-bn="এনসিএমসি স্মার্ট ট্রাভেল কার্ড" data-en="NCMC Travel Card">এনসিএমসি স্মার্ট ট্রাভেল কার্ড</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">ফোনে চার্জ শেষ হলেও মেট্রো স্টাইল প্লাস্টিক কার্ড ছুঁয়ে টিকিট কাটার সুবিধা।</p>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="ফোনে চার্জ শেষ হলেও মেট্রো স্টাইল প্লাস্টিক কার্ড ছুঁয়ে টিকিট কাটার সুবিধা।" data-en="Tap-to-board NCMC smart card support even if phone battery dies.">ফোনে চার্জ শেষ হলেও মেট্রো স্টাইল প্লাস্টিক কার্ড ছুঁয়ে টিকিট কাটার সুবিধা।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenCust_ncmc_smart_card" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1839,7 +1842,7 @@
                                 <span class="text-xl">🏪</span>
                                 <div>
                                     <div class="text-xs font-bold text-gray-900" data-bn="এজেন্ট ও কাউন্টার বুকিং" data-en="Local Agent Counter Booking">এজেন্ট ও কাউন্টার বুকিং</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">স্থানীয় দোকানদার বা এজেন্টদের মাধ্যমে সাধারণ যাত্রীদের অফলাইন টিকিট বুকিং সেবা।</p>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="স্থানীয় দোকানদার বা এজেন্টদের মাধ্যমে সাধারণ যাত্রীদের অফলাইন টিকিট বুকিং সেবা।" data-en="Offline assisted ticket booking through local shopkeepers and bus stand agents.">স্থানীয় দোকানদার বা এজেন্টদের মাধ্যমে সাধারণ যাত্রীদের অফলাইন টিকিট বুকিং সেবা।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenCust_agent_portal" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1850,8 +1853,8 @@
                             <div class="flex items-start gap-2.5">
                                 <span class="text-xl">🔊</span>
                                 <div>
-                                    <div class="text-xs font-bold text-gray-900" data-bn="বাংলায় অটোমেটিক স্টপ অ্যানাউন্সার" data-en="GPS Bengali Stop Announcer">বাংলায় অটোমেটিক স্টপ অ্যানাউন্সার (GPS Audio Stop Announcer)</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">বাস স্টপেজ আসার ১ কিমি আগে যাত্রীদের মোবাইলে বাংলায় স্পষ্ট অডিও অ্যানাউন্সমেন্ট।</p>
+                                    <div class="text-xs font-bold text-gray-900" data-bn="বাংলায় অটোমেটিক স্টপ অ্যানাউন্সার" data-en="GPS Voice Stop Announcer">বাংলায় অটোমেটিক স্টপ অ্যানাউন্সার (GPS Audio Stop Announcer)</div>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="বাস স্টপেজ আসার ১ কিমি আগে যাত্রীদের মোবাইলে বাংলায় স্পষ্ট অডিও অ্যানাউন্সমেন্ট।" data-en="Clear automated stop announcements 1 km before reaching each bus stop.">বাস স্টপেজ আসার ১ কিমি আগে যাত্রীদের মোবাইলে বাংলায় স্পষ্ট অডিও অ্যানাউন্সমেন্ট।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenCust_bengali_stop_announcer" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1863,7 +1866,7 @@
                                 <span class="text-xl">🔥</span>
                                 <div>
                                     <div class="text-xs font-bold text-gray-900" data-bn="লাস্ট-মিনিট ফ্ল্যাশ সেল ও সিট ডিসকাউন্ট" data-en="Last-Minute Flash Sale & Dynamic Pricing">লাস্ট-মিনিট ফ্ল্যাশ সেল ও সিট ডিসকাউন্ট (Flash Sale Deals)</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">বাস ছাড়ার শেষ ২ ঘণ্টায় ফাঁকা সিট দ্রুত বিক্রি করতে বিশেষ ছাড় ও ফ্ল্যাশ সেল ব্যাজ।</p>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="বাস ছাড়ার শেষ ২ ঘণ্টায় ফাঁকা সিট দ্রুত বিক্রি করতে বিশেষ ছাড় ও ফ্ল্যাশ সেল ব্যাজ।" data-en="Special flash sale discounts in the final 2 hours to fill remaining empty seats.">বাস ছাড়ার শেষ ২ ঘণ্টায় ফাঁকা সিট দ্রুত বিক্রি করতে বিশেষ ছাড় ও ফ্ল্যাশ সেল ব্যাজ।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenCust_flash_sale_pricing" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1875,7 +1878,7 @@
                                 <span class="text-xl">⏳</span>
                                 <div>
                                     <div class="text-xs font-bold text-gray-900" data-bn="স্মার্ট বোর্ডিং কাউন্টডাউন ও লাইভ আবহাওয়া" data-en="Boarding Countdown & Live Weather">স্মার্ট বোর্ডিং কাউন্টডাউন ও লাইভ আবহাওয়া (Live Countdown & Weather)</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">টিকিটে বাস ছাড়ার লাইভ কাউন্টডাউন টাইমার ও গন্তব্য স্টপেজের রিয়েল-টাইম আবহাওয়া।</p>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="টিকিটে বাস ছাড়ার লাইভ কাউন্টডাউন টাইমার ও গন্তব্য স্টপেজের রিয়েল-টাইম আবহাওয়া।" data-en="Live departure countdown timer and destination stop weather forecast on tickets.">টিকিটে বাস ছাড়ার লাইভ কাউন্টডাউন টাইমার ও গন্তব্য স্টপেজের রিয়েল-টাইম আবহাওয়া।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenCust_smart_boarding_countdown" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1887,7 +1890,7 @@
                                 <span class="text-xl">⏰</span>
                                 <div>
                                     <div class="text-xs font-bold text-gray-900" data-bn="গন্তব্যের ড্রপ-অফ ওয়েক-আপ অ্যালার্ম" data-en="Drop-Off Wake-Up Alarm">গন্তব্যের ড্রপ-অফ ওয়েক-আপ অ্যালার্ম (Drop-Off Alarm & Vibration)</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">গন্তব্য স্টপেজ আসার ১ কিমি পূর্বে যাত্রীকে ঘুম থেকে জাগাতে স্বয়ংক্রিয় রিংটোন ও ভাইব্রেশন।</p>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="গন্তব্য স্টপেজ আসার ১ কিমি পূর্বে যাত্রীকে ঘুম থেকে জাগাতে স্বয়ংক্রিয় রিংটোন ও ভাইব্রেশন।" data-en="Automatic wake-up alarm and vibration alert 1 km before destination drop-off.">গন্তব্য স্টপেজ আসার ১ কিমি পূর্বে যাত্রীকে ঘুম থেকে জাগাতে স্বয়ংক্রিয় রিংটোন ও ভাইব্রেশন।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenCust_dropoff_wakeup_alarm" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1926,7 +1929,7 @@
                                 <span class="text-xl">📷</span>
                                 <div>
                                     <div class="text-xs font-bold text-gray-900" data-bn="মোবাইল ক্যামেরা কিউআর স্ক্যানার" data-en="Live Camera QR Scanner">মোবাইল ক্যামেরা কিউআর স্ক্যানার</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">কন্ডাক্টরের ফোন ক্যামেরা দিয়ে যাত্রীর টিকিটের কিউআর কোড স্ক্যান করে বোর্ডিং নিশ্চিত করা।</p>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="কন্ডাক্টরের ফোন ক্যামেরা দিয়ে যাত্রীর টিকিটের কিউআর কোড স্ক্যান করে বোর্ডিং নিশ্চিত করা।" data-en="Scan passenger ticket QR codes via conductor phone camera to verify boarding.">কন্ডাক্টরের ফোন ক্যামেরা দিয়ে যাত্রীর টিকিটের কিউআর কোড স্ক্যান করে বোর্ডিং নিশ্চিত করা।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenCapt_qr_scanner" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1938,7 +1941,7 @@
                                 <span class="text-xl">📡</span>
                                 <div>
                                     <div class="text-xs font-bold text-gray-900" data-bn="অফলাইন লোকাল টিকিট যাচাই" data-en="Offline Local Ticket Validation">অফলাইন লোকাল টিকিট যাচাই</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">হাইওয়েতে কোনো নেটওয়ার্ক না থাকলেও ব্লুটুথ বা অফলাইন ডাটাবেসে সিট ভ্যালিডেট করা।</p>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="হাইওয়েতে কোনো নেটওয়ার্ক না থাকলেও ব্লুটুথ বা অফলাইন ডাটাবেসে সিট ভ্যালিডেট করা।" data-en="Validate passenger seats using local offline cache or Bluetooth in dead zones.">হাইওয়েতে কোনো নেটওয়ার্ক না থাকলেও ব্লুটুথ বা অফলাইন ডাটাবেসে সিট ভ্যালিডেট করা।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenCapt_offline_validation" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1950,7 +1953,7 @@
                                 <span class="text-xl">💵</span>
                                 <div>
                                     <div class="text-xs font-bold text-gray-900" data-bn="বাসে নগদ টাকা কালেকশন ও স্পট টিকিট" data-en="Cash Spot Ticketing">বাসে নগদ টাকা কালেকশন ও স্পট টিকিট</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">বাস চলার পথে হাত তুলে ওঠা যাত্রীদের থেকে নগদ ভাড়া নিয়ে ডিজিটাল রসিদ দেওয়ার সুবিধা।</p>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="বাস চলার পথে হাত তুলে ওঠা যাত্রীদের থেকে নগদ ভাড়া নিয়ে ডিজিটাল রসিদ দেওয়ার সুবিধা।" data-en="Collect cash fares from walk-in highway passengers and issue digital receipts.">বাস চলার পথে হাত তুলে ওঠা যাত্রীদের থেকে নগদ ভাড়া নিয়ে ডিজিটাল রসিদ দেওয়ার সুবিধা।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenCapt_cash_collection" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1962,7 +1965,7 @@
                                 <span class="text-xl">📍</span>
                                 <div>
                                     <div class="text-xs font-bold text-gray-900" data-bn="লাইভ জিপিএস ব্রডকাস্টিং" data-en="Live Satellite GPS Broadcast">লাইভ জিপিএস ব্রডকাস্টিং</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">ক্যাপ্টেনের ফোনের জিপিএস দিয়ে বাসের লাইভ লোকেশন ম্যাপে যাত্রীদের দেখানো।</p>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="ক্যাপ্টেনের ফোনের জিপিএস দিয়ে বাসের লাইভ লোকেশন ম্যাপে যাত্রীদের দেখানো।" data-en="Stream live bus location telemetry from captain phone to Bus Yatra map.">ক্যাপ্টেনের ফোনের জিপিএস দিয়ে বাসের লাইভ লোকেশন ম্যাপে যাত্রীদের দেখানো।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenCapt_gps_broadcast" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1974,7 +1977,7 @@
                                 <span class="text-xl">📋</span>
                                 <div>
                                     <div class="text-xs font-bold text-gray-900" data-bn="প্যাসেঞ্জার ম্যানিফেস্ট ও স্টপেজ লিস্ট" data-en="Passenger Boarding Manifest">প্যাসেঞ্জার ম্যানিফেস্ট ও স্টপেজ লিস্ট</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">পরবর্তী স্টপেজে কোন যাত্রী নামবে বা উঠবে তার পূর্ণ তালিকা ও ফোন নম্বর দেখা।</p>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="পরবর্তী স্টপেজে কোন যাত্রী নামবে বা উঠবে তার পূর্ণ তালিকা ও ফোন নম্বর দেখা।" data-en="View full passenger manifest, contact numbers, and upcoming boarding/drop stops.">পরবর্তী স্টপেজে কোন যাত্রী নামবে বা উঠবে তার পূর্ণ তালিকা ও ফোন নম্বর দেখা।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenCapt_passenger_manifest" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1985,8 +1988,8 @@
                             <div class="flex items-start gap-2.5">
                                 <span class="text-xl">⚠️</span>
                                 <div>
-                                    <div class="text-xs font-bold text-gray-900">এআই ওভারস্পিড ও ড্রাইভার রেস্ট অ্যালার্ট (AI Speeding & Fatigue Alert)</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">বাস ৮০ কিমি/ঘণ্টার বেশি চললে বা একটানা ৪ ঘণ্টা ড্রাইভ করলে স্বয়ংক্রিয় সতর্কবার্তা।</p>
+                                    <div class="text-xs font-bold text-gray-900" data-bn="এআই ওভারস্পিড ও ড্রাইভার রেস্ট অ্যালার্ট" data-en="AI Speeding & Fatigue Alert">এআই ওভারস্পিড ও ড্রাইভার রেস্ট অ্যালার্ট (AI Speeding & Fatigue Alert)</div>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="বাস ৮০ কিমি/ঘণ্টার বেশি চললে বা একটানা ৪ ঘণ্টা ড্রাইভ করলে স্বয়ংক্রিয় সতর্কবার্তা।" data-en="Automatic alerts if speed exceeds 80 km/h or driving exceeds 4 continuous hours.">বাস ৮০ কিমি/ঘণ্টার বেশি চললে বা একটানা ৪ ঘণ্টা ড্রাইভ করলে স্বয়ংক্রিয় সতর্কবার্তা।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenCapt_driver_safety_alerts" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -1997,8 +2000,8 @@
                             <div class="flex items-start gap-2.5">
                                 <span class="text-xl">📢</span>
                                 <div>
-                                    <div class="text-xs font-bold text-gray-900" data-bn="বাসের স্পিকারে অটোমেটিক স্টপ অ্যানাউন্সার" data-en="Captain Speaker Bengali Stop Announcer">বাসের স্পিকারে অটোমেটিক স্টপ অ্যানাউন্সার (Audio Broadcast)</div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">ক্যাপ্টেনের ফোন থেকে স্পিকারে স্বয়ংক্রিয়ভাবে পরবর্তী স্টপেজের নাম বাংলায় ঘোষণা করা।</p>
+                                    <div class="text-xs font-bold text-gray-900" data-bn="বাসের স্পিকারে অটোমেটিক স্টপ অ্যানাউন্সার" data-en="Captain Speaker Stop Announcer">বাসের স্পিকারে অটোমেটিক স্টপ অ্যানাউন্সার (Audio Broadcast)</div>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="ক্যাপ্টেনের ফোন থেকে স্পিকারে স্বয়ংক্রিয়ভাবে পরবর্তী স্টপেজের নাম বাংলায় ঘোষণা করা।" data-en="Automated speaker audio announcement of next upcoming stop from captain device.">ক্যাপ্টেনের ফোন থেকে স্পিকারে স্বয়ংক্রিয়ভাবে পরবর্তী স্টপেজের নাম বাংলায় ঘোষণা করা।</p>
                                 </div>
                             </div>
                             <input type="checkbox" id="nextgenCapt_bengali_stop_announcer" class="w-4 h-4 text-purple-600 rounded mt-1">
@@ -2023,7 +2026,7 @@
                                 🚀 Future-Ready Platform Expansion
                             </div>
                             <h3 class="text-base md:text-lg font-black text-gray-900" data-bn="ব্যবসায়িক সম্প্রসারণ কন্ট্রোল প্যানেল" data-en="Strategic Expansion Hub">ব্যবসায়িক সম্প্রসারণ কন্ট্রোল প্যানেল</h3>
-                            <p class="text-xs text-gray-600 mt-1 max-w-2xl">
+                            <p class="text-xs text-gray-600 mt-1 max-w-2xl" data-bn="বাস যাত্রা প্ল্যাটফর্মকে আগামী ১০ বছরের জন্য বাজারের শীর্ষে রাখতে এই অ্যাডভান্সড ফিচারগুলো প্রস্তুত রয়েছে। অ্যাডমিন হিসেবে আপনি যখনই চাইবেন, যেকোনো ফিচার এক ক্লিকে এক্টিভ বা ডিজেবল করতে পারেন এবং নিজ সুবিধামতো প্যারামিটার সেট করতে পারেন।" data-en="Advanced platform expansion capabilities for Bus Yatra. Enable, disable, and configure parameters for each strategic module with one click.">
                                 বাস যাত্রা প্ল্যাটফর্মকে আগামী ১০ বছরের জন্য বাজারের শীর্ষে রাখতে এই অ্যাডভান্সড ফিচারগুলো প্রস্তুত রয়েছে। অ্যাডমিন হিসেবে আপনি যখনই চাইবেন, যেকোনো ফিচার এক ক্লিকে এক্টিভ বা ডিজেবল করতে পারেন এবং নিজ সুবিধামতো প্যারামিটার সেট করতে পারেন।
                             </p>
                         </div>
@@ -2040,7 +2043,7 @@
                                     <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl font-bold">💬</div>
                                     <div>
                                         <h4 class="text-xs font-black text-gray-900" data-bn="হোয়াটসঅ্যাপ চ্যাট বুকিং বট" data-en="WhatsApp Chat Bot">হোয়াটসঅ্যাপ চ্যাট বুকিং বট</h4>
-                                        <p class="text-[11px] text-gray-500">যাত্রী অ্যাপ ডাউনলোড না করেই হোয়াটসঅ্যাপে মেসেজ পাঠিয়ে সরাসরি সিট বুক করতে পারবেন।</p>
+                                        <p class="text-[11px] text-gray-500" data-bn="যাত্রী অ্যাপ ডাউনলোড না করেই হোয়াটসঅ্যাপে মেসেজ পাঠিয়ে সরাসরি সিট বুক করতে পারবেন।" data-en="Passengers can book bus seats directly via WhatsApp chat without installing an app.">যাত্রী অ্যাপ ডাউনলোড না করেই হোয়াটসঅ্যাপে মেসেজ পাঠিয়ে সরাসরি সিট বুক করতে পারবেন।</p>
                                     </div>
                                 </div>
                                 <label class="relative inline-flex items-center cursor-pointer">
@@ -2055,7 +2058,7 @@
                                 </div>
                                 <div>
                                     <label class="block text-[11px] font-bold text-gray-700 mb-1" data-bn="স্বাগতম মেসেজ:" data-en="Welcome Message:">স্বাগতম মেসেজ:</label>
-                                    <input type="text" id="expCfg_wa_welcomeMsg" placeholder="নমস্কার! বাস যাত্রায় সিট বুক করতে রুটের নাম লিখুন..." class="w-full p-2 border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500">
+                                    <input type="text" id="expCfg_wa_welcomeMsg" placeholder="নমস্কার! বাস যাত্রায় সিট বুক করতে রুটের নাম লিখুন..." data-bn-placeholder="নমস্কার! বাস যাত্রায় সিট বুক করতে রুটের নাম লিখুন..." data-en-placeholder="Hello! Reply with your route name to book on Bus Yatra..." class="w-full p-2 border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500">
                                 </div>
                             </div>
                         </div>
@@ -2066,8 +2069,8 @@
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-xl font-bold">🏪</div>
                                     <div>
-                                        <h4 class="text-xs font-black text-gray-900">লোকাল বাস স্ট্যান্ড ও দোকানদার এজেন্ট নেটওয়ার্ক</h4>
-                                        <p class="text-[11px] text-gray-500">বাস স্ট্যান্ডের পানের দোকান/মোবাইল রিচার্জ পয়েন্টে অফলাইন টিকিট কাটার এজেন্ট সুবিধা।</p>
+                                        <h4 class="text-xs font-black text-gray-900" data-bn="লোকাল বাস স্ট্যান্ড ও দোকানদার এজেন্ট নেটওয়ার্ক" data-en="Local Bus Stand Agent Network">লোকাল বাস স্ট্যান্ড ও দোকানদার এজেন্ট নেটওয়ার্ক</h4>
+                                        <p class="text-[11px] text-gray-500" data-bn="বাস স্ট্যান্ডের পানের দোকান/মোবাইল রিচার্জ পয়েন্টে অফলাইন টিকিট কাটার এজেন্ট সুবিধা।" data-en="Assisted offline ticket booking via authorized shopkeepers at bus stands.">বাস স্ট্যান্ডের পানের দোকান/মোবাইল রিচার্জ পয়েন্টে অফলাইন টিকিট কাটার এজেন্ট সুবিধা।</p>
                                     </div>
                                 </div>
                                 <label class="relative inline-flex items-center cursor-pointer">
@@ -2078,17 +2081,17 @@
                             <div class="pt-3 border-t border-gray-100 space-y-2.5 text-xs">
                                 <div class="grid grid-cols-2 gap-2">
                                     <div>
-                                        <label class="block text-[11px] font-bold text-gray-700 mb-1">এজেন্ট কমিশন (প্রতি টিকিটে ₹):</label>
+                                        <label class="block text-[11px] font-bold text-gray-700 mb-1" data-bn="এজেন্ট কমিশন (প্রতি টিকিটে ₹):" data-en="Agent Commission (₹ / ticket):">এজেন্ট কমিশন (প্রতি টিকিটে ₹):</label>
                                         <input type="number" id="expCfg_agent_commissionPerTicket" placeholder="15" class="w-full p-2 border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-blue-500">
                                     </div>
                                     <div>
-                                        <label class="block text-[11px] font-bold text-gray-700 mb-1">কাউন্টার এরিয়া:</label>
-                                        <input type="text" id="expCfg_agent_counterStand" placeholder="পিংলা / মেদিনীপুর" class="w-full p-2 border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-blue-500">
+                                        <label class="block text-[11px] font-bold text-gray-700 mb-1" data-bn="কাউন্টার এরিয়া:" data-en="Counter Area:">কাউন্টার এরিয়া:</label>
+                                        <input type="text" id="expCfg_agent_counterStand" placeholder="Pingla / Medinipur" data-bn-placeholder="পিংলা / মেদিনীপুর" data-en-placeholder="Pingla / Medinipur" class="w-full p-2 border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-blue-500">
                                     </div>
                                 </div>
                                 <label class="flex items-center gap-2 cursor-pointer pt-1">
                                     <input type="checkbox" id="expCfg_agent_allowInstantCashBook" class="w-4 h-4 text-blue-600 rounded">
-                                    <span class="text-[11px] font-semibold text-gray-700">এজেন্টকে ক্যাশ সংগ্রহ করে তাৎক্ষণিক ই-টিকিট ইস্যু করার অনুমতি দিন</span>
+                                    <span class="text-[11px] font-semibold text-gray-700" data-bn="এজেন্টকে ক্যাশ সংগ্রহ করে তাৎক্ষণিক ই-টিকিট ইস্যু করার অনুমতি দিন" data-en="Allow agents to collect cash and issue instant e-tickets">এজেন্টকে ক্যাশ সংগ্রহ করে তাৎক্ষণিক ই-টিকিট ইস্যু করার অনুমতি দিন</span>
                                 </label>
                             </div>
                         </div>
@@ -2100,7 +2103,7 @@
                                     <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-xl font-bold">🎫</div>
                                     <div>
                                         <h4 class="text-xs font-black text-gray-900" data-bn="নিত্যযাত্রী মান্থলি ডিজিটাল পাস" data-en="Monthly Commuter Pass">নিত্যযাত্রী মান্থলি ডিজিটাল পাস</h4>
-                                        <p class="text-[11px] text-gray-500">ছাত্রছাত্রী, চাকুরীজীবী ও নিয়মিত যাত্রীদের জন্য আকর্ষণীয় মাসিক সাবস্ক্রিপশন পাস।</p>
+                                        <p class="text-[11px] text-gray-500" data-bn="ছাত্রছাত্রী, চাকুরীজীবী ও নিয়মিত যাত্রীদের জন্য আকর্ষণীয় মাসিক সাবস্ক্রিপশন পাস।" data-en="Discounted monthly subscription passes for students and regular commuters.">ছাত্রছাত্রী, চাকুরীজীবী ও নিয়মিত যাত্রীদের জন্য আকর্ষণীয় মাসিক সাবস্ক্রিপশন পাস।</p>
                                     </div>
                                 </div>
                                 <label class="relative inline-flex items-center cursor-pointer">
@@ -2110,15 +2113,15 @@
                             </div>
                             <div class="pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-xs">
                                 <div>
-                                    <label class="block text-[11px] font-bold text-gray-700 mb-1">ছাড় (Discount %):</label>
+                                    <label class="block text-[11px] font-bold text-gray-700 mb-1" data-bn="ছাড় (Discount %):" data-en="Discount (%):">ছাড় (Discount %):</label>
                                     <input type="number" id="expCfg_pass_discountPercent" placeholder="15" class="w-full p-2 border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-purple-500">
                                 </div>
                                 <div>
-                                    <label class="block text-[11px] font-bold text-gray-700 mb-1">মোট ট্রিপ সংখ্যা:</label>
+                                    <label class="block text-[11px] font-bold text-gray-700 mb-1" data-bn="মোট ট্রিপ সংখ্যা:" data-en="Total Trips:">মোট ট্রিপ সংখ্যা:</label>
                                     <input type="number" id="expCfg_pass_ridesCount" placeholder="20" class="w-full p-2 border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-purple-500">
                                 </div>
                                 <div>
-                                    <label class="block text-[11px] font-bold text-gray-700 mb-1">মেয়াদ (দিন):</label>
+                                    <label class="block text-[11px] font-bold text-gray-700 mb-1" data-bn="মেয়াদ (দিন):" data-en="Validity (Days):">মেয়াদ (দিন):</label>
                                     <input type="number" id="expCfg_pass_validityDays" placeholder="30" class="w-full p-2 border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-purple-500">
                                 </div>
                             </div>
@@ -2131,7 +2134,7 @@
                                     <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl font-bold">⏰</div>
                                     <div>
                                         <h4 class="text-xs font-black text-gray-900" data-bn="১৫ মিনিট পূর্বে লাইভ এরাইভাল অ্যালার্ট" data-en="15-Min Live Arrival Alert">১৫ মিনিট পূর্বে লাইভ এরাইভাল অ্যালার্ট</h4>
-                                        <p class="text-[11px] text-gray-500">স্টপেজে বাস পৌঁছানোর ১৫ মিনিট আগে যাত্রীর মোবাইলে অটোমেটিক সতর্কবার্তা পৌঁছে যাবে।</p>
+                                        <p class="text-[11px] text-gray-500" data-bn="স্টপেজে বাস পৌঁছানোর ১৫ মিনিট আগে যাত্রীর মোবাইলে অটোমেটিক সতর্কবার্তা পৌঁছে যাবে।" data-en="Send automatic arrival reminders to passengers 15 minutes before bus arrival.">স্টপেজে বাস পৌঁছানোর ১৫ মিনিট আগে যাত্রীর মোবাইলে অটোমেটিক সতর্কবার্তা পৌঁছে যাবে।</p>
                                     </div>
                                 </div>
                                 <label class="relative inline-flex items-center cursor-pointer">
@@ -2141,15 +2144,15 @@
                             </div>
                             <div class="pt-3 border-t border-gray-100 grid grid-cols-2 gap-2 text-xs">
                                 <div>
-                                    <label class="block text-[11px] font-bold text-gray-700 mb-1">কতো মিনিট আগে অ্যালার্ট যাবে:</label>
+                                    <label class="block text-[11px] font-bold text-gray-700 mb-1" data-bn="কতো মিনিট আগে অ্যালার্ট যাবে:" data-en="Alert Lead Time (Min):">কতো মিনিট আগে অ্যালার্ট যাবে:</label>
                                     <input type="number" id="expCfg_alert_leadMinutes" placeholder="15" class="w-full p-2 border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-amber-500">
                                 </div>
                                 <div>
-                                    <label class="block text-[11px] font-bold text-gray-700 mb-1">বার্তা প্রেরণের মাধ্যম:</label>
+                                    <label class="block text-[11px] font-bold text-gray-700 mb-1" data-bn="বার্তা প্রেরণের মাধ্যম:" data-en="Delivery Channel:">বার্তা প্রেরণের মাধ্যম:</label>
                                     <select id="expCfg_alert_channel" class="w-full p-2 border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-amber-500 bg-white">
-                                        <option value="WhatsApp & SMS">WhatsApp & SMS উভয়ই</option>
-                                        <option value="WhatsApp Only">শুধু WhatsApp</option>
-                                        <option value="SMS Only">শুধু SMS</option>
+                                        <option value="WhatsApp & SMS" data-bn="WhatsApp & SMS উভয়ই" data-en="Both WhatsApp & SMS">WhatsApp & SMS উভয়ই</option>
+                                        <option value="WhatsApp Only" data-bn="শুধু WhatsApp" data-en="WhatsApp Only">শুধু WhatsApp</option>
+                                        <option value="SMS Only" data-bn="শুধু SMS" data-en="SMS Only">শুধু SMS</option>
                                     </select>
                                 </div>
                             </div>
@@ -2162,7 +2165,7 @@
                                     <div class="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center text-xl font-bold">📦</div>
                                     <div>
                                         <h4 class="text-xs font-black text-gray-900" data-bn="পার্সেল ও লাগেজ কুরিয়ার নেটওয়ার্ক" data-en="Parcel Courier Network">পার্সেল ও লাগেজ কুরিয়ার নেটওয়ার্ক</h4>
-                                        <p class="text-[11px] text-gray-500">বাসের খাঁচা বা ডিকিতে পার্সেল ও বড় কার্গো পরিবহন করে মালিক ও কোম্পানির অতিরিক্ত রাজস্ব।</p>
+                                        <p class="text-[11px] text-gray-500" data-bn="বাসের খাঁচা বা ডিকিতে পার্সেল ও বড় কার্গো পরিবহন করে মালিক ও কোম্পানির অতিরিক্ত রাজস্ব।" data-en="Additional operator revenue from luggage & parcel courier transport.">বাসের খাঁচা বা ডিকিতে পার্সেল ও বড় কার্গো পরিবহন করে মালিক ও কোম্পানির অতিরিক্ত রাজস্ব।</p>
                                     </div>
                                 </div>
                                 <label class="relative inline-flex items-center cursor-pointer">
@@ -2172,15 +2175,15 @@
                             </div>
                             <div class="pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-xs">
                                 <div>
-                                    <label class="block text-[11px] font-bold text-gray-700 mb-1">ন্যূনতম ভাড়া (₹):</label>
+                                    <label class="block text-[11px] font-bold text-gray-700 mb-1" data-bn="ন্যূনতম ভাড়া (₹):" data-en="Min Fare (₹):">ন্যূনতম ভাড়া (₹):</label>
                                     <input type="number" id="expCfg_parcel_minParcelFare" placeholder="50" class="w-full p-2 border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-teal-500">
                                 </div>
                                 <div>
-                                    <label class="block text-[11px] font-bold text-gray-700 mb-1">প্রতি কেজি চার্জ (₹):</label>
+                                    <label class="block text-[11px] font-bold text-gray-700 mb-1" data-bn="প্রতি কেজি চার্জ (₹):" data-en="Per Kg Rate (₹):">প্রতি কেজি চার্জ (₹):</label>
                                     <input type="number" id="expCfg_parcel_perKgRate" placeholder="10" class="w-full p-2 border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-teal-500">
                                 </div>
                                 <div>
-                                    <label class="block text-[11px] font-bold text-gray-700 mb-1">সর্বোচ্চ ওজন (কেজি):</label>
+                                    <label class="block text-[11px] font-bold text-gray-700 mb-1" data-bn="সর্বোচ্চ ওজন (কেজি):" data-en="Max Weight (Kg):">সর্বোচ্চ ওজন (কেজি):</label>
                                     <input type="number" id="expCfg_parcel_maxWeightKg" placeholder="40" class="w-full p-2 border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-teal-500">
                                 </div>
                             </div>
@@ -2192,8 +2195,8 @@
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center text-xl font-bold">🤝</div>
                                     <div>
-                                        <h4 class="text-xs font-black text-gray-900">বাস মালিক ডিজেল ও টায়ার পার্টনারশিপ (Fleet Tie-Up)</h4>
-                                        <p class="text-[11px] text-gray-500">বাস মালিকদের জন্য বাল্ক ডিজেল ক্যাশব্যাক ও টায়ার ডিসকাউন্ট সুবিধা প্রদান।</p>
+                                        <h4 class="text-xs font-black text-gray-900" data-bn="বাস মালিক ডিজেল ও টায়ার পার্টনারশিপ" data-en="Fleet Fuel & Tyre Partnership">বাস মালিক ডিজেল ও টায়ার পার্টনারশিপ (Fleet Tie-Up)</h4>
+                                        <p class="text-[11px] text-gray-500" data-bn="বাস মালিকদের জন্য বাল্ক ডিজেল ক্যাশব্যাক ও টায়ার ডিসকাউন্ট সুবিধা প্রদান।" data-en="Bulk diesel cashback and fleet tyre discount benefits for bus owners.">বাস মালিকদের জন্য বাল্ক ডিজেল ক্যাশব্যাক ও টায়ার ডিসকাউন্ট সুবিধা প্রদান।</p>
                                     </div>
                                 </div>
                                 <label class="relative inline-flex items-center cursor-pointer">
@@ -2203,16 +2206,16 @@
                             </div>
                             <div class="pt-3 border-t border-gray-100 space-y-2.5 text-xs">
                                 <div>
-                                    <label class="block text-[11px] font-bold text-gray-700 mb-1">পার্টনার পাম্প নেটওয়ার্ক:</label>
+                                    <label class="block text-[11px] font-bold text-gray-700 mb-1" data-bn="পার্টনার পাম্প নেটওয়ার্ক:" data-en="Partner Pump Network:">পার্টনার পাম্প নেটওয়ার্ক:</label>
                                     <input type="text" id="expCfg_fuel_partnerNetwork" placeholder="IndianOil / BPCL Highway Tie-Up" class="w-full p-2 border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-cyan-500">
                                 </div>
                                 <div class="grid grid-cols-2 gap-2">
                                     <div>
-                                        <label class="block text-[11px] font-bold text-gray-700 mb-1">টায়ার ছাড় (%):</label>
+                                        <label class="block text-[11px] font-bold text-gray-700 mb-1" data-bn="টায়ার ছাড় (%):" data-en="Tyre Discount (%):">টায়ার ছাড় (%):</label>
                                         <input type="number" id="expCfg_fuel_tyreDiscountPercent" placeholder="12" class="w-full p-2 border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-cyan-500">
                                     </div>
                                     <div>
-                                        <label class="block text-[11px] font-bold text-gray-700 mb-1">ডিজেল ক্যাশব্যাক (প্রতি ১০০ লিটারে ₹):</label>
+                                        <label class="block text-[11px] font-bold text-gray-700 mb-1" data-bn="ডিজেল ক্যাশব্যাক (প্রতি ১০০ লিটারে ₹):" data-en="Fuel Cashback (₹ / 100L):">ডিজেল ক্যাশব্যাক (প্রতি ১০০ লিটারে ₹):</label>
                                         <input type="number" id="expCfg_fuel_fuelCashback" placeholder="80" class="w-full p-2 border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-cyan-500">
                                     </div>
                                 </div>
@@ -2226,7 +2229,7 @@
                                     <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center text-xl font-bold">📈</div>
                                     <div>
                                         <h4 class="text-xs font-black text-gray-900" data-bn="ডায়নামিক সার্জ প্রাইসিং" data-en="Holiday Surge Pricing">ডায়নামিক সার্জ প্রাইসিং</h4>
-                                        <p class="text-[11px] text-gray-500">পূজা, ঈদ, দিওয়ালি বা বিশেষ ছুটির দিনে উচ্চ চাহিদায় স্বয়ংক্রিয় ভাড়া বৃদ্ধি ব্যবস্থাপনা।</p>
+                                        <p class="text-[11px] text-gray-500" data-bn="পূজা, ঈদ, দিওয়ালি বা বিশেষ ছুটির দিনে উচ্চ চাহিদায় স্বয়ংক্রিয় ভাড়া বৃদ্ধি ব্যবস্থাপনা।" data-en="Automated peak-demand fare multiplier during Puja, Eid, Diwali, and holidays.">পূজা, ঈদ, দিওয়ালি বা বিশেষ ছুটির দিনে উচ্চ চাহিদায় স্বয়ংক্রিয় ভাড়া বৃদ্ধি ব্যবস্থাপনা।</p>
                                     </div>
                                 </div>
                                 <label class="relative inline-flex items-center cursor-pointer">
@@ -2236,12 +2239,12 @@
                             </div>
                             <div class="pt-3 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                                 <div>
-                                    <label class="block text-[11px] font-bold text-gray-700 mb-1">সর্বোচ্চ ভাড়া মাল্টিপ্লায়ার (যেমন: 1.25 = +25% বৃদ্ধি):</label>
+                                    <label class="block text-[11px] font-bold text-gray-700 mb-1" data-bn="সর্বোচ্চ ভাড়া মাল্টিপ্লায়ার (যেমন: 1.25 = +25% বৃদ্ধি):" data-en="Max Fare Multiplier (e.g. 1.25 = +25%):">সর্বোচ্চ ভাড়া মাল্টিপ্লায়ার (যেমন: 1.25 = +25% বৃদ্ধি):</label>
                                     <input type="number" step="0.05" id="expCfg_surge_maxMultiplier" placeholder="1.25" class="w-full p-2 border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-rose-500">
                                 </div>
                                 <div>
-                                    <label class="block text-[11px] font-bold text-gray-700 mb-1">সার্জ কারণ / যাত্রীদের নোটিশ:</label>
-                                    <input type="text" id="expCfg_surge_reason" placeholder="দুর্গাপূজা ও উৎসবকালীন বিশেষ সার্ভিস" class="w-full p-2 border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-rose-500">
+                                    <label class="block text-[11px] font-bold text-gray-700 mb-1" data-bn="সার্জ কারণ / যাত্রীদের নোটিশ:" data-en="Surge Reason / Passenger Notice:">সার্জ কারণ / যাত্রীদের নোটিশ:</label>
+                                    <input type="text" id="expCfg_surge_reason" placeholder="Durga Puja & Festival Special Service" data-bn-placeholder="দুর্গাপূজা ও উৎসবকালীন বিশেষ সার্ভিস" data-en-placeholder="Durga Puja & Festival Special Service" class="w-full p-2 border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-rose-500">
                                 </div>
                             </div>
                         </div>
@@ -2249,7 +2252,7 @@
 
                     <div class="p-4 bg-gray-50 rounded-2xl border flex flex-col sm:flex-row items-center justify-between gap-3">
                         <div class="text-xs text-gray-600 flex items-center gap-2">
-                            <span>💡</span> <span>যে কোনো ফিচার অন/অফ করার পর "সেভ করুন" বোতাম চাপলে সঙ্গে সঙ্গে পুরো প্ল্যাটফর্মে কার্যকর হবে।</span>
+                            <span>💡</span> <span data-bn="যে কোনো ফিচার অন/অফ করার পর সেভ করলে সঙ্গে সঙ্গে পুরো প্ল্যাটফর্মে কার্যকর হবে।" data-en="Saving any toggle updates the entire platform live immediately.">যে কোনো ফিচার অন/অফ করার পর "সেভ করুন" বোতাম চাপলে সঙ্গে সঙ্গে পুরো প্ল্যাটফর্মে কার্যকর হবে।</span>
                         </div>
                         <button type="button" onclick="saveAdminExpansionSettings()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl font-black text-xs shadow-md transition flex items-center justify-center gap-2">
                             <span>💾</span> <span data-bn="সেটিংস সংরক্ষণ করুন" data-en="Save Hub Settings">সেটিংস সংরক্ষণ করুন</span>
@@ -2268,17 +2271,17 @@
                     <div class="flex items-center gap-3">
                         <span class="text-3xl">🎉</span>
                         <div>
-                            <h2 class="text-base sm:text-lg font-black text-gray-900 flex items-center gap-2">
-                                <span>উৎসব ও স্পেশাল থিম কন্ট্রোলার</span>
+                            <h2 class="text-base sm:text-lg font-black text-gray-900 flex flex-wrap items-center gap-2">
+                                <span data-bn="উৎসব ও স্পেশাল থিম কন্ট্রোলার" data-en="Festival &amp; Special Theme Controller">উৎসব ও স্পেশাল থিম কন্ট্রোলার</span>
                                 <span class="bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Festival Master</span>
                             </h2>
-                            <p class="text-xs text-gray-600 mt-0.5">যেকোনো উৎসবের (দীপাবলি, দুর্গাপূজা, ঈদ, নববর্ষ ইত্যাদি) থিম ও স্পেশাল লুক ১-ক্লিকে চালু বা বন্ধ করুন। কাস্টমার, ওনার ও ক্যাপ্টেন প্যানেলে একসাথে বা আলাদাভাবে পছন্দ করে চালু করা যাবে।</p>
+                            <p class="text-xs text-gray-600 mt-0.5" data-bn="যেকোনো উৎসবের (দীপাবলি, দুর্গাপূজা, ঈদ, নববর্ষ ইত্যাদি) থিম ১-ক্লিকে চালু বা বন্ধ করুন।" data-en="Toggle festival themes and special decorations in 1 click for Customer, Owner, and Captain portals.">যেকোনো উৎসবের থিম ও স্পেশাল লুক ১-ক্লিকে চালু বা বন্ধ করুন।</p>
                         </div>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer shrink-0 self-start sm:self-auto bg-white/80 p-2 rounded-xl border border-orange-300 shadow-xs">
                         <input type="checkbox" id="adminFestivalEnabledToggle" onchange="onAdminFestivalToggleChange()" class="sr-only peer">
                         <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[10px] after:left-[10px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
-                        <span id="lblAdminFestivalStatus" class="ml-3 text-xs font-black text-gray-800">থিম বন্ধ (OFF)</span>
+                        <span id="lblAdminFestivalStatus" class="ml-3 text-xs font-black text-gray-800" data-bn="থিম বন্ধ (OFF)" data-en="Theme OFF">থিম বন্ধ (OFF)</span>
                     </label>
                 </div>
 
@@ -2286,50 +2289,50 @@
                     <!-- Column 1: Festival Selection & Target Portals -->
                     <div class="space-y-3">
                         <div>
-                            <label class="block text-xs font-bold text-gray-700 mb-1">🎭 উৎসব নির্বাচন করুন (Select Festival)</label>
+                            <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="🎭 উৎসব নির্বাচন করুন" data-en="🎭 Select Festival">🎭 উৎসব নির্বাচন করুন</label>
                             <select id="adminFestivalSelect" onchange="onAdminFestivalSelectChange()" class="w-full p-2.5 text-xs sm:text-sm font-bold bg-white border border-orange-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:outline-none shadow-xs">
-                                <option value="none">🔴 সাধারণ স্বাভাবিক দিন (Normal - No Festival)</option>
-                                <option value="diwali" selected>🪔 শুভ দীপাবলি ও শ্যামাপূজা (Diwali & Kali Puja)</option>
-                                <option value="durga_puja">🥁 শুভ শারদীয়া দুর্গোৎসব (Durga Puja)</option>
-                                <option value="eid">🌙 পবিত্র ঈদ মোবারক (Eid Mubarak)</option>
-                                <option value="new_year">🎉 শুভ নববর্ষ ও বড়দিন (New Year & Christmas)</option>
-                                <option value="holi">🎨 শুভ দোলযাত্রা ও হোলি (Holi / Dol Jatra)</option>
-                                <option value="independence">🇮🇳 স্বাধীনতা ও প্রজাতন্ত্র দিবস (Independence & Republic Day)</option>
+                                <option value="none" data-bn="🔴 সাধারণ দিন (কোনো উৎসব নয়)" data-en="🔴 Normal Day (No Festival)">🔴 Normal Day (No Festival)</option>
+                                <option value="diwali" selected data-bn="🪔 শুভ দীপাবলি ও শ্যামাপূজা" data-en="🪔 Diwali &amp; Kali Puja">🪔 Diwali &amp; Kali Puja</option>
+                                <option value="durga_puja" data-bn="🥁 শুভ শারদীয়া দুর্গোৎসব" data-en="🥁 Durga Puja">🥁 Durga Puja</option>
+                                <option value="eid" data-bn="🌙 পবিত্র ঈদ মোবারক" data-en="🌙 Eid Mubarak">🌙 Eid Mubarak</option>
+                                <option value="new_year" data-bn="🎉 শুভ নববর্ষ ও বড়দিন" data-en="🎉 New Year &amp; Christmas">🎉 New Year &amp; Christmas</option>
+                                <option value="holi" data-bn="🎨 শুভ দোলযাত্রা ও হোলি" data-en="🎨 Holi / Dol Jatra">🎨 Holi / Dol Jatra</option>
+                                <option value="independence" data-bn="🇮🇳 স্বাধীনতা ও প্রজাতন্ত্র দিবস" data-en="🇮🇳 Independence &amp; Republic Day">🇮🇳 Independence &amp; Republic Day</option>
                             </select>
                         </div>
 
                         <!-- Target Portals Selection -->
                         <div class="bg-white/80 p-3 rounded-xl border border-orange-200 space-y-2">
                             <div class="flex items-center justify-between">
-                                <label class="text-xs font-bold text-gray-800">🎯 কোন কোন প্যানেলে থিম দেখাবে? (Target Portals)</label>
-                                <button type="button" onclick="setAdminFestivalAllTargets(true)" class="text-[11px] font-black text-orange-700 hover:text-orange-900 underline">সব একসাথে</button>
+                                <label class="text-xs font-bold text-gray-800" data-bn="🎯 কোন কোন প্যানেলে থিম দেখাবে?" data-en="🎯 Target Portals">🎯 কোন কোন প্যানেলে থিম দেখাবে?</label>
+                                <button type="button" onclick="setAdminFestivalAllTargets(true)" class="text-[11px] font-black text-orange-700 hover:text-orange-900 underline" data-bn="সব একসাথে" data-en="Select All">সব একসাথে</button>
                             </div>
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 <label class="flex items-center gap-2 p-2 bg-gray-50 hover:bg-orange-50/50 rounded-lg border border-gray-200 cursor-pointer text-xs font-bold transition">
                                     <input type="checkbox" id="festTargetCustomer" checked onchange="updateAdminFestivalLivePreview()" class="w-4 h-4 text-orange-600 rounded">
-                                    <span>👤 কাস্টমার অ্যাপ</span>
+                                    <span data-bn="👤 কাস্টমার অ্যাপ" data-en="👤 Customer App">👤 কাস্টমার অ্যাপ</span>
                                 </label>
                                 <label class="flex items-center gap-2 p-2 bg-gray-50 hover:bg-orange-50/50 rounded-lg border border-gray-200 cursor-pointer text-xs font-bold transition">
                                     <input type="checkbox" id="festTargetOwner" checked onchange="updateAdminFestivalLivePreview()" class="w-4 h-4 text-orange-600 rounded">
-                                    <span>👑 ওনার প্যানেল</span>
+                                    <span data-bn="👑 ওনার প্যানেল" data-en="👑 Owner Panel">👑 ওনার প্যানেল</span>
                                 </label>
                                 <label class="flex items-center gap-2 p-2 bg-gray-50 hover:bg-orange-50/50 rounded-lg border border-gray-200 cursor-pointer text-xs font-bold transition">
                                     <input type="checkbox" id="festTargetCaptain" checked onchange="updateAdminFestivalLivePreview()" class="w-4 h-4 text-orange-600 rounded">
-                                    <span>👨‍✈️ ক্যাপ্টেন অ্যাপ</span>
+                                    <span data-bn="👨‍✈️ ক্যাপ্টেন অ্যাপ" data-en="👨‍✈️ Captain App">👨‍✈️ ক্যাপ্টেন অ্যাপ</span>
                                 </label>
                             </div>
                         </div>
 
                         <!-- Custom Greeting Input -->
                         <div>
-                            <label class="block text-xs font-bold text-gray-700 mb-1">✍️ উৎসবের বিশেষ বার্তা (Custom Festive Greeting Message)</label>
-                            <textarea id="adminFestivalGreetingInput" rows="2" oninput="updateAdminFestivalLivePreview()" placeholder="ডিফল্ট শুভেচ্ছা বার্তা ব্যবহার করতে ফাঁকা রাখুন অথবা নিজের মতো করে বার্তা লিখুন..." class="w-full p-2.5 text-xs bg-white border border-orange-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:outline-none shadow-xs"></textarea>
+                            <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="✍️ উৎসবের বিশেষ বার্তা" data-en="✍️ Custom Festive Greeting Message">✍️ উৎসবের বিশেষ বার্তা</label>
+                            <textarea id="adminFestivalGreetingInput" rows="2" oninput="updateAdminFestivalLivePreview()" placeholder="Leave blank for default greeting or enter custom message..." data-bn-placeholder="ডিফল্ট শুভেচ্ছা বার্তা ব্যবহার করতে ফাঁকা রাখুন অথবা নিজের মতো করে বার্তা লিখুন..." data-en-placeholder="Leave blank for default greeting or enter custom message..." class="w-full p-2.5 text-xs bg-white border border-orange-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:outline-none shadow-xs"></textarea>
                         </div>
                     </div>
 
                     <!-- Column 2: Live Interactive Preview -->
                     <div class="space-y-3">
-                        <label class="block text-xs font-bold text-gray-700">👁️ লাইভ প্রিভিউ (Live Preview — অ্যাপে কেমন দেখাবে)</label>
+                        <label class="block text-xs font-bold text-gray-700" data-bn="👁️ লাইভ প্রিভিউ (অ্যাপে কেমন দেখাবে)" data-en="👁️ Live Preview">👁️ লাইভ প্রিভিউ</label>
                         <div id="adminFestivalLivePreviewBox" class="p-4 bg-white rounded-xl border-2 border-dashed border-orange-300 space-y-3">
                             <!-- Live Header Preview -->
                             <div class="bg-black text-white p-2.5 rounded-xl shadow-xs flex items-center justify-between">
@@ -2338,7 +2341,7 @@
                                     <span id="previewFestivalBadge" class="absolute -bottom-1 -right-1 text-xs">🪔</span>
                                     <span class="font-bold text-xs text-white">Bus Yatra</span>
                                 </div>
-                                <span id="previewPortalPill" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">🪔 শুভ দীপাবলি</span>
+                                <span id="previewPortalPill" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">🪔 Diwali</span>
                             </div>
 
                             <!-- Live Banner Preview -->
@@ -2346,20 +2349,20 @@
                                 <span id="previewBannerIcon" class="text-2xl">🪔</span>
                                 <div class="min-w-0">
                                     <div class="flex items-center gap-1.5">
-                                        <strong id="previewBannerTitle" class="text-xs font-black text-gray-900">শুভ দীপাবলি ও শ্যামাপূজা</strong>
-                                        <span class="text-[9px] font-bold px-1.5 py-0.2 bg-amber-200 text-amber-900 rounded">উৎসব স্পেশাল</span>
+                                        <strong id="previewBannerTitle" class="text-xs font-black text-gray-900">Festive Greetings</strong>
+                                        <span class="text-[9px] font-bold px-1.5 py-0.2 bg-amber-200 text-amber-900 rounded" data-bn="উৎসব স্পেশাল" data-en="Special">Special</span>
                                     </div>
-                                    <p id="previewBannerText" class="text-[11px] text-gray-700 mt-0.5 leading-snug">✨ শুভ দীপাবলি ও শ্যামাপূজার আন্তরিক প্রীতি ও শুভেচ্ছা! উৎসবের দিনে নিরাপদে বাড়ি ফিরুন বাস যাত্রার সাথে।</p>
+                                    <p id="previewBannerText" class="text-[11px] text-gray-700 mt-0.5 leading-snug" data-bn="✨ শুভ উৎসবের আন্তরিক প্রীতি ও শুভেচ্ছা! নিরাপদে বাড়ি ফিরুন বাস যাত্রার সাথে।" data-en="✨ Warm festive greetings! Travel safely with Bus Yatra.">Warm festive greetings! Travel safely with Bus Yatra.</p>
                                 </div>
                             </div>
 
-                            <p class="text-[10px] text-gray-400 text-center">সেভ করার সাথে সাথে সমস্ত কাস্টমার, ওনার ও ক্যাপ্টেন প্যানেলে রিয়েল-টাইমে এই রূপ চালু হবে।</p>
+                            <p class="text-[10px] text-gray-400 text-center" data-bn="সেভ করার সাথে সাথে সমস্ত প্যানেলে রিয়েল-টাইমে এই রূপ চালু হবে।" data-en="Applies immediately across all selected portals upon saving.">Applies immediately across all selected portals upon saving.</p>
                         </div>
 
                         <!-- Action Button -->
                         <div class="pt-1">
                             <button type="button" onclick="saveAdminFestivalTheme()" id="btnSaveFestivalTheme" class="w-full bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 hover:from-orange-700 hover:to-amber-700 text-white py-2.5 rounded-xl font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 active:scale-98">
-                                <span>💾</span> <span>সেভ ও লাইভ চালু করুন (Save & Apply Live)</span>
+                                <span>💾</span> <span data-bn="সেভ ও লাইভ চালু করুন" data-en="Save &amp; Apply Live">সেভ ও লাইভ চালু করুন</span>
                             </button>
                         </div>
                     </div>
@@ -2396,42 +2399,42 @@
                             <div class="flex items-center gap-2.5">
                                 <span class="text-2xl">📍</span>
                                 <div>
-                                    <div class="text-xs font-black text-gray-900 flex items-center gap-1.5">
-                                        <span>রিয়েল-টাইম লাইভ জিপিএস ট্র্যাকিং ও সময় নিয়ন্ত্রণ (Live GPS Tracking & Window Control)</span>
+                                    <div class="text-xs font-black text-gray-900 flex flex-wrap items-center gap-1.5">
+                                        <span data-bn="রিয়েল-টাইম লাইভ জিপিএস ট্র্যাকিং ও সময় নিয়ন্ত্রণ" data-en="Live GPS Tracking &amp; Window Control">Live GPS Tracking &amp; Window Control</span>
                                         <span class="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold">Admin Master Control</span>
                                     </div>
-                                    <p class="text-[11px] text-gray-500 mt-0.5">যাত্রী প্যানেলে বাসের লাইভ ম্যাপ ট্র্যাকিং সক্রিয়/নিষ্ক্রিয় করুন এবং যাত্রা শুরুর কত ঘণ্টা আগে ট্র্যাকিং বোতাম দৃশ্যমান হবে তা সেট করুন।</p>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="যাত্রী প্যানেলে বাসের লাইভ ম্যাপ ট্র্যাকিং সক্রিয়/নিষ্ক্রিয় করুন এবং যাত্রা শুরুর কত ঘণ্টা আগে ট্র্যাকিং বোতাম দেখা যাবে তা সেট করুন।" data-en="Toggle customer live map tracking and configure how many hours before departure the tracking button unlocks.">যাত্রী প্যানেলে বাসের লাইভ ম্যাপ ট্র্যাকিং সক্রিয়/নিষ্ক্রিয় করুন এবং যাত্রা শুরুর কত ঘণ্টা আগে ট্র্যাকিং বোতাম দৃশ্যমান হবে তা সেট করুন।</p>
                                 </div>
                             </div>
                             <label class="relative inline-flex items-center cursor-pointer shrink-0 self-start sm:self-auto">
                                 <input type="checkbox" id="flagLiveTracking" class="sr-only peer">
                                 <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                                <span class="ml-2 text-xs font-bold text-gray-700">জিপিএস সুবিধা অন</span>
+                                <span class="ml-2 text-xs font-bold text-gray-700" data-bn="জিপিএস সুবিধা অন" data-en="GPS Tracking Enabled">জিপিএস সুবিধা অন</span>
                             </label>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-emerald-50/50 p-3 rounded-xl border border-emerald-100">
                             <div class="sm:col-span-1">
                                 <label class="flex items-center gap-2 cursor-pointer mt-1">
                                     <input type="checkbox" id="flagTrackingLeadWindowEnabled" class="w-4 h-4 text-emerald-600 rounded">
-                                    <span class="text-[11px] font-black text-emerald-950">নির্দিষ্ট সময় আগে আনলক নিয়ম চালু রাখুন</span>
+                                    <span class="text-[11px] font-black text-emerald-950" data-bn="নির্দিষ্ট সময় আগে আনলক নিয়ম" data-en="Enable Lead-Time Window">নির্দিষ্ট সময় আগে আনলক নিয়ম</span>
                                 </label>
-                                <p class="text-[10px] text-emerald-700 mt-1 leading-tight">এটি বন্ধ রাখলে যেকোনো সময় ট্র্যাকিং করা যাবে। চালু রাখলে নিচের নির্ধারিত ঘণ্টা অনুযায়ী স্বয়ংক্রিয়ভাবে বোতাম দৃশ্যমান হবে।</p>
+                                <p class="text-[10px] text-emerald-700 mt-1 leading-tight" data-bn="বন্ধ রাখলে যেকোনো সময় ট্র্যাকিং করা যাবে। চালু রাখলে নিচের নির্ধারিত ঘণ্টা অনুযায়ী বোতাম দেখা যাবে।" data-en="If disabled, passengers can track anytime. If enabled, tracking unlocks inside the configured window below.">এটি বন্ধ রাখলে যেকোনো সময় ট্র্যাকিং করা যাবে।</p>
                             </div>
                             <div>
-                                <label class="block text-[11px] font-bold text-gray-800 mb-1">যাত্রা শুরুর কত ঘণ্টা আগে ট্র্যাকিং চালু হবে:</label>
+                                <label class="block text-[11px] font-bold text-gray-800 mb-1" data-bn="যাত্রা শুরুর কত ঘণ্টা আগে চালু হবে:" data-en="Unlock tracking hours before trip:">যাত্রা শুরুর কত ঘণ্টা আগে ট্র্যাকিং চালু হবে:</label>
                                 <div class="flex items-center gap-1.5">
                                     <input type="number" step="0.5" min="0.5" max="72" id="cfgTrackingLeadHours" placeholder="5" class="w-full p-2 border rounded-lg text-xs font-black bg-white focus:ring-2 focus:ring-emerald-500 text-gray-900 shadow-xs">
-                                    <span class="text-xs font-bold text-gray-600">ঘণ্টা</span>
+                                    <span class="text-xs font-bold text-gray-600" data-bn="ঘণ্টা" data-en="hrs">ঘণ্টা</span>
                                 </div>
-                                <p class="text-[10px] text-gray-500 mt-1">যেমন: 5, 3, 6, 12 ঘণ্টা ইত্যাদি (ডিফল্ট: 5)</p>
+                                <p class="text-[10px] text-gray-500 mt-1" data-bn="যেমন: 5, 3, 6 ঘণ্টা (ডিফল্ট: 5)" data-en="e.g. 5, 3, 6 hours (Default: 5)">যেমন: 5, 3, 6 ঘণ্টা</p>
                             </div>
                             <div>
-                                <label class="block text-[11px] font-bold text-gray-800 mb-1">পৌঁছানোর কত মিনিট পর সম্পন্ন দেখাবে:</label>
+                                <label class="block text-[11px] font-bold text-gray-800 mb-1" data-bn="পৌঁছানোর কত মিনিট পর সম্পন্ন দেখাবে:" data-en="Post-trip grace period (mins):">পৌঁছানোর কত মিনিট পর সম্পন্ন দেখাবে:</label>
                                 <div class="flex items-center gap-1.5">
                                     <input type="number" step="5" min="0" max="180" id="cfgTrackingGraceMinutes" placeholder="30" class="w-full p-2 border rounded-lg text-xs font-black bg-white focus:ring-2 focus:ring-emerald-500 text-gray-900 shadow-xs">
-                                    <span class="text-xs font-bold text-gray-600">মিনিট</span>
+                                    <span class="text-xs font-bold text-gray-600" data-bn="মিনিট" data-en="min">মিনিট</span>
                                 </div>
-                                <p class="text-[10px] text-gray-500 mt-1">যাত্রার পর ট্র্যাকিং বন্ধ হয়ে "যাত্রা সম্পন্ন" দেখাবে (ডিফল্ট: 30)</p>
+                                <p class="text-[10px] text-gray-500 mt-1" data-bn="যাত্রার পর ট্র্যাকিং বন্ধ হয়ে সম্পন্ন দেখাবে (ডিফল্ট: 30)" data-en="Shows Trip Completed after grace period (Default: 30)">যাত্রার পর ট্র্যাকিং বন্ধ হয়ে সম্পন্ন দেখাবে</p>
                             </div>
                         </div>
                     </div>
@@ -2441,28 +2444,28 @@
                             <div class="flex items-center gap-2.5">
                                 <span class="text-xl">⏱️</span>
                                 <div>
-                                    <div class="text-xs font-black text-gray-900">সাময়িক সিট লক টাইমার (15-Minute Temporary Seat Hold)</div>
-                                    <p class="text-[11px] text-gray-500">যাত্রী সিট সিলেক্ট করার পর অন্য যাত্রীদের জন্য সিট লক রাখার সুবিধা ও সময়সীমা নিয়ন্ত্রণ।</p>
+                                    <div class="text-xs font-black text-gray-900" data-bn="সাময়িক সিট লক টাইমার (১৫ মিনিট)" data-en="Temporary Seat Hold Timer (15 Mins)">সাময়িক সিট লক টাইমার (15-Minute Temporary Seat Hold)</div>
+                                    <p class="text-[11px] text-gray-500" data-bn="যাত্রী সিট সিলেক্ট করার পর নির্দিষ্ট সময়ের জন্য সিট হোল্ড রাখার সুবিধা।" data-en="Lock selected seats temporarily while a passenger completes booking payment.">যাত্রী সিট সিলেক্ট করার পর অন্য যাত্রীদের জন্য সিট লক রাখার সুবিধা ও সময়সীমা নিয়ন্ত্রণ।</p>
                                 </div>
                             </div>
                             <label class="relative inline-flex items-center cursor-pointer shrink-0 self-start sm:self-auto">
                                 <input type="checkbox" id="flagSeatHoldTimer" class="sr-only peer">
                                 <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                                <span class="ml-2 text-xs font-bold text-gray-700">সিট লক চালু</span>
+                                <span class="ml-2 text-xs font-bold text-gray-700" data-bn="সিট লক চালু" data-en="Seat Lock Enabled">সিট লক চালু</span>
                             </label>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-purple-50/50 p-3 rounded-xl border border-purple-100">
                             <div>
-                                <label class="block text-[11px] font-bold text-gray-800 mb-1">সিট লক রাখার সময়সীমা (মিনিট):</label>
+                                <label class="block text-[11px] font-bold text-gray-800 mb-1" data-bn="সিট লক রাখার সময়সীমা (মিনিট):" data-en="Seat hold lock duration (mins):">সিট লক রাখার সময়সীমা (মিনিট):</label>
                                 <div class="flex items-center gap-1.5">
                                     <input type="number" step="1" min="1" max="60" id="cfgSeatHoldMinutes" placeholder="15" class="w-full p-2 border rounded-lg text-xs font-black bg-white focus:ring-2 focus:ring-purple-500 text-gray-900 shadow-xs">
-                                    <span class="text-xs font-bold text-gray-600">মিনিট</span>
+                                    <span class="text-xs font-bold text-gray-600" data-bn="মিনিট" data-en="min">মিনিট</span>
                                 </div>
-                                <p class="text-[10px] text-gray-500 mt-1">যেমন: 5, 10, 15, 20 মিনিট ইত্যাদি (ডিফল্ট: 15 মিনিট)</p>
+                                <p class="text-[10px] text-gray-500 mt-1" data-bn="যেমন: 5, 10, 15, 20 মিনিট (ডিফল্ট: 15 মিনিট)" data-en="e.g. 5, 10, 15, 20 min (Default: 15 mins)">যেমন: 5, 10, 15, 20 মিনিট (ডিফল্ট: 15 মিনিট)</p>
                             </div>
                             <div class="flex items-center">
-                                <p class="text-[11px] text-purple-900 leading-relaxed">
-                                    💡 <strong>নিয়ম:</strong> এটি চালু থাকলে যাত্রী সিট বেছে নিলে টাইমার শুরু হবে এবং অন্য কেউ ওই সিট নিতে পারবে না। ব্যাক করলে বা সময় শেষ হলে স্বয়ংক্রিয়ভাবে সিট অবমুক্ত হবে। বন্ধ রাখলে কোনো টাইমার লক থাকবে না।
+                                <p class="text-[11px] text-purple-900 leading-relaxed" data-bn="💡 <strong>নিয়ম:</strong> চালু থাকলে যাত্রী সিট বেছে নিলে টাইমার শুরু হবে এবং সময় শেষ হলে সিট অবমুক্ত হবে।" data-en="💡 <strong>Rule:</strong> Temporarily holds selected seats during checkout and releases them automatically if timer expires.">
+                                    💡 <strong>নিয়ম:</strong> চালু থাকলে যাত্রী সিট বেছে নিলে টাইমার শুরু হবে।
                                 </p>
                             </div>
                         </div>
@@ -2476,9 +2479,9 @@
                         <input type="checkbox" id="flagTripReminders" class="w-4 h-4 text-emerald-600 rounded">
                         <div>
                             <span class="text-xs font-extrabold flex items-center gap-1.5">
-                                <span>📲</span> <span>WhatsApp &amp; Normal SMS Trip Reminders (যাত্রী ট্রিপ রিমাইন্ডার)</span>
+                                <span>📲</span> <span data-bn="WhatsApp ও নরমাল SMS ট্রিপ রিমাইন্ডার" data-en="WhatsApp &amp; Normal SMS Trip Reminders">WhatsApp &amp; Normal SMS Trip Reminders</span>
                             </span>
-                            <p class="text-[11px] text-emerald-700 font-medium mt-0.5">বাস মালিক ও কন্ডাক্টরের প্যানেল থেকে যাত্রার ২-৩ ঘণ্টা আগে যাত্রীদের বাংলা+ইংরেজি হোয়াটসঅ্যাপ ও সাধারণ SMS রিমাইন্ডার পাঠানোর সুবিধা নিয়ন্ত্রণ করুন।</p>
+                            <p class="text-[11px] text-emerald-700 font-medium mt-0.5" data-bn="বাস মালিক ও কন্ডাক্টরের প্যানেল থেকে যাত্রার ২-৩ ঘণ্টা আগে যাত্রীদের রিমাইন্ডার পাঠানোর সুবিধা নিয়ন্ত্রণ করুন।" data-en="Enable owner and captain trip boarding reminders via WhatsApp and free SMS before departure.">বাস মালিক ও কন্ডাক্টরের প্যানেল থেকে যাত্রার ২-৩ ঘণ্টা আগে যাত্রীদের রিমাইন্ডার পাঠান।</p>
                         </div>
                     </label>
                 </div>
@@ -2494,7 +2497,7 @@
             <section class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
                 <div class="border-b pb-3">
                     <h2 class="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
-                        <span>📢</span> Send Broadcast Notification (নোটিফিকেশন পাঠান)
+                        <span>📢</span> <span data-bn="ব্রডকাস্ট নোটিফিকেশন পাঠান" data-en="Send Broadcast Notification">Send Broadcast Notification</span>
                     </h2>
                     <p class="text-xs text-gray-500 mt-0.5">
                         Send instant announcements and urgent notifications to Bus Owners, Passengers/Customers, or Both. You can pause or delete notifications anytime.
@@ -2503,37 +2506,37 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Target Audience (কাদের পাঠাবেন)</label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="প্রাপক (কাদের পাঠাবেন)" data-en="Target Audience">Target Audience</label>
                         <select id="adminNotifTarget" class="w-full p-2.5 border rounded-xl text-xs bg-gray-50 font-bold">
-                            <option value="all">👥 Both Customers & Bus Owners (সকল কাস্টমার ও বাস মালিক)</option>
-                            <option value="customers">👤 Customers Only (শুধুমাত্র কাস্টমার)</option>
-                            <option value="owners">🚌 Bus Owners Only (শুধুমাত্র বাস মালিক)</option>
+                            <option value="all" data-bn="👥 সকল কাস্টমার ও বাস মালিক" data-en="👥 Both Customers &amp; Bus Owners">👥 Both Customers &amp; Bus Owners</option>
+                            <option value="customers" data-bn="👤 শুধুমাত্র কাস্টমার" data-en="👤 Customers Only">👤 Customers Only</option>
+                            <option value="owners" data-bn="🚌 শুধুমাত্র বাস মালিক" data-en="🚌 Bus Owners Only">🚌 Bus Owners Only</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Notification Type (নোটিশের ধরণ)</label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="নোটিশের ধরণ" data-en="Notification Type">Notification Type</label>
                         <select id="adminNotifType" class="w-full p-2.5 border rounded-xl text-xs bg-gray-50 font-bold">
-                            <option value="info">ℹ️ Information / Update (তথ্যমূলক)</option>
-                            <option value="alert">⚠️ Urgent Alert / Notice (জরুরি নোটিশ)</option>
-                            <option value="announcement">📢 Announcement (সাধারণ ঘোষণা)</option>
-                            <option value="offer">🎁 Special Offer / Discount (অফার ও ছাড়)</option>
+                            <option value="info" data-bn="ℹ️ সাধারণ তথ্য" data-en="ℹ️ Information / Update">ℹ️ Information / Update</option>
+                            <option value="alert" data-bn="⚠️ জরুরি সতর্কবার্তা" data-en="⚠️ Urgent Alert / Notice">⚠️ Urgent Alert / Notice</option>
+                            <option value="announcement" data-bn="📢 সাধারণ ঘোষণা" data-en="📢 Announcement">📢 Announcement</option>
+                            <option value="offer" data-bn="🎁 বিশেষ অফার / ছাড়" data-en="🎁 Special Offer / Discount">🎁 Special Offer / Discount</option>
                         </select>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Title / Headline (শিরোনাম)</label>
-                    <input type="text" id="adminNotifTitle" placeholder="e.g. বিশেষ ট্র্যাভেল অফার / সার্ভিস সংক্রান্ত জরুরি বার্তা..." class="w-full p-3 border rounded-xl text-xs bg-gray-50 font-semibold" maxlength="100">
+                    <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="শিরোনাম" data-en="Title / Headline">Title / Headline</label>
+                    <input type="text" id="adminNotifTitle" placeholder="e.g. Special travel offer / Urgent schedule notice..." data-bn-placeholder="যেমন: বিশেষ ট্র্যাভেল অফার / সার্ভিস সংক্রান্ত জরুরি বার্তা..." data-en-placeholder="e.g. Special travel offer / Urgent schedule notice..." class="w-full p-3 border rounded-xl text-xs bg-gray-50 font-semibold" maxlength="100">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1">Notification Message / Details (বিস্তারিত বার্তা)</label>
-                    <textarea id="adminNotifMessage" rows="3" placeholder="যাত্রী ও বাস মালিকদের অবগতির জন্য বিস্তারিত লিখুন..." class="w-full p-3 border rounded-xl text-xs bg-gray-50" maxlength="500"></textarea>
+                    <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="বিস্তারিত বার্তা" data-en="Notification Message / Details">Notification Message / Details</label>
+                    <textarea id="adminNotifMessage" rows="3" placeholder="Enter details for passengers and bus operators..." data-bn-placeholder="যাত্রী ও বাস মালিকদের অবগতির জন্য বিস্তারিত লিখুন..." data-en-placeholder="Enter details for passengers and bus operators..." class="w-full p-3 border rounded-xl text-xs bg-gray-50" maxlength="500"></textarea>
                 </div>
 
                 <div class="flex justify-end">
                     <button type="button" onclick="submitAdminNotification()" id="btnSendAdminNotif" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-xl font-bold text-xs shadow-md transition flex items-center gap-2">
-                        <span>🚀</span> <span>Send Notification (নোটিফিকেশন পাঠান)</span>
+                        <span>🚀</span> <span data-bn="নোটিফিকেশন পাঠান" data-en="Send Notification">Send Notification</span>
                     </button>
                 </div>
             </section>
@@ -2596,10 +2599,10 @@
                     <div>
                         <label class="block font-bold text-gray-700 mb-1" data-bn="কুইক টেমপ্লেট" data-en="Quick Template">কুইক টেমপ্লেট</label>
                         <div class="flex items-center gap-1.5 flex-wrap">
-                            <button type="button" onclick="applyAdminEmailTemplate('festival')" class="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-[11px] font-bold text-gray-700 transition">🎉 উৎসব</button>
-                            <button type="button" onclick="applyAdminEmailTemplate('new_route')" class="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-[11px] font-bold text-gray-700 transition">🚌 নতুন রুট</button>
-                            <button type="button" onclick="applyAdminEmailTemplate('urgent')" class="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-[11px] font-bold text-gray-700 transition">⚠️ জরুরি নোটিশ</button>
-                            <button type="button" onclick="applyAdminEmailTemplate('discount')" class="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-[11px] font-bold text-gray-700 transition">🎁 অফার</button>
+                            <button type="button" onclick="applyAdminEmailTemplate('festival')" class="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-[11px] font-bold text-gray-700 transition" data-bn="🎉 উৎসব" data-en="🎉 Festival">🎉 উৎসব</button>
+                            <button type="button" onclick="applyAdminEmailTemplate('new_route')" class="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-[11px] font-bold text-gray-700 transition" data-bn="🚌 নতুন রুট" data-en="🚌 New Route">🚌 নতুন রুট</button>
+                            <button type="button" onclick="applyAdminEmailTemplate('urgent')" class="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-[11px] font-bold text-gray-700 transition" data-bn="⚠️ জরুরি নোটিশ" data-en="⚠️ Urgent Notice">⚠️ জরুরি নোটিশ</button>
+                            <button type="button" onclick="applyAdminEmailTemplate('discount')" class="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-[11px] font-bold text-gray-700 transition" data-bn="🎁 অফার" data-en="🎁 Offer">🎁 অফার</button>
                         </div>
                     </div>
                 </div>
@@ -2618,13 +2621,13 @@
                 <!-- Subject -->
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="ইমেইলের বিষয় / শিরোনাম" data-en="Email Subject">ইমেইলের বিষয় / শিরোনাম</label>
-                    <input type="text" id="adminEmailSubject" placeholder="e.g. [Bus Yatra] বিশেষ ভ্রমণ আপডেট ও উৎসবের অফার..." class="w-full p-3 border rounded-xl text-xs bg-white font-semibold" maxlength="150">
+                    <input type="text" id="adminEmailSubject" placeholder="e.g. [Bus Yatra] Travel update &amp; festive offer..." data-bn-placeholder="যেমন: [Bus Yatra] বিশেষ ভ্রমণ আপডেট ও উৎসবের অফার..." data-en-placeholder="e.g. [Bus Yatra] Special travel update & festive offer..." class="w-full p-3 border rounded-xl text-xs bg-white font-semibold" maxlength="150">
                 </div>
 
                 <!-- Body -->
                 <div>
                     <label class="block text-xs font-bold text-gray-700 mb-1" data-bn="ইমেইল বার্তা" data-en="Email Message Body">ইমেইল বার্তা</label>
-                    <textarea id="adminEmailBody" rows="5" placeholder="এখানে আপনার বার্তা লিখুন (প্যারাগ্রাফ ও লাইন ব্রেক সহ সুন্দরভাবে প্রাপকের ইনবক্সে যাবে)..." class="w-full p-3 border rounded-xl text-xs bg-white leading-relaxed"></textarea>
+                    <textarea id="adminEmailBody" rows="5" placeholder="Write your email broadcast message here..." data-bn-placeholder="এখানে আপনার বার্তা লিখুন (প্যারাগ্রাফ ও লাইন ব্রেক সহ সুন্দরভাবে প্রাপকের ইনবক্সে যাবে)..." data-en-placeholder="Write your email broadcast message here..." class="w-full p-3 border rounded-xl text-xs bg-white leading-relaxed"></textarea>
                     <span class="text-[11px] text-gray-400 mt-1 block">Sender Identity: <strong>Bus Yatra Support &lt;support.busyatra@gmail.com&gt;</strong></span>
                 </div>
 
@@ -2634,12 +2637,12 @@
                 <!-- Action Buttons: Brevo Send & Gmail Direct Fallback -->
                 <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 border-t">
                     <div class="flex items-center gap-2">
-                        <span class="text-xs text-gray-500 font-medium">ডেলিভারি ইঞ্জিন:</span>
+                        <span class="text-xs text-gray-500 font-medium" data-bn="ডেলিভারি ইঞ্জিন:" data-en="Delivery Engine:">ডেলিভারি ইঞ্জিন:</span>
                         <span class="bg-indigo-100 text-indigo-900 font-bold px-2.5 py-0.5 rounded-lg text-xs">Brevo API + Gmail Fallback</span>
                     </div>
                     <div class="flex items-center gap-2 flex-wrap">
-                        <button type="button" onclick="openGmailComposerForBroadcast()" class="bg-white hover:bg-gray-100 text-gray-800 border border-gray-300 px-4 py-2.5 rounded-xl font-bold text-xs transition flex items-center gap-2 shadow-xs active:scale-95 cursor-pointer" title="support.busyatra@gmail.com দিয়ে সরাসরি জিমেইল অ্যাপে ওপেন করুন">
-                            <span>📬</span> <span data-bn="Open in Gmail (সরাসরি পাঠান)" data-en="Open in Gmail (Direct)">Open in Gmail (সরাসরি পাঠান)</span>
+                        <button type="button" onclick="openGmailComposerForBroadcast()" class="bg-white hover:bg-gray-100 text-gray-800 border border-gray-300 px-4 py-2.5 rounded-xl font-bold text-xs transition flex items-center gap-2 shadow-xs active:scale-95 cursor-pointer" title="Open directly in Gmail app">
+                            <span>📬</span> <span data-bn="Gmail-এ পাঠান" data-en="Open in Gmail (Direct)">Open in Gmail (Direct)</span>
                         </button>
                         <button type="button" onclick="sendAdminBroadcastEmail()" id="btnSendAdminEmail" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-black text-xs shadow-md transition flex items-center gap-2 active:scale-95 cursor-pointer">
                             <span>🚀</span> <span data-bn="Brevo API দিয়ে পাঠান" data-en="Send via Brevo API">Brevo API দিয়ে পাঠান</span>
@@ -2649,11 +2652,11 @@
             </section>
 
             <!-- Sent Notifications History & Management -->
-            <section class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
+            <section class="bg-white p-3.5 sm:p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
                     <div>
                         <h2 class="text-base font-bold text-gray-900 flex items-center gap-2">
-                            <span>📋</span> Sent Notifications History (প্রেরিত নোটিফিকেশন হিস্ট্রি)
+                            <span>📋</span> <span data-bn="প্রেরিত নোটিফিকেশন হিস্ট্রি" data-en="Sent Notifications History">Sent Notifications History</span>
                         </h2>
                         <p class="text-xs text-gray-500">
                             Pause to temporarily hide from recipients, or Delete to permanently remove from all panels.
@@ -2865,7 +2868,7 @@
                             <h2 class="text-sm sm:text-base font-black leading-tight">AI Support &amp; Live Tickets Desk</h2>
                             <span class="bg-white/20 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">Live</span>
                         </div>
-                        <p class="text-[11px] text-red-100 font-medium">রিয়েল-টাইম যাত্রী সহায়তা, এআই বট ইতিহাস ও টিকিট সমাধান ড্যাশবোর্ড</p>
+                        <p class="text-[11px] text-red-100 font-medium" data-bn="রিয়েল-টাইম যাত্রী সহায়তা, এআই বট ইতিহাস ও টিকিট সমাধান ড্যাশবোর্ড" data-en="Real-time passenger support, AI chat logs &amp; helpdesk ticket resolution">রিয়েল-টাইম যাত্রী সহায়তা, এআই বট ইতিহাস ও টিকিট সমাধান ড্যাশবোর্ড</p>
                     </div>
                 </div>
 
@@ -2929,11 +2932,11 @@
                 <!-- Left Column: Tickets List (5 cols on md, 4 on lg) -->
                 <div class="md:col-span-5 lg:col-span-4 bg-white rounded-2xl border border-gray-200 shadow-xs flex flex-col overflow-hidden h-[480px] sm:h-[530px] lg:h-[560px]">
                     <div class="p-2.5 sm:p-3 border-b bg-gray-50/80 flex justify-between items-center shrink-0">
-                        <span class="text-xs font-bold text-gray-700" id="adminTicketListCount">টিকেট তালিকা (0)</span>
-                        <span class="text-[10px] text-gray-400">সর্বশেষ আপডেট</span>
+                        <span class="text-xs font-bold text-gray-700" id="adminTicketListCount" data-bn="টিকেট তালিকা (0)" data-en="Ticket Queue (0)">টিকেট তালিকা (0)</span>
+                        <span class="text-[10px] text-gray-400" data-bn="সর্বশেষ আপডেট" data-en="Latest First">সর্বশেষ আপডেট</span>
                     </div>
                     <div id="adminSupportTicketList" class="flex-1 overflow-y-auto divide-y divide-gray-100 p-1">
-                        <div class="text-center py-12 text-gray-400 text-xs">টিকেট লোড হচ্ছে...</div>
+                        <div class="text-center py-12 text-gray-400 text-xs" data-bn="টিকেট লোড হচ্ছে..." data-en="Loading tickets...">টিকেট লোড হচ্ছে...</div>
                     </div>
                 </div>
 
@@ -2941,8 +2944,8 @@
                 <div id="adminActiveTicketPane" class="md:col-span-7 lg:col-span-8 bg-white rounded-2xl border border-gray-200 shadow-xs flex flex-col overflow-hidden h-[480px] sm:h-[530px] lg:h-[560px]">
                     <div class="flex-1 flex flex-col items-center justify-center p-8 text-center text-gray-400">
                         <span class="text-4xl mb-2">💬</span>
-                        <h4 class="font-bold text-gray-700 text-sm">কোনো টিকেট নির্বাচিত নেই</h4>
-                        <p class="text-xs text-gray-400 mt-1 max-w-xs">বাম পাশের তালিকা থেকে যেকোনো টিকেটে ক্লিক করে গ্রাহকের সাথে সরাসরি কথা বলুন বা সমাধান করুন।</p>
+                        <h4 class="font-bold text-gray-700 text-sm" data-bn="কোনো টিকেট নির্বাচিত নেই" data-en="No Ticket Selected">কোনো টিকেট নির্বাচিত নেই</h4>
+                        <p class="text-xs text-gray-400 mt-1 max-w-xs" data-bn="বাম পাশের তালিকা থেকে যেকোনো টিকেটে ক্লিক করে গ্রাহকের সাথে সরাসরি কথা বলুন।" data-en="Select any ticket from the list to view conversation and reply to the customer.">বাম পাশের তালিকা থেকে যেকোনো টিকেটে ক্লিক করে গ্রাহকের সাথে সরাসরি কথা বলুন বা সমাধান করুন।</p>
                     </div>
                 </div>
             </div>
@@ -2965,7 +2968,7 @@
                             </h2>
                             <span class="bg-red-500/80 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">Live Radar</span>
                         </div>
-                        <p class="text-[11px] text-red-100 font-medium mt-0.5">যাত্রীদের জরুরি বিপদ সংকেত, লাইভ জিপিএস লোকেশন ও তাৎক্ষণিক সহায়তা কন্ট্রোল রুম</p>
+                        <p class="text-[11px] text-red-100 font-medium mt-0.5" data-bn="যাত্রীদের জরুরি বিপদ সংকেত, লাইভ জিপিএস লোকেশন ও তাৎক্ষণিক সহায়তা কন্ট্রোল রুম" data-en="Emergency SOS alerts, live passenger GPS location &amp; rapid response desk">যাত্রীদের জরুরি বিপদ সংকেত, লাইভ জিপিএস লোকেশন ও তাৎক্ষণিক সহায়তা কন্ট্রোল রুম</p>
                     </div>
                 </div>
 
@@ -2986,10 +2989,10 @@
                         <span id="statSosResolved" class="font-black text-white">0</span>
                     </div>
                     <button type="button" onclick="loadAdminSosAlerts()" class="bg-white/20 hover:bg-white/30 active:scale-95 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer shrink-0 ml-1">
-                        🔄 <span>রিফ্রেশ</span>
+                        🔄 <span data-bn="রিফ্রেশ" data-en="Refresh">রিফ্রেশ</span>
                     </button>
-                    <button type="button" onclick="deleteAdminResolvedSosAlerts()" class="bg-red-950/60 hover:bg-red-950 text-red-200 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-red-400/30 transition flex items-center gap-1 cursor-pointer shrink-0" title="সমস্ত সমাধান হওয়া অ্যালার্ট মুছে ফেলুন">
-                        🗑️ <span>ক্লিয়ার সমাধান</span>
+                    <button type="button" onclick="deleteAdminResolvedSosAlerts()" class="bg-red-950/60 hover:bg-red-950 text-red-200 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-red-400/30 transition flex items-center gap-1 cursor-pointer shrink-0" title="Clear all resolved SOS alerts">
+                        🗑️ <span data-bn="সমাধান ডিলিট" data-en="Clear Resolved">ক্লিয়ার সমাধান</span>
                     </button>
                 </div>
                 <div class="absolute -right-8 -bottom-8 w-36 h-36 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
@@ -3012,7 +3015,7 @@
                 </div>
 
                 <div class="relative flex-1 sm:max-w-xs">
-                    <input type="text" id="inputSosSearch" oninput="handleAdminSosSearch(this.value)" placeholder="যাত্রীর নাম, মোবাইল নম্বর, বাসের নাম..." class="w-full text-xs pl-8 pr-3 py-2 rounded-xl border border-gray-300 focus:border-red-500 focus:outline-none bg-gray-50 focus:bg-white transition">
+                    <input type="text" id="inputSosSearch" oninput="handleAdminSosSearch(this.value)" placeholder="Passenger name, mobile, bus..." data-bn-placeholder="যাত্রীর নাম, মোবাইল নম্বর, বাসের নাম..." data-en-placeholder="Passenger name, mobile, bus name..." class="w-full text-xs pl-8 pr-3 py-2 rounded-xl border border-gray-300 focus:border-red-500 focus:outline-none bg-gray-50 focus:bg-white transition">
                     <span class="absolute left-2.5 top-2.5 text-gray-400 text-xs">🔍</span>
                 </div>
             </div>
@@ -3021,7 +3024,7 @@
             <div id="adminSosAlertsContainer" class="space-y-3">
                 <div class="text-center py-12 text-gray-400 text-xs bg-white rounded-2xl border border-gray-200">
                     <span class="text-2xl animate-spin inline-block mb-2">⏳</span>
-                    <p>জরুরি SOS অ্যালার্ট লোড হচ্ছে...</p>
+                    <p data-bn="জরুরি SOS অ্যালার্ট লোড হচ্ছে..." data-en="Loading emergency SOS alerts...">জরুরি SOS অ্যালার্ট লোড হচ্ছে...</p>
                 </div>
             </div>
         </div>
@@ -3693,10 +3696,10 @@
             <!-- Interactive Map Container -->
             <div class="p-3 sm:p-4 flex-1 flex flex-col min-h-0">
                 <div id="adminTrackingMap" class="w-full h-80 sm:h-96 rounded-2xl border-2 border-indigo-200 overflow-hidden shadow-inner bg-gray-100"></div>
-                <div class="mt-2.5 flex items-center justify-between text-[11px] text-gray-500 px-1">
-                    <span class="flex items-center gap-1">
+                <div class="mt-2.5 flex flex-wrap items-center justify-between gap-1 text-[11px] text-gray-500 px-1">
+                    <span class="flex items-center gap-1 font-semibold text-indigo-700">
                         <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-                        <span data-bn="Firebase লাইভ সিঙ্ক সক্রিয় (&lt;100ms)" data-en="Firebase Live Sync Active (&lt;100ms)">Firebase লাইভ সিঙ্ক সক্রিয় (&lt;100ms)</span>
+                        <span data-bn="🛰️ Bus Yatra নিজস্ব ম্যাপ জিপিএস সিস্টেম সক্রিয়" data-en="🛰️ Bus Yatra Own Map GPS System Active">🛰️ Bus Yatra Own Map GPS System</span>
                     </span>
                     <span id="adminTrackingCoords" class="font-mono text-gray-600 font-semibold">Lat: --, Lng: --</span>
                 </div>
@@ -3929,8 +3932,8 @@
     <!-- Firebase App & Firestore Compat SDKs for Real-Time Live Bus Tracking -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="common.js?v=10.44"></script>
-    <script src="app-admin.js?v=10.44"></script>
+    <script src="common.js?v=10.45"></script>
+    <script src="app-admin.js?v=10.45"></script>
     <script>
         function toggleAdminSidebar() {
             const sb = document.getElementById('adminSidebar');
@@ -3946,7 +3949,7 @@
             initFestivalThemeSync('admin');
         }
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js?v=10.37', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+            navigator.serviceWorker.register('/sw.js?v=10.45', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
         }
     </script>
 </body>

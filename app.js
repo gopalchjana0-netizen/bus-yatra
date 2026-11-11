@@ -105,7 +105,7 @@ const translations = {
         lblCloseTracking: "✕ Close",
         lblTrackingStatusLabel: "Status",
         lblTrackingUpdatedLabel: "Last Updated",
-        lblMapFooter: "Map updates automatically in real-time with GPS coordinates.",
+        lblMapFooter: "🛰️ Bus Yatra Map GPS System • Live Real-Time Tracking",
 
         // Notice Modal
         lblNoticeModalTitle: "Notice & Announcements",
@@ -226,7 +226,7 @@ const translations = {
         lblCloseTracking: "✕ বন্ধ করুন",
         lblTrackingStatusLabel: "স্ট্যাটাস",
         lblTrackingUpdatedLabel: "সর্বশেষ আপডেট",
-        lblMapFooter: "জিপিএস স্থানাঙ্কের সাথে মানচিত্রটি স্বয়ংক্রিয়ভাবে রিয়েল-টাইমে আপডেট হয়।",
+        lblMapFooter: "🛰️ Bus Yatra Map GPS System • রিয়েল-টাইম লাইভ ট্র্যাকিং",
 
         // Notice Modal
         lblNoticeModalTitle: "নোটিফিকেশন ও ঘোষণা",
@@ -3769,23 +3769,24 @@ function renderLiveBusLocationOnMap(lat, lng, updatedAtStr, speed = null, stopNa
     const popupContent = `
         <div style="text-align: center; font-family: system-ui, sans-serif; font-size: 12px; padding: 2px;">
             <strong style="color: #1e3a8a; font-size: 14px; font-weight: 800;">🚌 Bus Yatra Express</strong><br>
-            ${stopName ? `<span style="font-size: 12px; color: #111827;">📍 অবস্থান: <b>${escapeHtml(stopName)}</b></span><br>` : ''}
-            <span style="color: #4b5563;">সর্বশেষ জিপিএস: <b>${updatedAt.toLocaleTimeString()}</b></span>
-            ${speed !== null ? `<br><span style="color: #059669; font-weight: 800;">গতি: ${speed} km/h</span>` : ''}
-            ${accuracy ? `<br><span style="color: #2563eb; font-size: 11px; font-weight: 700;">নির্ভুলতা: ±${Math.round(accuracy)}m</span>` : ''}
+            ${stopName ? `<span style="font-size: 12px; color: #111827;">📍 ${currentLang === 'bn' ? 'অবস্থান' : 'Location'}: <b>${escapeHtml(stopName)}</b></span><br>` : ''}
+            <span style="color: #4b5563;">${currentLang === 'bn' ? 'সর্বশেষ জিপিএস' : 'Last GPS'}: <b>${updatedAt.toLocaleTimeString()}</b></span>
+            ${speed !== null ? `<br><span style="color: #059669; font-weight: 800;">${currentLang === 'bn' ? 'গতি' : 'Speed'}: ${speed} km/h</span>` : ''}
+            ${accuracy ? `<br><span style="color: #2563eb; font-size: 11px; font-weight: 700;">${currentLang === 'bn' ? 'নির্ভুলতা' : 'Accuracy'}: ±${Math.round(accuracy)}m</span>` : ''}
         </div>
     `;
 
     if (!trackingMap) {
         trackingMap = L.map('mapContainer', {
             zoomControl: true,
-            maxZoom: 19
+            maxZoom: 19,
+            attributionControl: false
         }).setView([lat, lng], 16);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap contributors'
+            maxZoom: 19
         }).addTo(trackingMap);
+        L.control.attribution({ prefix: false, position: 'bottomright' }).addAttribution('🛰️ Bus Yatra Map GPS System').addTo(trackingMap);
 
         // Accuracy circle
         const rad = accuracy && accuracy > 0 ? Math.min(accuracy, 100) : 12;

@@ -385,11 +385,17 @@ function updateCaptainSelectionToolbar() {
 
     if (btn) {
         btn.disabled = count === 0;
-        btn.innerHTML = `<span>🗑️</span> <span>নির্বাচিত ডিলিট (${count}টি)</span>`;
+        const bnLbl = `নির্বাচিত ডিলিট (${count}টি)`;
+        const enLbl = `Delete Selected (${count})`;
+        btn.innerHTML = `<span>🗑️</span> <span data-bn="${bnLbl}" data-en="${enLbl}">${window.t(bnLbl, enLbl)}</span>`;
     }
     if (badge) {
         if (count > 0) {
-            badge.innerText = `${count}টি নির্বাচিত`;
+            const bnB = `${count}টি নির্বাচিত`;
+            const enB = `${count} selected`;
+            badge.setAttribute('data-bn', bnB);
+            badge.setAttribute('data-en', enB);
+            badge.innerText = window.t(bnB, enB);
             badge.classList.remove('hidden');
         } else {
             badge.classList.add('hidden');
@@ -623,7 +629,7 @@ function startCameraQrScanner() {
     container.classList.remove('hidden');
     if (btn) {
         btn.className = "w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold text-xs shadow-md transition flex items-center justify-center gap-2";
-        btn.innerHTML = "<span>⏹️ Stop Camera Scanner (ক্যামেরা বন্ধ করুন)</span>";
+        btn.innerHTML = `<span>⏹️</span> <span>${window.t('ক্যামেরা স্ক্যানার বন্ধ করুন', 'Stop Camera Scanner')}</span>`;
     }
 
     html5QrScanner = new Html5Qrcode("qr-reader");
@@ -660,7 +666,7 @@ function stopCameraQrScanner() {
     if (container) container.classList.add('hidden');
     if (btn) {
         btn.className = "w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold text-xs shadow-md transition flex items-center justify-center gap-2";
-        btn.innerHTML = "<span>📷 Start Camera Scanner (ক্যামেরা দিয়ে স্ক্যান করুন)</span>";
+        btn.innerHTML = `<span>📷</span> <span>${window.t('ক্যামেরা দিয়ে স্ক্যান করুন', 'Start Camera QR Scanner')}</span>`;
     }
 }
 
@@ -1254,12 +1260,13 @@ function initCaptainLiveMap(initialLat = null, initialLng = null) {
         captainLiveMap = L.map('captainLiveMap', {
             center: [lat, lng],
             zoom: 15,
-            zoomControl: false
+            zoomControl: false,
+            attributionControl: false
         });
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap'
+            maxZoom: 19
         }).addTo(captainLiveMap);
+        L.control.attribution({ prefix: false, position: 'bottomright' }).addAttribution('🛰️ Bus Yatra Map GPS System').addTo(captainLiveMap);
 
         const customIcon = L.divIcon({
             className: 'captain-bus-pin',
@@ -1388,13 +1395,13 @@ async function sendCaptainLocation(lat, lng, speed = 0, accuracy = 10, heading =
     if (accText) {
         if (accuracy <= 15) {
             accText.className = "text-xs font-bold text-emerald-700";
-            accText.innerText = `±${accuracy}m (স্যাটেলাইট লক 🟢)`;
+            accText.innerText = window.t(`±${accuracy}m (স্যাটেলাইট লক 🟢)`, `±${accuracy}m (Satellite Lock 🟢)`);
         } else if (accuracy <= 40) {
             accText.className = "text-xs font-bold text-blue-700";
-            accText.innerText = `±${accuracy}m (উচ্চ নির্ভুলতা 🔵)`;
+            accText.innerText = window.t(`±${accuracy}m (উচ্চ নির্ভুলতা 🔵)`, `±${accuracy}m (High Accuracy 🔵)`);
         } else {
             accText.className = "text-xs font-bold text-amber-700";
-            accText.innerText = `±${accuracy}m (সিগন্যাল দুর্বল ⚠️)`;
+            accText.innerText = window.t(`±${accuracy}m (সিগন্যাল দুর্বল ⚠️)`, `±${accuracy}m (Weak Signal ⚠️)`);
         }
     }
     if (timeText) timeText.innerText = new Date().toLocaleTimeString();
@@ -1694,6 +1701,7 @@ window.toggleCaptainGpsBroadcast = toggleCaptainGpsBroadcast;
 
 window.addEventListener('portal-language-change', () => {
     updateCaptainGpsUi();
+    updateCaptainSelectionToolbar();
     renderCaptainApprovals();
     renderCaptainManifest();
 });
@@ -1752,7 +1760,7 @@ async function loadCaptainNotifications() {
 
         if (!list) return;
         if (!notifs.length) {
-            list.innerHTML = `<div class="text-center text-gray-400 py-8 text-xs">এই মুহূর্তে কোনো নতুন নোটিফিকেশন বা বার্তা নেই।<br><span class="text-[11px] text-gray-300">(No active instructions right now)</span></div>`;
+            list.innerHTML = `<div class="text-center text-gray-400 py-8 text-xs">${window.t('এই মুহূর্তে কোনো নতুন নোটিফিকেশন বা বার্তা নেই।', 'No active instructions or notices right now.')}</div>`;
             return;
         }
 
