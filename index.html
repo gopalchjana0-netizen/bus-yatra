@@ -57,8 +57,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preload" href="common.js?v=10.53" as="script">
-    <link rel="preload" href="app.js?v=10.53" as="script">
+    <link rel="preload" href="common.js?v=10.54" as="script">
+    <link rel="preload" href="app.js?v=10.54" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
     <script src="tailwind.js?v=10.37" defer></script>
@@ -1821,8 +1821,8 @@
         </div>
     </div>
 
-    <script src="common.js?v=10.53"></script>
-    <script src="app.js?v=10.53"></script>
+    <script src="common.js?v=10.54"></script>
+    <script src="app.js?v=10.54"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
     <!-- Firebase App & Firestore Compat SDKs for Real-Time Live Bus Tracking -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" defer></script>
@@ -1832,7 +1832,7 @@
             initFestivalThemeSync('customer');
         }
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js?v=10.53', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+            navigator.serviceWorker.register('/sw.js?v=10.54', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
         }
     </script>
 
@@ -1964,14 +1964,18 @@
                                 </span>
                                 <video id="sosCameraPreviewVideo" autoplay muted playsinline style="width:100%;max-height:190px;object-fit:contain;background:#000;display:block;"></video>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <button type="button" id="btnSwitchSosCamera" onclick="switchCustomerSosCameraFacing()" class="flex-1 py-1.5 px-2.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-800 text-[11px] font-bold transition cursor-pointer">
-                                    🔄 Front / Back বদলান
+                            <div class="flex flex-wrap items-center gap-2">
+                                <button type="button" id="btnCaptureSosPhoto" onclick="captureCustomerSosPhoto()" class="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition cursor-pointer shadow-xs">
+                                    📸 ছবি তুলুন ও সেভ
                                 </button>
-                                <button type="button" id="btnStopSosCamera" onclick="stopCustomerSosCamera(true)" class="py-1.5 px-3 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold transition cursor-pointer">
-                                    ⏹️ বন্ধ করুন
+                                <button type="button" id="btnSwitchSosCamera" onclick="switchCustomerSosCameraFacing()" class="py-1.5 px-2.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-800 text-[11px] font-bold transition cursor-pointer">
+                                    🔄 ক্যামেরা ঘোরান
+                                </button>
+                                <button type="button" id="btnStopSosCamera" onclick="stopCustomerSosCamera(true)" class="py-1.5 px-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold transition cursor-pointer">
+                                    ⏹️ বন্ধ
                                 </button>
                             </div>
+                            <div id="sosCustomerCapturedThumbs" class="hidden grid grid-cols-3 gap-1.5 pt-1"></div>
                         </div>
                         <p id="sosCameraStatusMsg" class="text-[10px] text-slate-500 leading-relaxed">
                             🔒 সম্পূর্ণ ঐচ্ছিক: আপনি অনুমতি দিলে কেবল জরুরি SOS চলাকালীন কন্ট্রোল রুম (Admin) লাইভ ছবি দেখতে পাবে। আপনি বা অ্যাডমিন যেকোনো সময় বন্ধ করতে পারবেন।
@@ -2149,10 +2153,15 @@
     </nav>
 
     <!-- Visible Floating Indicator Whenever Customer Opt-In SOS Camera Is Active -->
-    <button type="button" id="customerSosLiveCameraPill" onclick="stopCustomerSosCamera(true)" class="hidden fixed top-16 right-3 z-[960] bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-full text-[11px] font-black shadow-2xl border-2 border-white flex items-center gap-1.5 cursor-pointer animate-pulse" title="ট্যাপ করলে SOS লাইভ ক্যামেরা বন্ধ হয়ে যাবে">
-        <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
-        <span>SOS Camera Live • বন্ধ করুন (Stop)</span>
-    </button>
+    <div id="customerSosLiveCameraPill" class="hidden fixed top-16 right-3 z-[960] flex items-center gap-1.5">
+        <button type="button" id="btnFloatingCaptureSosPhoto" onclick="captureCustomerSosPhoto()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-full text-[11px] font-black shadow-2xl border-2 border-white flex items-center gap-1 cursor-pointer active:scale-95" title="ছবি তুলে ফোনে ও কন্ট্রোল রুমে সেভ করুন">
+            <span>📸</span><span>ছবি তুলুন</span>
+        </button>
+        <button type="button" id="btnFloatingStopSosCam" onclick="stopCustomerSosCamera(true)" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-full text-[11px] font-black shadow-2xl border-2 border-white flex items-center gap-1.5 cursor-pointer animate-pulse" title="ট্যাপ করলে SOS লাইভ ক্যামেরা বন্ধ হয়ে যাবে">
+            <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
+            <span>Live • বন্ধ</span>
+        </button>
+    </div>
     <video id="sosHiddenCaptureVideo" autoplay muted playsinline style="position:fixed;right:0;bottom:0;width:2px;height:2px;opacity:0.01;pointer-events:none;z-index:-1;"></video>
 
     <!-- Bus Fullscreen Image Lightbox Modal for Customer -->

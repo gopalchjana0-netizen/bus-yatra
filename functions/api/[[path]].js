@@ -96,32 +96,49 @@ async function ensureSosTable(db) {
                 camera_updated_at TEXT,
                 camera_expires_at TEXT,
                 camera_session_token TEXT DEFAULT '',
+                webrtc_offer TEXT DEFAULT '',
+                webrtc_offer_ice TEXT DEFAULT '[]',
+                webrtc_answer TEXT DEFAULT '',
+                webrtc_answer_ice TEXT DEFAULT '[]',
+                webrtc_session_nonce TEXT DEFAULT '',
+                webrtc_renegotiate INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT,
                 updated_at TEXT
             )
         `).run();
         await db.prepare('CREATE INDEX IF NOT EXISTS idx_sos_alerts_status ON emergency_sos_alerts(status)').run();
         await db.prepare('CREATE INDEX IF NOT EXISTS idx_sos_alerts_created ON emergency_sos_alerts(created_at)').run();
+        await db.prepare(`
+            CREATE TABLE IF NOT EXISTS sos_captured_photos (
+                id TEXT PRIMARY KEY,
+                sos_id TEXT NOT NULL,
+                captured_by TEXT NOT NULL DEFAULT 'customer',
+                photo_data TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        `).run();
+        await db.prepare('CREATE INDEX IF NOT EXISTS idx_sos_photos_sos ON sos_captured_photos(sos_id, created_at DESC)').run();
         if (!_sosColsEnsured) {
             const info = await db.prepare('PRAGMA table_info(emergency_sos_alerts)').all();
             const cols = new Set((info.results || []).map(c => String(c.name || '').toLowerCase()));
-            if (!cols.has('camera_consent')) {
-                try { await db.prepare('ALTER TABLE emergency_sos_alerts ADD COLUMN camera_consent INTEGER NOT NULL DEFAULT 0').run(); } catch (_) {}
-            }
-            if (!cols.has('camera_active')) {
-                try { await db.prepare('ALTER TABLE emergency_sos_alerts ADD COLUMN camera_active INTEGER NOT NULL DEFAULT 0').run(); } catch (_) {}
-            }
-            if (!cols.has('camera_frame')) {
-                try { await db.prepare("ALTER TABLE emergency_sos_alerts ADD COLUMN camera_frame TEXT DEFAULT ''").run(); } catch (_) {}
-            }
-            if (!cols.has('camera_updated_at')) {
-                try { await db.prepare('ALTER TABLE emergency_sos_alerts ADD COLUMN camera_updated_at TEXT').run(); } catch (_) {}
-            }
-            if (!cols.has('camera_expires_at')) {
-                try { await db.prepare('ALTER TABLE emergency_sos_alerts ADD COLUMN camera_expires_at TEXT').run(); } catch (_) {}
-            }
-            if (!cols.has('camera_session_token')) {
-                try { await db.prepare("ALTER TABLE emergency_sos_alerts ADD COLUMN camera_session_token TEXT DEFAULT ''").run(); } catch (_) {}
+            const needed = [
+                ['camera_consent', 'INTEGER NOT NULL DEFAULT 0'],
+                ['camera_active', 'INTEGER NOT NULL DEFAULT 0'],
+                ['camera_frame', "TEXT DEFAULT ''"],
+                ['camera_updated_at', 'TEXT'],
+                ['camera_expires_at', 'TEXT'],
+                ['camera_session_token', "TEXT DEFAULT ''"],
+                ['webrtc_offer', "TEXT DEFAULT ''"],
+                ['webrtc_offer_ice', "TEXT DEFAULT '[]'"],
+                ['webrtc_answer', "TEXT DEFAULT ''"],
+                ['webrtc_answer_ice', "TEXT DEFAULT '[]'"],
+                ['webrtc_session_nonce', "TEXT DEFAULT ''"],
+                ['webrtc_renegotiate', 'INTEGER NOT NULL DEFAULT 0']
+            ];
+            for (const [colName, colDef] of needed) {
+                if (!cols.has(colName)) {
+                    try { await db.prepare(`ALTER TABLE emergency_sos_alerts ADD COLUMN ${colName} ${colDef}`).run(); } catch (_) {}
+                }
             }
             _sosColsEnsured = true;
         }
@@ -130,14 +147,14 @@ async function ensureSosTable(db) {
     }
 }
 
-function sanitizeSosCameraFrame(rawFrame) {
+function sanitizeSosCameraFrame(rawFrame, maxLen = 240000) {
     const clean = String(rawFrame || '').trim();
     if (!clean) return { ok: false, error: 'Camera frame missing.' };
     if (!/^data:image\/(jpeg|jpg|webp|png);base64,[A-Za-z0-9+/=]+$/i.test(clean)) {
         return { ok: false, error: 'Only safe JPEG/WebP/PNG camera frames are permitted.' };
     }
-    if (clean.length > 240000) {
-        return { ok: false, error: 'Camera frame payload too large.' };
+    if (clean.length > maxLen) {
+        return { ok: false, error: 'Camera image payload too large.' };
     }
     return { ok: true, value: clean };
 }
@@ -2993,7 +3010,57 @@ async function handleGet(context) {
         });
     }
 
-    // GET /api/admin/emergency/sos/:id/camera (Admin view opt-in live SOS camera frame)
+    // GET /api/emergency/sos/:id/webrtc-answer?token=...&nonce=... (Customer polls Admin SDP answer)
+    const sosWebrtcAnsMatch = path.match(/^\/api\/emergency\/sos\/([^/]+)\/webrtc-answer$/);
+    if (sosWebrtcAnsMatch) {
+        await ensureSosTable(env.DB);
+        const alertId = decodeURIComponent(sosWebrtcAnsMatch[1]);
+        const token = String(url.searchParams.get('token') || request.headers.get('X-Sos-Camera-Token') || '').trim();
+        const clientNonce = String(url.searchParams.get('nonce') || '').trim();
+        if (!token) return jsonError(403, 'Camera session token required.');
+
+        const sos = await env.DB.prepare(
+            `SELECT id, status, camera_consent, camera_active, camera_expires_at, camera_session_token,
+                    webrtc_answer, webrtc_answer_ice, webrtc_session_nonce, webrtc_renegotiate
+             FROM emergency_sos_alerts WHERE id = ? OR alert_number = ?`
+        ).bind(alertId, alertId).first();
+        if (!sos || !sos.camera_session_token || sos.camera_session_token !== token) {
+            return jsonError(403, 'Invalid or expired SOS camera session token.');
+        }
+
+        const nowIso = new Date().toISOString();
+        const isExpired = Boolean(sos.camera_expires_at && sos.camera_expires_at <= nowIso);
+        if (sos.status !== 'Active' || !sos.camera_consent || !sos.camera_active || isExpired) {
+            return jsonResponse({ ok: false, stopped: true });
+        }
+
+        let iceList = [];
+        try { iceList = JSON.parse(sos.webrtc_answer_ice || '[]'); } catch (_) {}
+        return jsonResponse({
+            ok: true,
+            stopped: false,
+            nonce: sos.webrtc_session_nonce || '',
+            renegotiate: Boolean(sos.webrtc_renegotiate) || Boolean(clientNonce && sos.webrtc_session_nonce && clientNonce !== sos.webrtc_session_nonce),
+            answer: sos.webrtc_answer || '',
+            ice: Array.isArray(iceList) ? iceList : []
+        });
+    }
+
+    // GET /api/admin/emergency/sos/:id/photos (Admin list captured HD photos for an SOS alert)
+    const adminSosPhotosGetMatch = path.match(/^\/api\/admin\/emergency\/sos\/([^/]+)\/photos$/);
+    if (adminSosPhotosGetMatch) {
+        if (auth?.role !== 'admin') return jsonError(403, 'Unauthorized.');
+        await ensureSosTable(env.DB);
+        const alertId = decodeURIComponent(adminSosPhotosGetMatch[1]);
+        const sos = await env.DB.prepare('SELECT id FROM emergency_sos_alerts WHERE id = ? OR alert_number = ?').bind(alertId, alertId).first();
+        if (!sos) return jsonError(404, 'SOS Alert not found.');
+        const { results } = await env.DB.prepare(
+            'SELECT id, sos_id, captured_by, photo_data, created_at FROM sos_captured_photos WHERE sos_id = ? ORDER BY created_at DESC LIMIT 30'
+        ).bind(sos.id).all();
+        return jsonResponse({ ok: true, photos: results || [] });
+    }
+
+    // GET /api/admin/emergency/sos/:id/camera (Admin view opt-in live WebRTC offer + camera frame)
     const adminSosCamMatch = path.match(/^\/api\/admin\/emergency\/sos\/([^/]+)\/camera$/);
     if (adminSosCamMatch) {
         if (auth?.role !== 'admin') return jsonError(403, 'Unauthorized.');
@@ -3002,7 +3069,9 @@ async function handleGet(context) {
         const sos = await env.DB.prepare(
             `SELECT id, alert_number, customer_name, customer_phone, emergency_type, status, maps_url,
                     current_location_text, camera_consent, camera_active, camera_frame,
-                    camera_updated_at, camera_expires_at
+                    camera_updated_at, camera_expires_at,
+                    webrtc_offer, webrtc_offer_ice, webrtc_answer, webrtc_session_nonce,
+                    (SELECT COUNT(*) FROM sos_captured_photos p WHERE p.sos_id = emergency_sos_alerts.id) AS photos_count
              FROM emergency_sos_alerts WHERE id = ? OR alert_number = ?`
         ).bind(alertId, alertId).first();
         if (!sos) return jsonError(404, 'SOS Alert not found.');
@@ -3013,9 +3082,12 @@ async function handleGet(context) {
 
         if (sos.camera_active && !stillLive) {
             await env.DB.prepare(
-                "UPDATE emergency_sos_alerts SET camera_active = 0, camera_frame = '', camera_session_token = '', updated_at = ? WHERE id = ?"
+                "UPDATE emergency_sos_alerts SET camera_active = 0, camera_frame = '', camera_session_token = '', webrtc_offer = '', webrtc_answer = '', updated_at = ? WHERE id = ?"
             ).bind(nowIso, sos.id).run();
         }
+
+        let offerIce = [];
+        try { offerIce = JSON.parse(sos.webrtc_offer_ice || '[]'); } catch (_) {}
 
         return jsonResponse({
             ok: true,
@@ -3031,7 +3103,12 @@ async function handleGet(context) {
             cameraActive: stillLive,
             cameraUpdatedAt: sos.camera_updated_at || null,
             cameraExpiresAt: sos.camera_expires_at || null,
-            frame: stillLive ? (sos.camera_frame || '') : ''
+            frame: stillLive ? (sos.camera_frame || '') : '',
+            webrtcOffer: stillLive ? (sos.webrtc_offer || '') : '',
+            webrtcOfferIce: stillLive && Array.isArray(offerIce) ? offerIce : [],
+            webrtcAnswer: stillLive ? (sos.webrtc_answer || '') : '',
+            webrtcNonce: sos.webrtc_session_nonce || '',
+            photosCount: Number(sos.photos_count || 0)
         });
     }
 
@@ -3041,7 +3118,7 @@ async function handleGet(context) {
         await ensureSosTable(env.DB);
         const nowIso = new Date().toISOString();
         await env.DB.prepare(
-            "UPDATE emergency_sos_alerts SET camera_active = 0, camera_frame = '', camera_session_token = '' WHERE camera_active = 1 AND (status != 'Active' OR (camera_expires_at IS NOT NULL AND camera_expires_at <= ?))"
+            "UPDATE emergency_sos_alerts SET camera_active = 0, camera_frame = '', camera_session_token = '', webrtc_offer = '', webrtc_answer = '' WHERE camera_active = 1 AND (status != 'Active' OR (camera_expires_at IS NOT NULL AND camera_expires_at <= ?))"
         ).bind(nowIso).run();
 
         const statusFilter = (url.searchParams.get('status') || 'all').trim();
@@ -3052,6 +3129,7 @@ async function handleGet(context) {
                             status, resolved_at, resolved_by, resolution_notes,
                             camera_consent, camera_active, camera_updated_at, camera_expires_at,
                             CASE WHEN camera_frame IS NOT NULL AND camera_frame != '' THEN 1 ELSE 0 END AS has_live_frame,
+                            (SELECT COUNT(*) FROM sos_captured_photos p WHERE p.sos_id = emergency_sos_alerts.id) AS photos_count,
                             created_at, updated_at
                      FROM emergency_sos_alerts`;
         const conditions = [];
@@ -8088,6 +8166,20 @@ async function handlePost(context) {
             now, now
         ).run();
 
+        // Save any pre-snapped HD photos attached at SOS submit time
+        if (cameraConsent === 1 && Array.isArray(body.initial_photos)) {
+            const initPhotos = body.initial_photos.slice(0, 5);
+            for (const rawP of initPhotos) {
+                const pCheck = sanitizeSosCameraFrame(rawP, 850000);
+                if (pCheck.ok) {
+                    const pid = 'sosp_' + Date.now() + '_' + secureRandomHex(4);
+                    await env.DB.prepare(
+                        'INSERT INTO sos_captured_photos (id, sos_id, captured_by, photo_data, created_at) VALUES (?, ?, ?, ?, ?)'
+                    ).bind(pid, alertId, 'customer', pCheck.value, now).run();
+                }
+            }
+        }
+
         return jsonResponse({
             ok: true,
             alertId,
@@ -8099,6 +8191,124 @@ async function handlePost(context) {
             cameraExpiresAt,
             message: 'আপনার জরুরি এসওএস সিগন্যাল বাস কন্ট্রোল রুমে সফলভাবে পৌঁছেছে।'
         }, 201);
+    }
+
+    // POST /api/emergency/sos/:id/webrtc-offer (Customer pushes live 30fps WebRTC SDP Offer + ICE)
+    const sosWebrtcOfferMatch = path.match(/^\/api\/emergency\/sos\/([^/]+)\/webrtc-offer$/);
+    if (sosWebrtcOfferMatch) {
+        await ensureSosTable(env.DB);
+        const alertId = decodeURIComponent(sosWebrtcOfferMatch[1]);
+        const body = await readJson(request);
+        const token = String(body?.token || request.headers.get('X-Sos-Camera-Token') || '').trim();
+        if (!token) return jsonError(403, 'Camera session token required.');
+
+        const sos = await env.DB.prepare(
+            'SELECT id, status, camera_consent, camera_active, camera_expires_at, camera_session_token FROM emergency_sos_alerts WHERE id = ? OR alert_number = ?'
+        ).bind(alertId, alertId).first();
+        if (!sos || !sos.camera_session_token || sos.camera_session_token !== token) {
+            return jsonError(403, 'Invalid or expired SOS camera session token.');
+        }
+
+        const now = new Date().toISOString();
+        const isExpired = Boolean(sos.camera_expires_at && sos.camera_expires_at <= now);
+        if (sos.status !== 'Active' || !sos.camera_consent || !sos.camera_active || isExpired) {
+            return jsonResponse({ ok: false, stopped: true });
+        }
+
+        const offerStr = String(body?.offer || '').trim();
+        const iceStr = JSON.stringify(Array.isArray(body?.ice) ? body.ice.slice(0, 40) : []);
+        const nonce = String(body?.nonce || ('n_' + Date.now())).trim().slice(0, 64);
+        if (!offerStr || offerStr.length > 40000) return jsonError(400, 'Invalid WebRTC offer.');
+
+        await env.DB.prepare(
+            "UPDATE emergency_sos_alerts SET webrtc_offer = ?, webrtc_offer_ice = ?, webrtc_answer = '', webrtc_answer_ice = '[]', webrtc_session_nonce = ?, webrtc_renegotiate = 0, updated_at = ? WHERE id = ?"
+        ).bind(offerStr, iceStr, nonce, now, sos.id).run();
+        return jsonResponse({ ok: true, nonce });
+    }
+
+    // POST /api/admin/emergency/sos/:id/webrtc-answer (Admin responds with WebRTC SDP Answer + ICE)
+    const adminWebrtcAnsMatch = path.match(/^\/api\/admin\/emergency\/sos\/([^/]+)\/webrtc-answer$/);
+    if (adminWebrtcAnsMatch) {
+        if (auth?.role !== 'admin') return jsonError(403, 'Unauthorized.');
+        await ensureSosTable(env.DB);
+        const alertId = decodeURIComponent(adminWebrtcAnsMatch[1]);
+        const body = await readJson(request);
+        const answerStr = String(body?.answer || '').trim();
+        const iceStr = JSON.stringify(Array.isArray(body?.ice) ? body.ice.slice(0, 40) : []);
+        const nonce = String(body?.nonce || '').trim().slice(0, 64);
+        if (!answerStr || answerStr.length > 40000) return jsonError(400, 'Invalid WebRTC answer.');
+
+        const now = new Date().toISOString();
+        await env.DB.prepare(
+            "UPDATE emergency_sos_alerts SET webrtc_answer = ?, webrtc_answer_ice = ?, webrtc_renegotiate = 0, updated_at = ? WHERE (id = ? OR alert_number = ?) AND (? = '' OR webrtc_session_nonce = ?)"
+        ).bind(answerStr, iceStr, now, alertId, alertId, nonce, nonce).run();
+        return jsonResponse({ ok: true });
+    }
+
+    // POST /api/admin/emergency/sos/:id/webrtc-reset (Admin triggers clean WebRTC renegotiation when opening viewer)
+    const adminWebrtcResetMatch = path.match(/^\/api\/admin\/emergency\/sos\/([^/]+)\/webrtc-reset$/);
+    if (adminWebrtcResetMatch) {
+        if (auth?.role !== 'admin') return jsonError(403, 'Unauthorized.');
+        await ensureSosTable(env.DB);
+        const alertId = decodeURIComponent(adminWebrtcResetMatch[1]);
+        const now = new Date().toISOString();
+        await env.DB.prepare(
+            "UPDATE emergency_sos_alerts SET webrtc_answer = '', webrtc_answer_ice = '[]', webrtc_renegotiate = 1, updated_at = ? WHERE id = ? OR alert_number = ?"
+        ).bind(now, alertId, alertId).run();
+        return jsonResponse({ ok: true });
+    }
+
+    // POST /api/emergency/sos/:id/photos (Customer snaps HD photo while live)
+    const sosCustPhotoMatch = path.match(/^\/api\/emergency\/sos\/([^/]+)\/photos$/);
+    if (sosCustPhotoMatch) {
+        await ensureSosTable(env.DB);
+        const alertId = decodeURIComponent(sosCustPhotoMatch[1]);
+        const body = await readJson(request);
+        const token = String(body?.token || request.headers.get('X-Sos-Camera-Token') || '').trim();
+        if (!token) return jsonError(403, 'Camera session token required.');
+
+        const sos = await env.DB.prepare(
+            'SELECT id, status, camera_consent, camera_session_token FROM emergency_sos_alerts WHERE id = ? OR alert_number = ?'
+        ).bind(alertId, alertId).first();
+        if (!sos || !sos.camera_session_token || sos.camera_session_token !== token) {
+            return jsonError(403, 'Invalid or expired SOS camera session token.');
+        }
+        const photoCheck = sanitizeSosCameraFrame(body?.photo, 850000);
+        if (!photoCheck.ok) return jsonError(400, photoCheck.error);
+
+        const cntRow = await env.DB.prepare('SELECT COUNT(*) AS cnt FROM sos_captured_photos WHERE sos_id = ?').bind(sos.id).first();
+        if (cntRow && Number(cntRow.cnt) >= 25) return jsonError(400, 'Maximum 25 photos reached for this SOS alert.');
+
+        const pid = 'sosp_' + Date.now() + '_' + secureRandomHex(4);
+        const now = new Date().toISOString();
+        await env.DB.prepare(
+            'INSERT INTO sos_captured_photos (id, sos_id, captured_by, photo_data, created_at) VALUES (?, ?, ?, ?, ?)'
+        ).bind(pid, sos.id, 'customer', photoCheck.value, now).run();
+        return jsonResponse({ ok: true, id: pid, captured_by: 'customer', created_at: now });
+    }
+
+    // POST /api/admin/emergency/sos/:id/photos (Admin snaps HD photo from live SOS video)
+    const adminSosPhotoPostMatch = path.match(/^\/api\/admin\/emergency\/sos\/([^/]+)\/photos$/);
+    if (adminSosPhotoPostMatch) {
+        if (auth?.role !== 'admin') return jsonError(403, 'Unauthorized.');
+        await ensureSosTable(env.DB);
+        const alertId = decodeURIComponent(adminSosPhotoPostMatch[1]);
+        const body = await readJson(request);
+        const sos = await env.DB.prepare('SELECT id FROM emergency_sos_alerts WHERE id = ? OR alert_number = ?').bind(alertId, alertId).first();
+        if (!sos) return jsonError(404, 'SOS Alert not found.');
+
+        const photoCheck = sanitizeSosCameraFrame(body?.photo, 850000);
+        if (!photoCheck.ok) return jsonError(400, photoCheck.error);
+
+        const cntRow = await env.DB.prepare('SELECT COUNT(*) AS cnt FROM sos_captured_photos WHERE sos_id = ?').bind(sos.id).first();
+        if (cntRow && Number(cntRow.cnt) >= 25) return jsonError(400, 'Maximum 25 photos reached for this SOS alert.');
+
+        const pid = 'sosp_' + Date.now() + '_' + secureRandomHex(4);
+        const now = new Date().toISOString();
+        await env.DB.prepare(
+            'INSERT INTO sos_captured_photos (id, sos_id, captured_by, photo_data, created_at) VALUES (?, ?, ?, ?, ?)'
+        ).bind(pid, sos.id, 'admin', photoCheck.value, now).run();
+        return jsonResponse({ ok: true, id: pid, captured_by: 'admin', created_at: now });
     }
 
     // POST /api/emergency/sos/:id/camera-frame (Opt-in customer live camera frame relay or stop)
@@ -8120,7 +8330,7 @@ async function handlePost(context) {
         const now = new Date().toISOString();
         if (body?.action === 'stop') {
             await env.DB.prepare(
-                "UPDATE emergency_sos_alerts SET camera_active = 0, camera_frame = '', camera_session_token = '', updated_at = ? WHERE id = ?"
+                "UPDATE emergency_sos_alerts SET camera_active = 0, camera_frame = '', camera_session_token = '', webrtc_offer = '', webrtc_answer = '', webrtc_renegotiate = 0, updated_at = ? WHERE id = ?"
             ).bind(now, sos.id).run();
             return jsonResponse({ ok: true, stopped: true, message: 'লাইভ ক্যামেরা শেয়ারিং নিরাপদে বন্ধ করা হয়েছে।' });
         }
@@ -8128,7 +8338,7 @@ async function handlePost(context) {
         const isExpired = Boolean(sos.camera_expires_at && sos.camera_expires_at <= now);
         if (sos.status !== 'Active' || !sos.camera_consent || !sos.camera_active || isExpired) {
             await env.DB.prepare(
-                "UPDATE emergency_sos_alerts SET camera_active = 0, camera_frame = '', camera_session_token = '', updated_at = ? WHERE id = ?"
+                "UPDATE emergency_sos_alerts SET camera_active = 0, camera_frame = '', camera_session_token = '', webrtc_offer = '', webrtc_answer = '', webrtc_renegotiate = 0, updated_at = ? WHERE id = ?"
             ).bind(now, sos.id).run();
             return jsonResponse({
                 ok: false,
@@ -8137,7 +8347,7 @@ async function handlePost(context) {
             });
         }
 
-        const frameCheck = sanitizeSosCameraFrame(body?.frame);
+        const frameCheck = sanitizeSosCameraFrame(body?.frame, 240000);
         if (!frameCheck.ok) {
             return jsonError(400, frameCheck.error);
         }
@@ -8157,7 +8367,7 @@ async function handlePost(context) {
         const alertId = decodeURIComponent(adminSosStopCamMatch[1]);
         const now = new Date().toISOString();
         await env.DB.prepare(
-            "UPDATE emergency_sos_alerts SET camera_active = 0, camera_frame = '', camera_session_token = '', updated_at = ? WHERE id = ? OR alert_number = ?"
+            "UPDATE emergency_sos_alerts SET camera_active = 0, camera_frame = '', camera_session_token = '', webrtc_offer = '', webrtc_answer = '', webrtc_renegotiate = 0, updated_at = ? WHERE id = ? OR alert_number = ?"
         ).bind(now, alertId, alertId).run();
         return jsonResponse({ ok: true, message: 'কাস্টমারের লাইভ ক্যামেরা সেশন বন্ধ করা হয়েছে।' });
     }
@@ -8177,7 +8387,8 @@ async function handlePost(context) {
         await env.DB.prepare(`
             UPDATE emergency_sos_alerts
             SET status = 'Resolved', resolved_at = ?, resolved_by = ?, resolution_notes = ?,
-                camera_active = 0, camera_frame = '', camera_session_token = '', updated_at = ?
+                camera_active = 0, camera_frame = '', camera_session_token = '',
+                webrtc_offer = '', webrtc_answer = '', webrtc_renegotiate = 0, updated_at = ?
             WHERE id = ? OR alert_number = ?
         `).bind(now, auth.identifier || 'admin', notes || 'সমস্যা সমাধান সম্পন্ন', now, alertId, alertId).run();
 
@@ -8235,6 +8446,7 @@ async function handleDelete(context) {
         const sos = await env.DB.prepare('SELECT id, alert_number FROM emergency_sos_alerts WHERE id = ? OR alert_number = ?').bind(sosId, sosId).first();
         if (!sos) return jsonError(404, 'SOS Alert not found.');
 
+        await env.DB.prepare('DELETE FROM sos_captured_photos WHERE sos_id = ?').bind(sos.id).run();
         await env.DB.prepare('DELETE FROM emergency_sos_alerts WHERE id = ?').bind(sos.id).run();
         return jsonResponse({
             ok: true,
@@ -8252,6 +8464,10 @@ async function handleDelete(context) {
         const sosId = (url.searchParams.get('id') || '').trim();
 
         if (sosId) {
+            const target = await env.DB.prepare('SELECT id FROM emergency_sos_alerts WHERE id = ? OR alert_number = ?').bind(sosId, sosId).first();
+            if (target) {
+                await env.DB.prepare('DELETE FROM sos_captured_photos WHERE sos_id = ?').bind(target.id).run();
+            }
             await env.DB.prepare('DELETE FROM emergency_sos_alerts WHERE id = ? OR alert_number = ?').bind(sosId, sosId).run();
             return jsonResponse({ ok: true, message: 'SOS অ্যালার্ট সফলভাবে মুছে ফেলা হয়েছে।' });
         }
@@ -8259,6 +8475,7 @@ async function handleDelete(context) {
         if (deleteStatus === 'Resolved') {
             const countRow = await env.DB.prepare("SELECT COUNT(*) AS total FROM emergency_sos_alerts WHERE status = 'Resolved'").first();
             const total = (countRow && countRow.total) || 0;
+            await env.DB.prepare("DELETE FROM sos_captured_photos WHERE sos_id IN (SELECT id FROM emergency_sos_alerts WHERE status = 'Resolved')").run();
             await env.DB.prepare("DELETE FROM emergency_sos_alerts WHERE status = 'Resolved'").run();
             return jsonResponse({
                 ok: true,
@@ -8268,6 +8485,7 @@ async function handleDelete(context) {
         }
 
         if (clearAll) {
+            await env.DB.prepare('DELETE FROM sos_captured_photos').run();
             await env.DB.prepare('DELETE FROM emergency_sos_alerts').run();
             return jsonResponse({ ok: true, message: 'সমস্ত SOS অ্যালার্ট স্থায়ীভাবে মুছে ফেলা হয়েছে।' });
         }

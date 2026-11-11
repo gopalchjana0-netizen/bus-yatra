@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bus-yatra-v10.53';
+const CACHE_NAME = 'bus-yatra-v10.54';
 const urlsToCache = [
   '/',
   '/owner',
@@ -139,8 +139,7 @@ self.addEventListener('fetch', event => {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE_NAME);
       const cached = (await cache.match(cacheKey, { ignoreSearch: true })) ||
-                     (await cache.match('/', { ignoreSearch: true })) ||
-                     (await cache.match('/index.html', { ignoreSearch: true }));
+                     (cacheKey === '/' ? await cache.match('/index.html', { ignoreSearch: true }) : await cache.match(cacheKey + '.html', { ignoreSearch: true }));
 
       const networkFetch = fetch(cacheKey).then(async resp => {
         if (resp && resp.status === 200) {

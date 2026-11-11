@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preload" href="common.js?v=10.53" as="script">
-    <link rel="preload" href="app-admin.js?v=10.53" as="script">
+    <link rel="preload" href="common.js?v=10.54" as="script">
+    <link rel="preload" href="app-admin.js?v=10.54" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
     <script src="tailwind.js?v=10.37" defer></script>
@@ -3653,20 +3653,31 @@
                 <button type="button" onclick="closeAdminSosCameraModal()" class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold flex items-center justify-center transition cursor-pointer shrink-0">✕</button>
             </div>
 
-            <div class="p-3 sm:p-4 bg-black flex-1 flex flex-col items-center justify-center min-h-[240px] relative overflow-hidden">
-                <img id="adminSosCamImg" src="" alt="Live SOS Camera Feed" class="hidden rounded-2xl border border-white/10" style="width:100%;height:auto;max-height:60vh;object-fit:contain;margin:0 auto;">
-                <div id="adminSosCamEmptyState" class="text-center py-10 px-4 space-y-2">
+            <div class="p-3 sm:p-4 bg-black flex-1 flex flex-col items-center justify-center min-h-[220px] relative overflow-hidden">
+                <video id="adminSosCamVideo" autoplay playsinline muted class="hidden rounded-2xl border border-emerald-500/40" style="width:100%;height:auto;max-height:52vh;object-fit:contain;margin:0 auto;"></video>
+                <img id="adminSosCamImg" src="" alt="Live SOS Camera Feed" class="hidden rounded-2xl border border-white/10" style="width:100%;height:auto;max-height:52vh;object-fit:contain;margin:0 auto;">
+                <div id="adminSosCamEmptyState" class="text-center py-8 px-4 space-y-2">
                     <span class="text-4xl block animate-pulse">📹</span>
-                    <p id="adminSosCamEmptyText" class="text-xs text-slate-300 font-semibold">কাস্টমারের লাইভ ক্যামেরা ফ্রেম লোড হচ্ছে...</p>
+                    <p id="adminSosCamEmptyText" class="text-xs text-slate-300 font-semibold">কাস্টমারের লাইভ ক্যামেরা ও ভিডিও সংযোগ লোড হচ্ছে...</p>
                 </div>
             </div>
 
-            <div class="p-3.5 bg-slate-900 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs shrink-0">
-                <div id="adminSosCamUpdatedAt" class="text-[11px] text-slate-300 font-mono">আপডেট: অপেক্ষা করা হচ্ছে...</div>
-                <div class="flex flex-wrap items-center gap-2">
-                    <a id="adminSosCamMapLink" href="#" target="_blank" class="hidden px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition">🗺️ ম্যাপ দেখুন</a>
-                    <button type="button" id="btnAdminStopSosCam" onclick="adminStopSosCamera(adminActiveSosCameraId)" class="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition cursor-pointer">⏹️ ক্যামেরা বন্ধ করুন</button>
-                    <button type="button" id="btnAdminResolveSosCam" onclick="adminResolveFromCameraModal()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition cursor-pointer">✅ SOS সমাধান করুন</button>
+            <div class="p-3.5 bg-slate-900 border-t border-slate-800 space-y-2.5 text-xs shrink-0 overflow-y-auto max-h-[34vh]">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div id="adminSosCamUpdatedAt" class="text-[11px] text-slate-300 font-mono">আপডেট: অপেক্ষা করা হচ্ছে...</div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" id="btnAdminCaptureSosPhoto" onclick="adminCaptureAndSaveSosPhoto()" class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition cursor-pointer shadow">📸 ছবি তুলুন ও সেভ</button>
+                        <a id="adminSosCamMapLink" href="#" target="_blank" class="hidden px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition">🗺️ ম্যাপ</a>
+                        <button type="button" id="btnAdminStopSosCam" onclick="adminStopSosCamera(adminActiveSosCameraId)" class="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition cursor-pointer">⏹️ বন্ধ করুন</button>
+                        <button type="button" id="btnAdminResolveSosCam" onclick="adminResolveFromCameraModal()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition cursor-pointer">✅ সমাধান</button>
+                    </div>
+                </div>
+                <div id="adminSosCamPhotosWrap" class="hidden pt-2 border-t border-slate-800 space-y-1.5">
+                    <div class="text-[11px] font-bold text-slate-300 flex items-center justify-between">
+                        <span>🖼️ তোলা ছবিগুলো (Captured Photos)</span>
+                        <span id="adminSosCamPhotosCount" class="text-[10px] text-slate-400">0 টি</span>
+                    </div>
+                    <div id="adminSosCamPhotosGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2"></div>
                 </div>
             </div>
         </div>
@@ -4206,8 +4217,8 @@
         </div>
     </div>
 
-    <script src="common.js?v=10.53"></script>
-    <script src="app-admin.js?v=10.53"></script>
+    <script src="common.js?v=10.54"></script>
+    <script src="app-admin.js?v=10.54"></script>
     <!-- Leaflet JS for Interactive Bus GPS Map (Non-Blocking) -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
     <!-- Firebase App & Firestore Compat SDKs for Real-Time Live Bus Tracking (Non-Blocking) -->
@@ -4228,7 +4239,7 @@
             initFestivalThemeSync('admin');
         }
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js?v=10.53', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+            navigator.serviceWorker.register('/sw.js?v=10.54', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
         }
     </script>
 </body>

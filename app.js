@@ -5810,6 +5810,58 @@ let sosActiveCameraAlertId = null;
 let sosActiveCameraToken = null;
 let sosCameraExpiresAtMs = 0;
 let sosCameraFrameBusy = false;
+let sosPendingCapturedPhotos = [];
+let sosWebrtcPc = null;
+let sosWebrtcNonce = '';
+let sosWebrtcAnswerApplied = false;
+let sosWebrtcConnected = false;
+let sosWebrtcAnswerTimer = null;
+const SOS_RTC_CONFIG = {
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+    ]
+};
+
+function downloadSosPhotoDataUrl(dataUrl, filename) {
+    if (!dataUrl || typeof document === 'undefined') return;
+    try {
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = filename || `BusYatra_SOS_${Date.now()}.jpg`;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => a.remove(), 120);
+    } catch (_) {}
+}
+
+function renderCustomerSosCapturedThumbs() {
+    const grid = document.getElementById('sosCustomerCapturedThumbs');
+    if (!grid) return;
+    grid.innerHTML = '';
+    if (!sosPendingCapturedPhotos.length) {
+        grid.classList.add('hidden');
+        return;
+    }
+    grid.classList.remove('hidden');
+    sosPendingCapturedPhotos.forEach((p, idx) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'relative rounded-lg overflow-hidden border border-emerald-300 bg-black';
+        const img = document.createElement('img');
+        img.src = p.dataUrl;
+        img.alt = `Captured Photo ${idx + 1}`;
+        img.className = 'w-full h-16 object-contain bg-black';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[9px] font-bold shadow cursor-pointer';
+        btn.textContent = '💾 Save';
+        btn.onclick = () => downloadSosPhotoDataUrl(p.dataUrl, p.filename);
+        wrap.appendChild(img);
+        wrap.appendChild(btn);
+        grid.appendChild(wrap);
+    });
+}
 
 function updateSosCameraUiState() {
     const enableBtn = document.getElementById('btnEnableSosCamera');
@@ -5822,7 +5874,10 @@ function updateSosCameraUiState() {
     if (enableBtn) enableBtn.classList.toggle('hidden', hasStream);
     if (previewWrap) previewWrap.classList.toggle('hidden', !hasStream);
     if (badge) {
-        if (isRelaying) {
+        if (sosWebrtcConnected && isRelaying) {
+            badge.innerText = '🔴 LIVE VIDEO (HD)';
+            badge.className = 'text-[10px] font-black px-2 py-0.5 rounded-full bg-red-600 text-white animate-pulse';
+        } else if (isRelaying) {
             badge.innerText = '🔴 LIVE কন্ট্রোল রুম';
             badge.className = 'text-[10px] font-black px-2 py-0.5 rounded-full bg-red-600 text-white animate-pulse';
         } else if (hasStream) {
@@ -5845,15 +5900,24 @@ async function enableCustomerSosCamera() {
         return false;
     }
     try {
-        if (sosCameraStream) {
-            sosCameraStream.getTracks().forEach(t => t.stop());
-            sosCameraStream = null;
-        }
+        const oldStream = sosCameraStream;
         const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: sosCameraFacing, width: { ideal: 640 }, height: { ideal: 480 } },
+            video: { facingMode: sosCameraFacing, width: { ideal: 960 }, height: { ideal: 720 }, frameRate: { ideal: 30, max: 30 } },
             audio: false
         });
         sosCameraStream = stream;
+
+        // If already in an active WebRTC SOS video call, replace the track smoothly without dropping call
+        if (sosWebrtcPc && stream.getVideoTracks()[0]) {
+            const senders = sosWebrtcPc.getSenders ? sosWebrtcPc.getSenders() : [];
+            const vidSender = senders.find(s => s.track && s.track.kind === 'video');
+            if (vidSender && vidSender.replaceTrack) {
+                try { await vidSender.replaceTrack(stream.getVideoTracks()[0]); } catch (_) {}
+            }
+        }
+        if (oldStream && oldStream !== stream) {
+            oldStream.getTracks().forEach(t => { try { t.stop(); } catch (_) {} });
+        }
 
         const previewVid = document.getElementById('sosCameraPreviewVideo');
         const hiddenVid = document.getElementById('sosHiddenCaptureVideo');
@@ -5866,7 +5930,7 @@ async function enableCustomerSosCamera() {
             hiddenVid.play().catch(() => {});
         }
         if (statusMsg) {
-            statusMsg.innerText = '✅ ক্যামেরা চালু হয়েছে! SOS অ্যালার্ট পাঠালে কন্ট্রোল রুম লাইভ ছবি দেখতে পাবে। আপনি চাইলে যেকোনো সময় বন্ধ করতে পারবেন।';
+            statusMsg.innerText = '✅ ক্যামেরা চালু হয়েছে! SOS অ্যালার্ট পাঠালে কন্ট্রোল রুম স্মুথ লাইভ ভিডিও দেখতে পাবে ও আপনি ছবি তুলতে পারবেন।';
         }
         updateSosCameraUiState();
         setTimeout(() => document.getElementById('sosCameraPreviewWrap')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 120);
@@ -5888,13 +5952,12 @@ async function switchCustomerSosCameraFacing() {
 }
 window.switchCustomerSosCameraFacing = switchCustomerSosCameraFacing;
 
-function captureSosCameraJpegFrame() {
+function captureSosCameraJpegFrame(maxDim = 400, quality = 0.56) {
     const hiddenVid = document.getElementById('sosHiddenCaptureVideo');
     const previewVid = document.getElementById('sosCameraPreviewVideo');
     const vid = (hiddenVid && hiddenVid.videoWidth > 0) ? hiddenVid : previewVid;
     if (!vid || !vid.videoWidth || !vid.videoHeight) return '';
 
-    const maxDim = 480;
     const scale = Math.min(1, maxDim / Math.max(vid.videoWidth, vid.videoHeight));
     const w = Math.max(160, Math.round(vid.videoWidth * scale));
     const h = Math.max(120, Math.round(vid.videoHeight * scale));
@@ -5905,23 +5968,162 @@ function captureSosCameraJpegFrame() {
     if (!ctx) return '';
     ctx.drawImage(vid, 0, 0, w, h);
 
-    let dataUrl = canvas.toDataURL('image/jpeg', 0.62);
-    if (dataUrl.length > 200000) {
-        dataUrl = canvas.toDataURL('image/jpeg', 0.45);
+    let dataUrl = canvas.toDataURL('image/jpeg', quality);
+    if (maxDim <= 480 && dataUrl.length > 180000) {
+        dataUrl = canvas.toDataURL('image/jpeg', 0.42);
     }
     return dataUrl;
 }
 
+async function captureCustomerSosPhoto() {
+    if (!sosCameraStream) {
+        const ok = await enableCustomerSosCamera();
+        if (!ok) return;
+    }
+    // Wait up to 1.5s for hardware camera video frame dimensions if just initialized
+    for (let i = 0; i < 15; i++) {
+        const hv = document.getElementById('sosHiddenCaptureVideo');
+        const pv = document.getElementById('sosCameraPreviewVideo');
+        if ((hv && hv.videoWidth > 0) || (pv && pv.videoWidth > 0)) break;
+        await new Promise(r => setTimeout(r, 100));
+    }
+    const hdPhoto = captureSosCameraJpegFrame(1280, 0.90);
+    if (!hdPhoto) return;
+
+    const fname = `BusYatra_SOS_${Date.now()}.jpg`;
+    downloadSosPhotoDataUrl(hdPhoto, fname);
+
+    sosPendingCapturedPhotos.unshift({ dataUrl: hdPhoto, filename: fname });
+    if (sosPendingCapturedPhotos.length > 5) sosPendingCapturedPhotos.length = 5;
+    renderCustomerSosCapturedThumbs();
+
+    if (sosActiveCameraAlertId && sosActiveCameraToken) {
+        try {
+            await fetch(`/api/emergency/sos/${encodeURIComponent(sosActiveCameraAlertId)}/photos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: sosActiveCameraToken, photo: hdPhoto })
+            });
+        } catch (_) {}
+    }
+
+    if (typeof showDropDownToast === 'function') {
+        showDropDownToast('📸 ছবি তোলা হয়েছে এবং ফোনে সেভ করা হয়েছে!', 'success', 'Photo Captured');
+    }
+}
+window.captureCustomerSosPhoto = captureCustomerSosPhoto;
+
+function teardownCustomerWebrtc() {
+    if (sosWebrtcAnswerTimer) {
+        clearTimeout(sosWebrtcAnswerTimer);
+        sosWebrtcAnswerTimer = null;
+    }
+    if (sosWebrtcPc) {
+        try { sosWebrtcPc.close(); } catch (_) {}
+        sosWebrtcPc = null;
+    }
+    sosWebrtcAnswerApplied = false;
+    sosWebrtcConnected = false;
+    sosWebrtcNonce = '';
+}
+
+async function startSosWebrtcBroadcaster(alertId, token) {
+    teardownCustomerWebrtc();
+    if (typeof RTCPeerConnection === 'undefined' || !sosCameraStream) return;
+    const videoTrack = sosCameraStream.getVideoTracks()[0];
+    if (!videoTrack) return;
+
+    try {
+        const nonce = 'n_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+        sosWebrtcNonce = nonce;
+        const pc = new RTCPeerConnection(SOS_RTC_CONFIG);
+        sosWebrtcPc = pc;
+        const gatheredIce = [];
+
+        pc.onicecandidate = (ev) => {
+            if (ev.candidate) gatheredIce.push(ev.candidate.toJSON ? ev.candidate.toJSON() : ev.candidate);
+        };
+        pc.onconnectionstatechange = () => {
+            const st = pc.connectionState;
+            sosWebrtcConnected = (st === 'connected');
+            updateSosCameraUiState();
+        };
+
+        pc.addTrack(videoTrack, sosCameraStream);
+        const offer = await pc.createOffer({ offerToReceiveVideo: false, offerToReceiveAudio: false });
+        await pc.setLocalDescription(offer);
+
+        // Wait briefly for initial ICE gathering (max 650ms) so offer includes relay/srflx candidates
+        await new Promise(resolve => {
+            if (pc.iceGatheringState === 'complete') return resolve();
+            const timer = setTimeout(resolve, 650);
+            pc.addEventListener('icegatheringstatechange', () => {
+                if (pc.iceGatheringState === 'complete') {
+                    clearTimeout(timer);
+                    resolve();
+                }
+            });
+        });
+
+        await fetch(`/api/emergency/sos/${encodeURIComponent(alertId)}/webrtc-offer`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                token,
+                nonce,
+                offer: JSON.stringify(pc.localDescription),
+                ice: gatheredIce
+            })
+        });
+
+        const pollAnswer = async () => {
+            if (!sosActiveCameraAlertId || !sosActiveCameraToken || sosWebrtcNonce !== nonce) return;
+            try {
+                const res = await fetch(`/api/emergency/sos/${encodeURIComponent(alertId)}/webrtc-answer?token=${encodeURIComponent(token)}&nonce=${encodeURIComponent(nonce)}`);
+                const d = await res.json().catch(() => ({}));
+                if (d && d.stopped) {
+                    stopCustomerSosCamera(false);
+                    return;
+                }
+                if (d && d.renegotiate) {
+                    startSosWebrtcBroadcaster(alertId, token);
+                    return;
+                }
+                if (d && d.answer && !sosWebrtcAnswerApplied && sosWebrtcPc === pc) {
+                    sosWebrtcAnswerApplied = true;
+                    const ansObj = JSON.parse(d.answer);
+                    await pc.setRemoteDescription(new RTCSessionDescription(ansObj));
+                    if (Array.isArray(d.ice)) {
+                        for (const c of d.ice) {
+                            try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (_) {}
+                        }
+                    }
+                }
+            } catch (_) {}
+            if (sosActiveCameraAlertId === alertId && sosWebrtcNonce === nonce) {
+                sosWebrtcAnswerTimer = setTimeout(pollAnswer, sosWebrtcAnswerApplied ? 2500 : 800);
+            }
+        };
+        sosWebrtcAnswerTimer = setTimeout(pollAnswer, 650);
+    } catch (e) {
+        console.warn('WebRTC SOS broadcaster fallback active:', e);
+    }
+}
+
 function stopCustomerSosCamera(notifyServer = true) {
     if (sosCameraRelayTimer) {
-        clearInterval(sosCameraRelayTimer);
+        clearTimeout(sosCameraRelayTimer);
         sosCameraRelayTimer = null;
     }
+    teardownCustomerWebrtc();
+
     const prevAlertId = sosActiveCameraAlertId;
     const prevToken = sosActiveCameraToken;
     sosActiveCameraAlertId = null;
     sosActiveCameraToken = null;
     sosCameraExpiresAtMs = 0;
+    sosPendingCapturedPhotos = [];
+    renderCustomerSosCapturedThumbs();
 
     if (sosCameraStream) {
         sosCameraStream.getTracks().forEach(t => { try { t.stop(); } catch (_) {} });
@@ -5934,7 +6136,7 @@ function stopCustomerSosCamera(notifyServer = true) {
 
     const statusMsg = document.getElementById('sosCameraStatusMsg');
     if (statusMsg) {
-        statusMsg.innerText = '🔒 সম্পূর্ণ ঐচ্ছিক: আপনি অনুমতি দিলে কেবল জরুরি SOS চলাকালীন কন্ট্রোল রুম (Admin) লাইভ ছবি দেখতে পাবে। আপনি বা অ্যাডমিন যেকোনো সময় বন্ধ করতে পারবেন।';
+        statusMsg.innerText = '🔒 সম্পূর্ণ ঐচ্ছিক: আপনি অনুমতি দিলে কেবল জরুরি SOS চলাকালীন কন্ট্রোল রুম (Admin) লাইভ ভিডিও ও ছবি দেখতে পাবে। আপনি বা অ্যাডমিন যেকোনো সময় বন্ধ করতে পারবেন।';
     }
     updateSosCameraUiState();
 
@@ -5950,12 +6152,12 @@ function stopCustomerSosCamera(notifyServer = true) {
 window.stopCustomerSosCamera = stopCustomerSosCamera;
 
 async function relaySingleSosCameraFrame() {
-    if (!sosActiveCameraAlertId || !sosActiveCameraToken || !sosCameraStream || sosCameraFrameBusy) return;
+    if (!sosActiveCameraAlertId || !sosActiveCameraToken || !sosCameraStream) return;
     if (sosCameraExpiresAtMs && Date.now() >= sosCameraExpiresAtMs) {
         stopCustomerSosCamera(true);
         return;
     }
-    const frame = captureSosCameraJpegFrame();
+    const frame = captureSosCameraJpegFrame(400, 0.56);
     if (!frame) return;
 
     sosCameraFrameBusy = true;
@@ -5977,9 +6179,18 @@ async function relaySingleSosCameraFrame() {
     }
 }
 
+function scheduleNextSosFrameRelay() {
+    if (!sosActiveCameraAlertId || !sosActiveCameraToken || !sosCameraStream) return;
+    const delayMs = sosWebrtcConnected ? 4000 : 350;
+    sosCameraRelayTimer = setTimeout(async () => {
+        await relaySingleSosCameraFrame();
+        scheduleNextSosFrameRelay();
+    }, delayMs);
+}
+
 function startSosCameraRelayLoop(alertId, token, expiresAtIso) {
     if (sosCameraRelayTimer) {
-        clearInterval(sosCameraRelayTimer);
+        clearTimeout(sosCameraRelayTimer);
         sosCameraRelayTimer = null;
     }
     sosActiveCameraAlertId = alertId;
@@ -5987,9 +6198,9 @@ function startSosCameraRelayLoop(alertId, token, expiresAtIso) {
     sosCameraExpiresAtMs = expiresAtIso ? new Date(expiresAtIso).getTime() : (Date.now() + 15 * 60 * 1000);
     updateSosCameraUiState();
 
-    // Immediate first frame + 2-second lightweight live CCTV relay
-    setTimeout(() => relaySingleSosCameraFrame(), 250);
-    sosCameraRelayTimer = setInterval(() => relaySingleSosCameraFrame(), 2000);
+    // Launch smooth 30fps WebRTC Video Call + fast pipelined frame fallback seamlessly!
+    startSosWebrtcBroadcaster(alertId, token);
+    relaySingleSosCameraFrame().finally(() => scheduleNextSosFrameRelay());
 }
 
 window.addEventListener('pagehide', () => {
@@ -6157,7 +6368,10 @@ async function submitCustomerSosAlert() {
 
     try {
         const hasCameraConsent = Boolean(sosCameraStream);
-        const initialFrame = hasCameraConsent ? captureSosCameraJpegFrame() : '';
+        const initialFrame = hasCameraConsent ? captureSosCameraJpegFrame(400, 0.56) : '';
+        const initialPhotos = hasCameraConsent && sosPendingCapturedPhotos.length
+            ? sosPendingCapturedPhotos.slice(0, 5).map(p => p.dataUrl)
+            : undefined;
         const payload = {
             customer_name: name || 'Passenger',
             customer_phone: phone,
@@ -6167,7 +6381,8 @@ async function submitCustomerSosAlert() {
             longitude: customerSosCoords ? customerSosCoords.longitude : null,
             current_location_text: locationText || (customerSosCoords ? `GPS (${customerSosCoords.latitude.toFixed(5)}, ${customerSosCoords.longitude.toFixed(5)})` : ''),
             camera_consent: hasCameraConsent,
-            initial_frame: initialFrame || undefined
+            initial_frame: initialFrame || undefined,
+            initial_photos: initialPhotos
         };
 
         const res = await fetch('/api/emergency/sos', {
