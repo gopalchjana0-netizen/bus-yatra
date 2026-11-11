@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preload" href="common.js?v=10.57" as="script">
-    <link rel="preload" href="app-admin.js?v=10.57" as="script">
+    <link rel="preload" href="common.js?v=10.58" as="script">
+    <link rel="preload" href="app-admin.js?v=10.58" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
     <script src="tailwind.js?v=10.37" defer></script>
@@ -1434,6 +1434,15 @@
                 <div id="adminFinanceReportOperators" class="mt-5 space-y-3"></div>
                 <div id="firebaseReplicaStatus" class="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4 text-xs text-gray-600">
                     Loading Firebase backup status...
+                </div>
+                <div class="mt-4 rounded-xl border border-indigo-200 bg-indigo-50/70 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <div class="text-xs font-black text-indigo-950" data-bn="💾 সম্পূর্ণ ডাটাবেস ব্যাকআপ (১-ক্লিক)" data-en="💾 Full D1 Database Backup (1-Click)">💾 সম্পূর্ণ ডাটাবেস ব্যাকআপ (১-ক্লিক)</div>
+                        <p class="text-[11px] text-indigo-800 mt-0.5" data-bn="সব বাস, বুকিং, কাস্টমার ও হিসাব একটি নিরাপদ ফাইলে আপনার ডিভাইসে ডাউনলোড করে রাখুন।" data-en="Download a safe offline backup file of all buses, bookings, customers, and ledgers.">সব বাস, বুকিং, কাস্টমার ও হিসাব একটি নিরাপদ ফাইলে আপনার ডিভাইসে ডাউনলোড করে রাখুন।</p>
+                    </div>
+                    <button type="button" id="btnAdminDbBackup" onclick="downloadAdminDatabaseBackup()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-black shadow-sm transition shrink-0">
+                        📥 <span data-bn="ব্যাকআপ ডাউনলোড" data-en="Download Backup">ব্যাকআপ ডাউনলোড</span>
+                    </button>
                 </div>
             </section>
 
@@ -4217,8 +4226,8 @@
         </div>
     </div>
 
-    <script src="common.js?v=10.57"></script>
-    <script src="app-admin.js?v=10.57"></script>
+    <script src="common.js?v=10.58"></script>
+    <script src="app-admin.js?v=10.58"></script>
     <!-- Leaflet JS for Interactive Bus GPS Map (Non-Blocking) -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
     <!-- Firebase App & Firestore Compat SDKs for Real-Time Live Bus Tracking (Non-Blocking) -->
@@ -4239,7 +4248,7 @@
             initFestivalThemeSync('admin');
         }
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js?v=10.57', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+            navigator.serviceWorker.register('/sw.js?v=10.58', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
         }
     </script>
 </body>

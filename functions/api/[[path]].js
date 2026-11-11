@@ -2877,6 +2877,57 @@ async function handleGet(context) {
         });
     }
 
+    // GET /api/admin/backup (Super Admin 1-Click Full Business Data Export — excludes auth hashes & session tokens)
+    if (path === '/api/admin/backup') {
+        if (auth?.role !== 'admin' || !auth?.permissions?.includes('all')) {
+            return jsonError(403, 'Only Super Admin can export the full database backup.');
+        }
+        const backupTables = [
+            'buses', 'owners', 'captains', 'customers', 'bookings', 'booking_seats',
+            'booking_seat_legs', 'bus_service_dates', 'reviews', 'coupons', 'promotions',
+            'notifications', 'operator_financial_settings', 'booking_financials',
+            'owner_subscriptions', 'owner_requests', 'trip_expenses',
+            'platform_features', 'access_control_list', 'support_tickets', 'emergency_sos_alerts'
+        ];
+        const data = {};
+        const counts = {};
+        try {
+            const batchResults = await env.DB.batch(
+                backupTables.map(tbl => env.DB.prepare(`SELECT * FROM ${tbl}`))
+            );
+            backupTables.forEach((tbl, idx) => {
+                data[tbl] = batchResults[idx]?.results || [];
+            });
+        } catch (_) {
+            await Promise.all(backupTables.map(async (tbl) => {
+                try {
+                    const res = await env.DB.prepare(`SELECT * FROM ${tbl}`).all();
+                    data[tbl] = res?.results || [];
+                } catch (_) {
+                    data[tbl] = [];
+                }
+            }));
+        }
+
+        data.support_tickets = (data.support_tickets || []).map(({ ticket_secret: _s, ...rest }) => rest);
+        data.emergency_sos_alerts = (data.emergency_sos_alerts || []).map(
+            ({ camera_session_token: _t, camera_frame: _f, ...rest }) => rest
+        );
+        for (const tbl of backupTables) {
+            counts[tbl] = (data[tbl] || []).length;
+        }
+
+        const exportedAt = new Date().toISOString();
+        const fileStamp = exportedAt.slice(0, 10);
+        await recordAdminAudit(env.DB, auth, 'admin_backup_exported', 'busyatra-db', { counts }).catch(() => {});
+
+        return jsonResponse(
+            { ok: true, database: 'busyatra-db', exportedAt, counts, data },
+            200,
+            { 'Content-Disposition': `attachment; filename="busyatra-backup-${fileStamp}.json"` }
+        );
+    }
+
     if (path === '/api/admin/users') {
         const { results } = await env.DB.prepare(
             'SELECT phone, name, permissions, active, created_at, created_by, updated_at FROM admin_users ORDER BY name'

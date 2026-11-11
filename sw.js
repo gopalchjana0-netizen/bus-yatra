@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bus-yatra-v10.57';
+const CACHE_NAME = 'bus-yatra-v10.58';
 const urlsToCache = [
   '/',
   '/owner',

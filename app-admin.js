@@ -3369,6 +3369,39 @@ async function runAdminFirebaseBackfillBatch(event) {
     }
 }
 
+async function downloadAdminDatabaseBackup() {
+    const btn = document.getElementById('btnAdminDbBackup');
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '⏳ ব্যাকআপ তৈরি হচ্ছে...';
+    }
+    try {
+        const res = await apiRequest('/api/admin/backup');
+        const dateTag = new Date().toISOString().slice(0, 10);
+        const filename = `busyatra-backup-${dateTag}.json`;
+        const blob = new Blob([JSON.stringify(res, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+        const c = (res && res.counts) || {};
+        alert(`✅ ব্যাকআপ ডাউনলোড সম্পন্ন (${filename})!\n\nবাস: ${c.buses || 0} | কাস্টমার: ${c.customers || 0} | বুকিং: ${c.bookings || 0}`);
+    } catch (err) {
+        alert(err.message || 'ব্যাকআপ ডাউনলোড করতে সমস্যা হয়েছে।');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml || '📥 ব্যাকআপ ডাউনলোড';
+        }
+    }
+}
+window.downloadAdminDatabaseBackup = downloadAdminDatabaseBackup;
+
 function renderAdminFinanceReport(reportData) {
     const container = document.getElementById('adminFinanceReport');
     if (!container) return;
