@@ -36,6 +36,12 @@ export async function onRequestGet(context) {
         "orientation": "portrait-primary",
         "background_color": "#ffffff",
         "theme_color": themeColor,
+        "related_applications": [
+            {
+                "platform": "webapp",
+                "url": "https://busyatra.pages.dev/manifest.json"
+            }
+        ],
         "icons": [
             {
                 "src": icon192,
