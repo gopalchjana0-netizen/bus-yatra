@@ -3283,6 +3283,126 @@ function compressSquareAvatarImage(file, size = 256, quality = 0.86) {
 }
 window.compressSquareAvatarImage = compressSquareAvatarImage;
 
+// --- Shared Enterprise Promo Media Helpers (Photo, Direct Video & YouTube Support) ---
+function parsePromoMediaSource(rawUrl, declaredType = '') {
+    const clean = String(rawUrl || '').trim();
+    if (!clean) return { kind: 'image', src: '' };
+    const ytMatch = clean.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{6,15})/i);
+    if (ytMatch && ytMatch[1]) {
+        const vid = ytMatch[1];
+        return {
+            kind: 'youtube',
+            youtubeId: vid,
+            src: clean,
+            embedUrl: `https://www.youtube.com/embed/${vid}?autoplay=1&mute=1&loop=1&playlist=${vid}&playsinline=1&rel=0`
+        };
+    }
+    const isVid = /^data:video\//i.test(clean) ||
+        /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(clean) ||
+        String(declaredType || '').toLowerCase() === 'video';
+    return { kind: isVid ? 'video' : 'image', src: clean };
+}
+window.parsePromoMediaSource = parsePromoMediaSource;
+
+function compressPromoImagePreserveAspect(file, maxDim = 1200, quality = 0.84) {
+    return new Promise((resolve, reject) => {
+        if (!file || !String(file.type || '').startsWith('image/')) {
+            reject(new Error('সঠিক ছবির ফাইল নির্বাচন করুন।'));
+            return;
+        }
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('ছবি পড়া সম্ভব হয়নি।'));
+        reader.onload = (ev) => {
+            const img = new Image();
+            img.onerror = () => reject(new Error('ছবি লোড করা যায়নি।'));
+            img.onload = () => {
+                let w = img.naturalWidth || img.width;
+                let h = img.naturalHeight || img.height;
+                if (w > maxDim || h > maxDim) {
+                    const ratio = Math.min(maxDim / w, maxDim / h);
+                    w = Math.max(1, Math.round(w * ratio));
+                    h = Math.max(1, Math.round(h * ratio));
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+window.compressPromoImagePreserveAspect = compressPromoImagePreserveAspect;
+
+async function readPromoVideoAsDataUrl(file) {
+    if (!file || !String(file.type || '').startsWith('video/')) {
+        throw new Error('সঠিক ভিডিও ফাইল নির্বাচন করুন।');
+    }
+    if (file.size <= 680 * 1024) {
+        return new Promise((resolve, reject) => {
+            const r = new FileReader();
+            r.onerror = () => reject(new Error('ভিডিও পড়া যায়নি।'));
+            r.onload = (ev) => resolve(ev.target.result);
+            r.readAsDataURL(file);
+        });
+    }
+    // Attempt lightweight browser WebM transcoding for oversized short promo videos
+    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('video/webm')) {
+        try {
+            const blobUrl = URL.createObjectURL(file);
+            const vid = document.createElement('video');
+            vid.muted = true;
+            vid.playsInline = true;
+            vid.src = blobUrl;
+            await new Promise((res, rej) => { vid.onloadedmetadata = res; vid.onerror = rej; setTimeout(rej, 8000); });
+            const scale = Math.min(1, 480 / Math.max(vid.videoWidth || 480, vid.videoHeight || 480));
+            const w = Math.max(160, Math.round((vid.videoWidth || 480) * scale));
+            const h = Math.max(160, Math.round((vid.videoHeight || 270) * scale));
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            const stream = canvas.captureStream(20);
+            const rec = new MediaRecorder(stream, { mimeType: 'video/webm', videoBitsPerSecond: 320000 });
+            const chunks = [];
+            rec.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+            const donePromise = new Promise((res) => { rec.onstop = res; });
+            let rafId = 0;
+            const maxMs = Math.min(12000, Math.max(2000, (vid.duration || 8) * 1000));
+            rec.start(250);
+            await vid.play();
+            const draw = () => {
+                if (vid.paused || vid.ended) return;
+                ctx.drawImage(vid, 0, 0, w, h);
+                rafId = requestAnimationFrame(draw);
+            };
+            draw();
+            await new Promise(r => setTimeout(r, maxMs));
+            cancelAnimationFrame(rafId);
+            vid.pause();
+            rec.stop();
+            await donePromise;
+            URL.revokeObjectURL(blobUrl);
+            const outBlob = new Blob(chunks, { type: 'video/webm' });
+            if (outBlob.size > 0 && outBlob.size <= 680 * 1024) {
+                return await new Promise((resolve, reject) => {
+                    const fr = new FileReader();
+                    fr.onerror = reject;
+                    fr.onload = (ev) => resolve(ev.target.result);
+                    fr.readAsDataURL(outBlob);
+                });
+            }
+        } catch (_) {}
+    }
+    throw new Error('ভিডিও ফাইলটি ৬৮০ KB-র বেশি বড়! অনুগ্রহ করে ছোট/কম্প্রেস করা MP4 ভিডিও আপলোড করুন অথবা নিচে সরাসরি MP4 / YouTube ভিডিও লিঙ্ক দিন।');
+}
+window.readPromoVideoAsDataUrl = readPromoVideoAsDataUrl;
+
 
 
 

@@ -501,6 +501,74 @@ function escapeHtml(str) {
               .replace(/'/g, "&#039;");
 }
 
+let _promoExtColsEnsured = false;
+async function ensurePromotionExtensionColumns(db) {
+    if (!db || _promoExtColsEnsured) return;
+    try {
+        const info = await db.prepare('PRAGMA table_info(promotions)').all();
+        const cols = new Set((info.results || []).map(c => String(c.name || '').toLowerCase()));
+        if (!cols.has('media_type')) {
+            try { await db.prepare("ALTER TABLE promotions ADD COLUMN media_type TEXT NOT NULL DEFAULT 'image'").run(); } catch (_) {}
+        }
+        if (!cols.has('placement')) {
+            try { await db.prepare("ALTER TABLE promotions ADD COLUMN placement TEXT NOT NULL DEFAULT 'popup'").run(); } catch (_) {}
+        }
+        _promoExtColsEnsured = true;
+    } catch (e) {
+        console.warn('ensurePromotionExtensionColumns notice:', e);
+    }
+}
+
+function detectPromoMediaType(mediaUrl, declaredType) {
+    const decl = String(declaredType || '').trim().toLowerCase();
+    const u = String(mediaUrl || '').trim();
+    if (/^data:video\//i.test(u) || /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(u) || /(?:youtube\.com\/|youtu\.be\/)/i.test(u)) {
+        return 'video';
+    }
+    if (decl === 'video' || decl === 'image') return decl;
+    return 'image';
+}
+
+function sanitizePromoMediaInput(rawUrl, declaredType) {
+    const clean = String(rawUrl || '').trim();
+    if (!clean) return { ok: false, error: 'বিজ্ঞাপনের ছবি বা ভিডিও আবশ্যক (Media required).' };
+    if (/^(javascript|vbscript|data:text\/html|data:image\/svg)/i.test(clean)) {
+        return { ok: false, error: 'অনুমোদিত ছবি বা ভিডিও ফরম্যাট দিন।' };
+    }
+    const mediaType = detectPromoMediaType(clean, declaredType);
+    if (/^data:video\//i.test(clean)) {
+        if (!/^data:video\/(mp4|webm|ogg|quicktime);base64,[A-Za-z0-9+/=]+$/i.test(clean)) {
+            return { ok: false, error: 'শুধুমাত্র বৈধ MP4, WebM বা OGG ভিডিও অনুমোদিত।' };
+        }
+        if (clean.length > 960000) {
+            return { ok: false, error: 'ভিডিও ফাইল অনেক বড়! অনুগ্রহ করে ৭০০ KB-র কম ভিডিও আপলোড করুন অথবা সরাসরি MP4/YouTube লিঙ্ক ব্যবহার করুন।' };
+        }
+        return { ok: true, value: clean, mediaType: 'video' };
+    }
+    if (/^data:image\//i.test(clean)) {
+        if (!/^data:image\/(jpeg|jpg|png|webp|gif);base64,[A-Za-z0-9+/=]+$/i.test(clean)) {
+            return { ok: false, error: 'শুধুমাত্র বৈধ JPEG, PNG, WebP বা GIF ছবি অনুমোদিত।' };
+        }
+        if (clean.length > 550000) {
+            return { ok: false, error: 'ছবির ফাইল অনেক বড়! অনুগ্রহ করে ৫০০ KB-র কম ছবি আপলোড করুন।' };
+        }
+        return { ok: true, value: clean, mediaType: 'image' };
+    }
+    if (!/^https?:\/\//i.test(clean)) {
+        return { ok: false, error: 'সঠিক http/https লিঙ্ক বা ছবি/ভিডিও ফাইল দিন।' };
+    }
+    return { ok: true, value: clean, mediaType };
+}
+
+function sanitizePromoLinkInput(rawLink) {
+    const clean = String(rawLink || '').trim();
+    if (!clean) return { ok: true, value: '' };
+    if (/^(javascript|vbscript|data):/i.test(clean)) {
+        return { ok: false, error: 'নিরাপদ ওয়েবসাইট লিঙ্ক দিন (http/https)।' };
+    }
+    return { ok: true, value: /^https?:\/\//i.test(clean) ? clean : `https://${clean}` };
+}
+
 const defaultFeatureFlags = {
     onlinePayment: true,
     cashPayment: true,
@@ -524,6 +592,7 @@ const defaultFeatureFlags = {
     enrouteRunningBooking: true,
     stoppageWiseFares: true,
     segmentSeatReuse: true,
+    searchBannerAds: true,
     // Strategic Growth & Business Expansion Flags
     whatsappBooking: false,
     agentBookingPortal: false,
@@ -1785,24 +1854,48 @@ async function handleGet(context) {
 
     // GET /api/promotions/active?target=customer|owner
     if (path === '/api/promotions/active') {
+        await ensurePromotionExtensionColumns(env.DB);
         const target = (url.searchParams.get('target') || 'customer').toLowerCase();
-        let promo = null;
+        const flags = await getFeatureFlags(env.DB);
+        const searchBannerAdsEnabled = flags.searchBannerAds !== false;
+        let popupPromo = null;
+        let searchBanners = [];
         try {
-            promo = await env.DB.prepare(
-                `SELECT id, title, image_url, link_url, target, created_at 
-                 FROM promotions 
-                 WHERE active = 1 AND (target = ? OR target = 'all') 
-                 ORDER BY created_at DESC LIMIT 1`
-            ).bind(target).first();
+            const { results } = await env.DB.prepare(
+                `SELECT id, title, image_url, link_url, target, media_type, placement, created_at, updated_at
+                 FROM promotions
+                 WHERE active = 1 AND (target = ? OR target = 'all')
+                 ORDER BY COALESCE(updated_at, created_at) DESC, created_at DESC LIMIT 20`
+            ).bind(target).all();
 
-            if (promo) {
-                env.DB.prepare('UPDATE promotions SET views_count = views_count + 1 WHERE id = ?')
-                    .bind(promo.id).run().catch(() => {});
+            const rows = (results || []).map(r => ({
+                ...r,
+                media_type: r.media_type || detectPromoMediaType(r.image_url, ''),
+                placement: r.placement || 'popup'
+            }));
+
+            popupPromo = rows.find(r => r.placement === 'popup' || r.placement === 'both') || null;
+            if (searchBannerAdsEnabled) {
+                searchBanners = rows.filter(r => r.placement === 'search_banner' || r.placement === 'both').slice(0, 8);
+            }
+
+            const seenIds = new Set();
+            if (popupPromo?.id) seenIds.add(popupPromo.id);
+            searchBanners.forEach(b => { if (b?.id) seenIds.add(b.id); });
+            if (seenIds.size > 0) {
+                const placeholders = Array.from(seenIds).map(() => '?').join(',');
+                env.DB.prepare(`UPDATE promotions SET views_count = views_count + 1 WHERE id IN (${placeholders})`)
+                    .bind(...Array.from(seenIds)).run().catch(() => {});
             }
         } catch (promoErr) {
             console.warn('Active promotion query notice:', promoErr);
         }
-        return jsonResponse({ ok: true, promotion: promo || null });
+        return jsonResponse({
+            ok: true,
+            promotion: popupPromo,
+            searchBanners,
+            searchBannerAdsEnabled
+        });
     }
 
     // GET /api/tracking
@@ -1976,12 +2069,17 @@ async function handleGet(context) {
         let aclRows = [];
         let promotionRows = [];
         try {
+            await ensurePromotionExtensionColumns(env.DB);
             const subRes = await env.DB.prepare('SELECT * FROM owner_subscriptions ORDER BY created_at DESC LIMIT 200').all();
             subscriptionRows = subRes.results || [];
             const aclRes = await env.DB.prepare('SELECT * FROM access_control_list ORDER BY updated_at DESC LIMIT 200').all();
             aclRows = aclRes.results || [];
             const promoRes = await env.DB.prepare('SELECT * FROM promotions ORDER BY created_at DESC LIMIT 50').all();
-            promotionRows = promoRes.results || [];
+            promotionRows = (promoRes.results || []).map(r => ({
+                ...r,
+                media_type: r.media_type || detectPromoMediaType(r.image_url, ''),
+                placement: r.placement || 'popup'
+            }));
         } catch (subErr) {
             console.warn('Admin state auxiliary fetch notice:', subErr);
         }
@@ -2688,8 +2786,21 @@ async function handleGet(context) {
     // GET /api/admin/promotions
     if (path === '/api/admin/promotions') {
         if (auth?.role !== 'admin') return jsonError(403, 'Unauthorized.');
-        const { results } = await env.DB.prepare('SELECT * FROM promotions ORDER BY created_at DESC').all();
-        return jsonResponse({ ok: true, promotions: results || [] });
+        await ensurePromotionExtensionColumns(env.DB);
+        const [promoRes, flags] = await Promise.all([
+            env.DB.prepare('SELECT * FROM promotions ORDER BY COALESCE(updated_at, created_at) DESC, created_at DESC').all(),
+            getFeatureFlags(env.DB)
+        ]);
+        const promotions = (promoRes.results || []).map(r => ({
+            ...r,
+            media_type: r.media_type || detectPromoMediaType(r.image_url, ''),
+            placement: r.placement || 'popup'
+        }));
+        return jsonResponse({
+            ok: true,
+            promotions,
+            searchBannerAdsEnabled: flags.searchBannerAds !== false
+        });
     }
 
     // GET /api/admin/subscriptions
@@ -6846,31 +6957,44 @@ async function handlePost(context) {
     // POST /api/admin/promotions
     if (path === '/api/admin/promotions') {
         if (auth?.role !== 'admin') return jsonError(403, 'Unauthorized.');
+        await ensurePromotionExtensionColumns(env.DB);
         const body = await readJson(request);
         if (!body || !body.image_url) {
-            return jsonError(400, 'বিজ্ঞাপনের ছবি আবশ্যক (Ad image is required).');
+            return jsonError(400, 'বিজ্ঞাপনের ছবি বা ভিডিও আবশ্যক (Ad image or video is required).');
+        }
+        const mediaCheck = sanitizePromoMediaInput(body.image_url, body.media_type);
+        if (!mediaCheck.ok) {
+            return jsonError(400, mediaCheck.error);
+        }
+        const linkCheck = sanitizePromoLinkInput(body.link_url);
+        if (!linkCheck.ok) {
+            return jsonError(400, linkCheck.error);
         }
         const title = String(body.title || 'Promotional Offer').trim();
-        const imageUrl = String(body.image_url || '').trim();
-        const target = ['customer', 'owner', 'all'].includes(body.target) ? body.target : 'all';
-        const linkUrl = String(body.link_url || '').trim();
+        const imageUrl = mediaCheck.value;
+        const mediaType = mediaCheck.mediaType;
+        const target = ['customer', 'owner', 'all'].includes(body.target) ? body.target : 'customer';
+        const placement = ['search_banner', 'popup', 'both'].includes(body.placement) ? body.placement : 'search_banner';
+        const linkUrl = linkCheck.value;
         const active = (body.active !== false && body.active !== 0 && body.active !== '0') ? 1 : 0;
         const id = String(body.id || ('promo_' + Date.now() + '_' + secureRandomHex(3))).trim();
         const now = new Date().toISOString();
 
         await env.DB.prepare(
-            `INSERT INTO promotions (id, title, image_url, target, link_url, active, views_count, clicks_count, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?)
+            `INSERT INTO promotions (id, title, image_url, target, link_url, media_type, placement, active, views_count, clicks_count, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)
              ON CONFLICT (id) DO UPDATE SET
                 title = excluded.title,
                 image_url = excluded.image_url,
                 target = excluded.target,
                 link_url = excluded.link_url,
+                media_type = excluded.media_type,
+                placement = excluded.placement,
                 active = excluded.active,
                 updated_at = excluded.updated_at`
-        ).bind(id, title, imageUrl, target, linkUrl, active, now, now).run();
+        ).bind(id, title, imageUrl, target, linkUrl, mediaType, placement, active, now, now).run();
 
-        return jsonResponse({ ok: true, id, message: 'বিজ্ঞাপন সফলভাবে সেভ করা হয়েছে!' });
+        return jsonResponse({ ok: true, id, media_type: mediaType, placement, message: 'বিজ্ঞাপন সফলভাবে সেভ করা হয়েছে!' });
     }
 
     // POST /api/admin/promotions/:id/toggle

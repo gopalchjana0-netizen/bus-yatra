@@ -57,8 +57,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preload" href="common.js?v=10.49" as="script">
-    <link rel="preload" href="app.js?v=10.49" as="script">
+    <link rel="preload" href="common.js?v=10.50" as="script">
+    <link rel="preload" href="app.js?v=10.50" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
     <script src="tailwind.js?v=10.37" defer></script>
@@ -874,6 +874,42 @@
                 <button type="button" onclick="copyReferralLink()" class="bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-3 py-1.5 rounded-xl whitespace-nowrap shadow-xs transition">
                     🔗 লিংক কপি
                 </button>
+            </div>
+        </section>
+
+        <!-- Search-Below Sponsored Photo & Video Ad Banner -->
+        <section id="customerSearchPromoSection" class="hidden" aria-label="Promotional Advertisement">
+            <div id="customerSearchPromoCard" class="relative w-full rounded-2xl overflow-hidden shadow-md border border-gray-200/90 bg-slate-950/95 transition-all group">
+                <!-- Sponsored badge & optional Visit Link chip -->
+                <div class="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 pointer-events-none">
+                    <span class="px-2 py-0.5 rounded-full bg-black/65 backdrop-blur-md text-[10px] font-bold tracking-wide text-white/95 border border-white/15 uppercase shadow">
+                        Sponsored
+                    </span>
+                    <span id="customerSearchPromoLinkBadge" class="hidden px-2 py-0.5 rounded-full bg-rose-600/90 backdrop-blur-md text-[10px] font-bold text-white shadow pointer-events-auto cursor-pointer" onclick="handleSearchPromoBannerClick(event)">
+                        Visit ↗
+                    </span>
+                </div>
+
+                <!-- Top-Right Close (✕) Button & Audio Mute Toggle -->
+                <div class="absolute top-2 right-2 z-30 flex items-center gap-1.5">
+                    <button id="customerSearchPromoMuteBtn" type="button" onclick="toggleSearchPromoMute(event)" class="hidden w-8 h-8 rounded-full bg-black/75 hover:bg-black text-white text-xs font-bold flex items-center justify-center border border-white/30 shadow-lg backdrop-blur-md transition active:scale-95 cursor-pointer" title="Toggle Sound" aria-label="Toggle video sound">
+                        🔇
+                    </button>
+                    <button id="customerSearchPromoCloseBtn" type="button" onclick="dismissSearchPromoBanner(event)" class="w-8 h-8 rounded-full bg-black/80 hover:bg-black text-white text-sm font-black flex items-center justify-center border border-white/40 shadow-lg backdrop-blur-md transition hover:scale-105 active:scale-95 cursor-pointer" title="বিজ্ঞাপন সরান / Dismiss Ad" aria-label="Dismiss advertisement">
+                        ✕
+                    </button>
+                </div>
+
+                <!-- Uncropped Full Photo / Video Media Slot -->
+                <div id="customerSearchPromoMediaSlot" onclick="handleSearchPromoBannerClick(event)" class="w-full min-h-[120px] flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 overflow-hidden select-none">
+                </div>
+
+                <!-- Multi-Ad Carousel Controls (shown only if >1 active banner) -->
+                <div id="customerSearchPromoCarouselCtrl" class="hidden items-center justify-between px-3 py-2 bg-white border-t border-gray-100 text-[11px] font-bold text-gray-600">
+                    <button type="button" onclick="stepSearchPromoSlide(-1, event)" class="px-2 py-0.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 transition cursor-pointer" aria-label="Previous ad">◀ Prev</button>
+                    <div id="customerSearchPromoDots" class="flex items-center gap-1.5"></div>
+                    <button type="button" onclick="stepSearchPromoSlide(1, event)" class="px-2 py-0.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 transition cursor-pointer" aria-label="Next ad">Next ▶</button>
+                </div>
             </div>
         </section>
 
@@ -1788,14 +1824,14 @@
     <!-- Firebase App & Firestore Compat SDKs for Real-Time Live Bus Tracking -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="common.js?v=10.49"></script>
-    <script src="app.js?v=10.49"></script>
+    <script src="common.js?v=10.50"></script>
+    <script src="app.js?v=10.50"></script>
     <script>
         if (typeof initFestivalThemeSync === 'function') {
             initFestivalThemeSync('customer');
         }
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js?v=10.49', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+            navigator.serviceWorker.register('/sw.js?v=10.50', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
         }
     </script>
 
@@ -2003,14 +2039,19 @@
 
     <!-- Promotional Popup Banner Ad Modal for Customer -->
     <div id="promoAdModal" class="hidden fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm transition-opacity duration-300">
-        <div class="relative w-full max-w-[340px] sm:max-w-[380px] bg-white rounded-3xl shadow-2xl overflow-visible border border-white/20">
-            <!-- Circular (X) close button on top-right, matching user screenshot -->
-            <button type="button" onclick="closePromoAdModal()" class="absolute -top-3.5 -right-3.5 w-9 h-9 rounded-full bg-black/90 hover:bg-black text-white text-base font-black flex items-center justify-center shadow-2xl border-2 border-white hover:scale-110 active:scale-95 transition-all z-30 cursor-pointer" title="বিজ্ঞাপন বন্ধ করুন">
+        <div class="relative w-full max-w-[360px] sm:max-w-[420px] bg-slate-950 rounded-3xl shadow-2xl overflow-visible border border-white/20">
+            <!-- Circular (X) close button on top-right -->
+            <button type="button" onclick="closePromoAdModal()" class="absolute -top-3.5 -right-3.5 w-9 h-9 rounded-full bg-black/90 hover:bg-black text-white text-base font-black flex items-center justify-center shadow-2xl border-2 border-white hover:scale-110 active:scale-95 transition-all z-30 cursor-pointer" title="বিজ্ঞাপন বন্ধ করুন" aria-label="Close popup advertisement">
                 ✕
             </button>
-            <!-- Clickable Ad Photo Container -->
-            <div id="promoAdClickable" onclick="handlePromoAdClick()" class="overflow-hidden rounded-3xl group cursor-pointer bg-gray-100 flex items-center justify-center">
-                <img id="promoAdImage" src="" alt="Promotional Offer" class="w-full max-h-[65vh] object-cover rounded-3xl transition-transform duration-300 group-hover:scale-[1.02] block select-none">
+            <!-- Clickable Ad Media Container (Uncropped Photo or Video) -->
+            <div id="promoAdClickable" onclick="handlePromoAdClick()" class="overflow-hidden rounded-3xl group bg-slate-950 flex flex-col items-center justify-center">
+                <div id="promoAdMediaContainer" class="w-full flex items-center justify-center">
+                    <img id="promoAdImage" src="" alt="Promotional Offer" class="w-full h-auto max-h-[70vh] object-contain rounded-3xl transition-transform duration-300 block select-none">
+                </div>
+                <div id="promoAdVisitBar" class="hidden w-full px-4 py-2 bg-rose-600/95 text-white text-xs font-bold text-center tracking-wide">
+                    অফার দেখুন / Visit Link ↗
+                </div>
             </div>
         </div>
     </div>

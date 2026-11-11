@@ -2401,6 +2401,72 @@ async function deleteAdminCoupon(idx) {
 // --- Promotional Popup Banner Ads Manager ---
 let adminPromotionsCache = [];
 
+function resolveAdminPromoMediaInfo(rawUrl, declaredType = '') {
+    if (typeof parsePromoMediaSource === 'function') {
+        return parsePromoMediaSource(rawUrl, declaredType);
+    }
+    const clean = String(rawUrl || '').trim();
+    const isVid = /^data:video\//i.test(clean) || /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(clean) || String(declaredType || '').toLowerCase() === 'video';
+    return { kind: isVid ? 'video' : 'image', src: clean };
+}
+
+function renderPromoMediaPreviewSlot(slot, rawUrl, declaredType = '', title = 'Ad Preview') {
+    if (!slot) return;
+    slot.innerHTML = '';
+    const clean = String(rawUrl || '').trim();
+    if (!clean) return;
+    const media = resolveAdminPromoMediaInfo(clean, declaredType);
+
+    if (media.kind === 'youtube' && media.embedUrl) {
+        const wrap = document.createElement('div');
+        wrap.className = 'w-full aspect-video max-h-[260px] bg-black rounded-2xl overflow-hidden';
+        wrap.style.width = '100%';
+        wrap.style.aspectRatio = '16 / 9';
+        wrap.style.maxHeight = '260px';
+        const iframe = document.createElement('iframe');
+        iframe.src = media.embedUrl;
+        iframe.title = title;
+        iframe.className = 'w-full h-full border-0 block';
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.style.border = '0';
+        iframe.allow = 'autoplay; encrypted-media; picture-in-picture';
+        iframe.allowFullscreen = true;
+        wrap.appendChild(iframe);
+        slot.appendChild(wrap);
+        return;
+    }
+
+    if (media.kind === 'video') {
+        const vid = document.createElement('video');
+        vid.src = media.src;
+        vid.controls = true;
+        vid.autoplay = true;
+        vid.muted = true;
+        vid.loop = true;
+        vid.playsInline = true;
+        vid.className = 'w-full h-auto max-h-[260px] object-contain rounded-2xl bg-slate-950 block mx-auto';
+        vid.style.width = '100%';
+        vid.style.height = 'auto';
+        vid.style.maxHeight = '260px';
+        vid.style.objectFit = 'contain';
+        vid.style.display = 'block';
+        slot.appendChild(vid);
+        return;
+    }
+
+    const img = document.createElement('img');
+    img.src = media.src;
+    img.alt = title;
+    img.className = 'w-full h-auto max-h-[260px] object-contain rounded-2xl block mx-auto';
+    img.style.width = '100%';
+    img.style.height = 'auto';
+    img.style.maxHeight = '260px';
+    img.style.objectFit = 'contain';
+    img.style.display = 'block';
+    slot.appendChild(img);
+}
+
 async function loadAdminPromotions() {
     const container = document.getElementById('adminPromotionsContainer');
     if (container) {
@@ -2410,13 +2476,36 @@ async function loadAdminPromotions() {
         const res = await apiRequest('/api/admin/promotions');
         const promos = (res && res.promotions) || [];
         adminPromotionsCache = promos;
+        const globalToggle = document.getElementById('flagAdminSearchAdsToggle');
+        if (globalToggle && res && res.searchBannerAdsEnabled !== undefined) {
+            globalToggle.checked = res.searchBannerAdsEnabled !== false;
+        }
         renderAdminPromotionsList(promos);
         updateAdminPromoStats(promos);
     } catch (err) {
         console.error('Failed to load promotions:', err);
         if (container) {
-            container.innerHTML = `<div class="col-span-full text-center text-red-500 py-8 text-xs font-semibold">বিজ্ঞাপন লোড করতে ব্যর্থ হয়েছে: ${err.message || 'Error'}</div>`;
+            container.innerHTML = `<div class="col-span-full text-center text-red-500 py-8 text-xs font-semibold">বিজ্ঞাপন লোড করতে ব্যর্থ হয়েছে: ${escapeHtml(err.message || 'Error')}</div>`;
         }
+    }
+}
+
+async function adminToggleGlobalSearchAds(enabled) {
+    const toggle = document.getElementById('flagAdminSearchAdsToggle');
+    try {
+        const res = await apiRequest('/api/admin/feature-flags', {
+            method: 'POST',
+            body: JSON.stringify({ searchBannerAds: Boolean(enabled) })
+        });
+        if (res && res.featureFlags && typeof setAppData === 'function') {
+            setAppData({ featureFlags: res.featureFlags });
+        }
+        alert(enabled
+            ? '✅ কাস্টমার প্যানেলের Search-এর নিচের বিজ্ঞাপন চালু (ON) করা হয়েছে।'
+            : '⏸️ কাস্টমার প্যানেলের Search-এর নিচের সমস্ত বিজ্ঞাপন বন্ধ (OFF) করা হয়েছে।');
+    } catch (err) {
+        if (toggle) toggle.checked = !enabled;
+        alert(err.message || 'সেটিংস আপডেট ব্যর্থ হয়েছে।');
     }
 }
 
@@ -2462,7 +2551,7 @@ function renderAdminPromotionsList(promos) {
             <div class="col-span-full bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center">
                 <span class="text-3xl block mb-2">🎯</span>
                 <p class="font-bold text-gray-700 text-sm mb-1">${window.t('কোনো প্রমোশনাল বিজ্ঞাপন তৈরি করা হয়নি', 'No Promotional Banners Created')}</p>
-                <p class="text-xs text-gray-400 mb-4">${window.t('কাস্টমার বা বাস মালিকের জন্য নতুন পপআপ ব্যানার অ্যাড তৈরি করতে নিচের বাটনে ক্লিক করুন।', 'Click below to create a new promotional popup banner for customers or bus owners.')}</p>
+                <p class="text-xs text-gray-400 mb-4">${window.t('Search-এর নিচে বা পপআপে ছবি ও ভিডিও বিজ্ঞাপন তৈরি করতে নিচের বাটনে ক্লিক করুন।', 'Click below to create a new promotional photo or video ad.')}</p>
                 <button type="button" onclick="openAdminPromoModal()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-bold text-xs shadow-md transition inline-flex items-center gap-1.5">
                     <span>➕</span> <span>${window.t('বিজ্ঞাপন তৈরি করুন', 'Create Ad Banner')}</span>
                 </button>
@@ -2473,6 +2562,7 @@ function renderAdminPromotionsList(promos) {
 
     container.innerHTML = promos.map(promo => {
         const isActive = Boolean(promo.active);
+        const media = resolveAdminPromoMediaInfo(promo.image_url, promo.media_type);
         const targetLabel = promo.target === 'customer' 
             ? '👤 কাস্টমার' 
             : (promo.target === 'owner' ? '🚌 বাস মালিক' : '🌐 উভয় প্যানেল');
@@ -2480,15 +2570,38 @@ function renderAdminPromotionsList(promos) {
             ? 'bg-blue-100 text-blue-800 border-blue-200' 
             : (promo.target === 'owner' ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-purple-100 text-purple-800 border-purple-200');
 
+        const placement = String(promo.placement || 'popup').toLowerCase();
+        const placementBadge = placement === 'search_banner'
+            ? '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200">📍 Search নিচে</span>'
+            : (placement === 'both'
+                ? '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-fuchsia-100 text-fuchsia-800 border border-fuchsia-200">🌟 উভয় জায়গায়</span>'
+                : '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 border border-gray-200">🪟 পপআপ</span>');
+
+        const mediaTypeBadge = media.kind === 'youtube'
+            ? '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-600 text-white shadow-xs">▶ YouTube</span>'
+            : (media.kind === 'video'
+                ? '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-900/90 text-white border border-white/25 shadow-xs">🎬 ভিডিও</span>'
+                : '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/95 text-gray-800 border border-gray-200 shadow-xs">🖼️ ছবি</span>');
+
+        let mediaHtml = '';
+        if (media.kind === 'youtube' && media.youtubeId) {
+            mediaHtml = `<img src="https://img.youtube.com/vi/${encodeURIComponent(media.youtubeId)}/hqdefault.jpg" alt="${escapeHtml(promo.title || 'Ad')}" class="w-full h-full object-contain bg-black">`;
+        } else if (media.kind === 'video') {
+            mediaHtml = `<video src="${escapeHtml(media.src)}" muted autoplay loop playsinline preload="metadata" class="w-full h-full object-contain bg-slate-950"></video>`;
+        } else {
+            mediaHtml = `<img src="${escapeHtml(media.src)}" alt="${escapeHtml(promo.title || 'Ad')}" class="w-full h-full object-contain bg-slate-950">`;
+        }
+
         return `
             <div class="bg-white rounded-2xl border ${isActive ? 'border-emerald-200 shadow-sm' : 'border-gray-200 opacity-80'} overflow-hidden flex flex-col justify-between transition-all hover:shadow-md">
-                <!-- Top Image Thumbnail & Status -->
-                <div class="relative bg-gray-100 aspect-[16/10] overflow-hidden flex items-center justify-center border-b">
-                    <img src="${promo.image_url}" alt="${promo.title || 'Ad'}" class="w-full h-full object-cover">
-                    <div class="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                <!-- Top Full Uncropped Photo/Video Thumbnail & Badges -->
+                <div class="relative bg-slate-950 aspect-[16/10] overflow-hidden flex items-center justify-center border-b">
+                    ${mediaHtml}
+                    <div class="absolute top-2.5 left-2.5 flex flex-wrap items-center gap-1">
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-xs ${targetClass}">
                             ${targetLabel}
                         </span>
+                        ${mediaTypeBadge}
                     </div>
                     <div class="absolute top-2.5 right-2.5">
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded-full shadow-xs ${isActive ? 'bg-emerald-600 text-white' : 'bg-gray-600 text-white'}">
@@ -2500,14 +2613,17 @@ function renderAdminPromotionsList(promos) {
                 <!-- Info & Metrics -->
                 <div class="p-4 flex-1 flex flex-col justify-between space-y-3">
                     <div>
-                        <h4 class="font-bold text-gray-900 text-sm line-clamp-1 mb-1">${promo.title || 'বিজ্ঞাপন'}</h4>
+                        <div class="flex items-center justify-between gap-2 mb-1">
+                            <h4 class="font-bold text-gray-900 text-sm line-clamp-1">${escapeHtml(promo.title || 'বিজ্ঞাপন')}</h4>
+                            ${placementBadge}
+                        </div>
                         ${promo.link_url ? `
-                            <div class="flex items-center gap-1 text-[11px] text-blue-600 font-mono truncate" title="${promo.link_url}">
+                            <div class="flex items-center gap-1 text-[11px] text-blue-600 font-mono truncate" title="${escapeHtml(promo.link_url)}">
                                 <span>🔗</span>
-                                <span class="truncate">${promo.link_url}</span>
+                                <span class="truncate">${escapeHtml(promo.link_url)}</span>
                             </div>
                         ` : `
-                            <span class="text-[11px] text-gray-400 italic">কোনো লিঙ্ক নেই (শুধুমাত্র ছবি)</span>
+                            <span class="text-[11px] text-gray-400 italic">কোনো লিঙ্ক নেই (শুধুমাত্র ${media.kind === 'image' ? 'ছবি' : 'ভিডিও'})</span>
                         `}
                     </div>
 
@@ -2525,13 +2641,13 @@ function renderAdminPromotionsList(promos) {
 
                     <!-- Action Controls -->
                     <div class="flex items-center gap-2 pt-1 border-t border-gray-100">
-                        <button type="button" onclick="toggleAdminPromoStatus('${promo.id}')" class="flex-1 py-2 px-3 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5 ${isActive ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'}">
+                        <button type="button" onclick="toggleAdminPromoStatus('${escapeHtml(promo.id)}')" class="flex-1 py-2 px-3 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5 ${isActive ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'}">
                             <span>${isActive ? '⏸️ বন্ধ করুন' : '▶️ চালু করুন'}</span>
                         </button>
-                        <button type="button" onclick="openAdminPromoModal('${promo.id}')" class="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition" title="সম্পাদনা">
+                        <button type="button" onclick="openAdminPromoModal('${escapeHtml(promo.id)}')" class="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition" title="সম্পাদনা">
                             ✏️
                         </button>
-                        <button type="button" onclick="deleteAdminPromo('${promo.id}')" class="p-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs transition" title="মুছে ফেলুন">
+                        <button type="button" onclick="deleteAdminPromo('${escapeHtml(promo.id)}')" class="p-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs transition" title="মুছে ফেলুন">
                             🗑️
                         </button>
                     </div>
@@ -2545,45 +2661,56 @@ function openAdminPromoModal(promoId = null) {
     const modal = document.getElementById('adminPromoCreateModal');
     const titleEl = document.getElementById('adminPromoModalTitle');
     const editIdEl = document.getElementById('promoEditId');
+    const mediaTypeEl = document.getElementById('promoMediaType');
     const pTitle = document.getElementById('promoTitle');
     const pUrlInput = document.getElementById('promoImageUrlInput');
     const pFile = document.getElementById('promoImageFile');
     const pLink = document.getElementById('promoLinkUrl');
     const pActive = document.getElementById('promoActiveStatus');
+    const statusText = document.getElementById('promoUploadStatusText');
     const previewWrapper = document.getElementById('promoPreviewWrapper');
-    const previewImg = document.getElementById('promoPreviewImg');
+    const previewSlot = document.getElementById('promoPreviewMediaSlot');
 
     if (pFile) pFile.value = '';
+    if (statusText) { statusText.innerText = ''; statusText.classList.add('hidden'); }
     if (previewWrapper) previewWrapper.classList.add('hidden');
-    if (previewImg) previewImg.src = '';
+    if (previewSlot) previewSlot.innerHTML = '';
 
     if (promoId) {
         const promo = adminPromotionsCache.find(p => p.id === promoId);
         if (promo) {
+            const media = resolveAdminPromoMediaInfo(promo.image_url, promo.media_type);
             if (titleEl) titleEl.innerText = window.t('বিজ্ঞাপন সম্পাদনা করুন', 'Edit Ad');
             if (editIdEl) editIdEl.value = promo.id;
+            if (mediaTypeEl) mediaTypeEl.value = media.kind === 'image' ? 'image' : 'video';
             if (pTitle) pTitle.value = promo.title || '';
             if (pUrlInput) pUrlInput.value = promo.image_url || '';
             if (pLink) pLink.value = promo.link_url || '';
             if (pActive) pActive.checked = Boolean(promo.active);
 
-            const radio = document.querySelector(`input[name="promoTarget"][value="${promo.target || 'customer'}"]`);
-            if (radio) radio.checked = true;
+            const targetRadio = document.querySelector(`input[name="promoTarget"][value="${promo.target || 'customer'}"]`);
+            if (targetRadio) targetRadio.checked = true;
 
-            if (promo.image_url && previewWrapper && previewImg) {
-                previewImg.src = promo.image_url;
+            const placeRadio = document.querySelector(`input[name="promoPlacement"][value="${promo.placement || 'search_banner'}"]`);
+            if (placeRadio) placeRadio.checked = true;
+
+            if (promo.image_url && previewWrapper && previewSlot) {
+                renderPromoMediaPreviewSlot(previewSlot, promo.image_url, promo.media_type, promo.title || 'Preview');
                 previewWrapper.classList.remove('hidden');
             }
         }
     } else {
         if (titleEl) titleEl.innerText = window.t('নতুন বিজ্ঞাপন তৈরি করুন', 'Create Ad');
         if (editIdEl) editIdEl.value = '';
+        if (mediaTypeEl) mediaTypeEl.value = 'image';
         if (pTitle) pTitle.value = '';
         if (pUrlInput) pUrlInput.value = '';
         if (pLink) pLink.value = '';
         if (pActive) pActive.checked = true;
-        const defaultRadio = document.querySelector('input[name="promoTarget"][value="customer"]');
-        if (defaultRadio) defaultRadio.checked = true;
+        const defaultTarget = document.querySelector('input[name="promoTarget"][value="customer"]');
+        if (defaultTarget) defaultTarget.checked = true;
+        const defaultPlacement = document.querySelector('input[name="promoPlacement"][value="search_banner"]');
+        if (defaultPlacement) defaultPlacement.checked = true;
     }
 
     if (modal) modal.classList.remove('hidden');
@@ -2591,33 +2718,74 @@ function openAdminPromoModal(promoId = null) {
 
 function closeAdminPromoModal() {
     const modal = document.getElementById('adminPromoCreateModal');
+    const previewSlot = document.getElementById('promoPreviewMediaSlot');
+    if (previewSlot) previewSlot.innerHTML = '';
     if (modal) modal.classList.add('hidden');
 }
 
 async function previewAdminPromoFile(event) {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
+    const urlInput = document.getElementById('promoImageUrlInput');
+    const mediaTypeEl = document.getElementById('promoMediaType');
+    const previewSlot = document.getElementById('promoPreviewMediaSlot');
+    const previewWrapper = document.getElementById('promoPreviewWrapper');
+    const statusText = document.getElementById('promoUploadStatusText');
+    const isVideo = String(file.type || '').startsWith('video/');
+
+    if (statusText) {
+        statusText.innerText = isVideo
+            ? '🎬 ভিডিও প্রক্রিয়াকরণ হচ্ছে... অনুগ্রহ করে অপেক্ষা করুন'
+            : '🖼️ ছবি প্রস্তুত করা হচ্ছে...';
+        statusText.classList.remove('hidden');
+    }
+
     try {
-        const dataUrl = await readImageFileAsDataUrl(file);
-        const urlInput = document.getElementById('promoImageUrlInput');
-        const previewImg = document.getElementById('promoPreviewImg');
-        const previewWrapper = document.getElementById('promoPreviewWrapper');
+        let dataUrl = '';
+        if (isVideo) {
+            dataUrl = typeof readPromoVideoAsDataUrl === 'function'
+                ? await readPromoVideoAsDataUrl(file)
+                : await readImageFileAsDataUrl(file);
+            if (mediaTypeEl) mediaTypeEl.value = 'video';
+        } else {
+            dataUrl = typeof compressPromoImagePreserveAspect === 'function'
+                ? await compressPromoImagePreserveAspect(file, 1200, 0.84)
+                : await readImageFileAsDataUrl(file);
+            if (mediaTypeEl) mediaTypeEl.value = 'image';
+        }
+
         if (urlInput) urlInput.value = dataUrl;
-        if (previewImg) previewImg.src = dataUrl;
+        if (previewSlot) {
+            renderPromoMediaPreviewSlot(previewSlot, dataUrl, isVideo ? 'video' : 'image', file.name);
+        }
         if (previewWrapper) previewWrapper.classList.remove('hidden');
+        if (statusText) {
+            statusText.innerText = isVideo ? '✅ ভিডিও লোড সম্পন্ন হয়েছে' : '✅ সম্পূর্ণ আনক্রপড ছবি লোড সম্পন্ন হয়েছে';
+        }
     } catch (e) {
-        console.warn('Image preview failed:', e);
+        console.warn('Promo media preview failed:', e);
+        if (statusText) {
+            statusText.innerText = '❌ ' + (e.message || 'ফাইল লোড করা যায়নি।');
+        }
+        alert(e.message || 'ফাইল লোড করা যায়নি।');
     }
 }
 
 function previewAdminPromoUrl(url) {
-    const previewImg = document.getElementById('promoPreviewImg');
+    const mediaTypeEl = document.getElementById('promoMediaType');
+    const previewSlot = document.getElementById('promoPreviewMediaSlot');
     const previewWrapper = document.getElementById('promoPreviewWrapper');
-    if (!previewImg || !previewWrapper) return;
-    if (url && url.length > 5) {
-        previewImg.src = url.trim();
+    if (!previewSlot || !previewWrapper) return;
+
+    const clean = String(url || '').trim();
+    if (clean.length > 5) {
+        const media = resolveAdminPromoMediaInfo(clean);
+        const type = media.kind === 'image' ? 'image' : 'video';
+        if (mediaTypeEl) mediaTypeEl.value = type;
+        renderPromoMediaPreviewSlot(previewSlot, clean, type, 'URL Preview');
         previewWrapper.classList.remove('hidden');
     } else {
+        previewSlot.innerHTML = '';
         previewWrapper.classList.add('hidden');
     }
 }
@@ -2629,9 +2797,13 @@ async function saveAdminPromo() {
     const linkUrl = (document.getElementById('promoLinkUrl')?.value || '').trim();
     const active = document.getElementById('promoActiveStatus')?.checked !== false;
     const target = document.querySelector('input[name="promoTarget"]:checked')?.value || 'customer';
+    const placement = document.querySelector('input[name="promoPlacement"]:checked')?.value || 'search_banner';
+    const declaredType = (document.getElementById('promoMediaType')?.value || '').trim();
+    const mediaInfo = resolveAdminPromoMediaInfo(imageUrl, declaredType);
+    const mediaType = mediaInfo.kind === 'image' ? 'image' : 'video';
 
     if (!imageUrl) {
-        alert('অনুগ্রহ করে বিজ্ঞাপনের একটি ছবি আপলোড করুন অথবা ছবির লিঙ্ক দিন।');
+        alert('অনুগ্রহ করে বিজ্ঞাপনের একটি ছবি বা ভিডিও আপলোড করুন অথবা লিঙ্ক দিন।');
         return;
     }
 
@@ -2646,6 +2818,8 @@ async function saveAdminPromo() {
             id: editId || undefined,
             title,
             image_url: imageUrl,
+            media_type: mediaType,
+            placement,
             target,
             link_url: linkUrl,
             active
@@ -2696,6 +2870,7 @@ async function deleteAdminPromo(promoId) {
 }
 
 window.loadAdminPromotions = loadAdminPromotions;
+window.adminToggleGlobalSearchAds = adminToggleGlobalSearchAds;
 window.openAdminPromoModal = openAdminPromoModal;
 window.closeAdminPromoModal = closeAdminPromoModal;
 window.previewAdminPromoFile = previewAdminPromoFile;

@@ -20,8 +20,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preload" href="common.js?v=10.49" as="script">
-    <link rel="preload" href="app-owner.js?v=10.49" as="script">
+    <link rel="preload" href="common.js?v=10.50" as="script">
+    <link rel="preload" href="app-owner.js?v=10.50" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
     <script src="tailwind.js?v=10.37" defer></script>
@@ -1976,14 +1976,19 @@
 
     <!-- Promotional Popup Banner Ad Modal for Owner -->
     <div id="promoAdModal" class="hidden fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm transition-opacity duration-300">
-        <div class="relative w-full max-w-[340px] sm:max-w-[380px] bg-white rounded-3xl shadow-2xl overflow-visible border border-white/20">
-            <!-- Circular (X) close button on top-right, matching user screenshot -->
+        <div class="relative w-full max-w-[360px] sm:max-w-[420px] bg-slate-950 rounded-3xl shadow-2xl overflow-visible border border-white/20">
+            <!-- Circular (X) close button on top-right -->
             <button type="button" onclick="closePromoAdModal()" class="absolute -top-3.5 -right-3.5 w-9 h-9 rounded-full bg-black/90 hover:bg-black text-white text-base font-black flex items-center justify-center shadow-2xl border-2 border-white hover:scale-110 active:scale-95 transition-all z-30 cursor-pointer" title="বিজ্ঞাপন বন্ধ করুন">
                 ✕
             </button>
-            <!-- Clickable Ad Photo Container -->
-            <div id="promoAdClickable" onclick="handlePromoAdClick()" class="overflow-hidden rounded-3xl group cursor-pointer bg-gray-100 flex items-center justify-center">
-                <img id="promoAdImage" src="" alt="Promotional Offer" class="w-full max-h-[65vh] object-cover rounded-3xl transition-transform duration-300 group-hover:scale-[1.02] block select-none">
+            <!-- Clickable Ad Media Container -->
+            <div id="promoAdClickable" onclick="handlePromoAdClick()" class="overflow-hidden rounded-3xl group bg-slate-950 flex flex-col items-center justify-center">
+                <div id="promoAdMediaContainer" class="w-full flex items-center justify-center">
+                    <img id="promoAdImage" src="" alt="Promotional Offer" class="w-full h-auto max-h-[70vh] object-contain rounded-3xl transition-transform duration-300 block select-none">
+                </div>
+                <div id="promoAdVisitBar" class="hidden w-full px-4 py-2 bg-rose-600/95 text-white text-xs font-bold text-center tracking-wide">
+                    অফার দেখুন / Visit Link ↗
+                </div>
             </div>
         </div>
     </div>
@@ -1992,14 +1997,14 @@
     <!-- Firebase App & Firestore Compat SDKs for Real-Time Live Bus Tracking -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="common.js?v=10.49"></script>
-    <script src="app-owner.js?v=10.49"></script>
+    <script src="common.js?v=10.50"></script>
+    <script src="app-owner.js?v=10.50"></script>
     <script>
         if (typeof initFestivalThemeSync === 'function') {
             initFestivalThemeSync('owner');
         }
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js?v=10.49', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+            navigator.serviceWorker.register('/sw.js?v=10.50', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
         }
     </script>
 </body>

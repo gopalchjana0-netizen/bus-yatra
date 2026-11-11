@@ -3396,15 +3396,74 @@ async function checkAndDisplayActivePromo(target = 'owner') {
 
         const sessionDismissed = sessionStorage.getItem(`dismissed_promo_${promo.id}`);
         const lastDismissedTs = localStorage.getItem(`dismissed_promo_ts_${promo.id}`);
-        if (sessionDismissed) return;
-        if (lastDismissedTs && (Date.now() - parseInt(lastDismissedTs, 10)) < (12 * 3600 * 1000)) return;
+        const updatedTs = promo.updated_at ? new Date(promo.updated_at).getTime() : 0;
+        const storedTs = parseInt(lastDismissedTs || '0', 10);
+        if (sessionDismissed && (!updatedTs || storedTs >= updatedTs)) return;
+        if (storedTs && (!updatedTs || storedTs >= updatedTs) && (Date.now() - storedTs) < (12 * 3600 * 1000)) return;
 
         const modal = document.getElementById('promoAdModal');
-        const img = document.getElementById('promoAdImage');
-        if (!modal || !img) return;
+        const wrap = document.getElementById('promoAdMediaContainer');
+        const clickable = document.getElementById('promoAdClickable');
+        const visitBar = document.getElementById('promoAdVisitBar');
+        if (!modal || !wrap) return;
 
-        img.src = promo.image_url;
-        img.alt = promo.title || 'Promotional Offer';
+        const media = typeof parsePromoMediaSource === 'function'
+            ? parsePromoMediaSource(promo.image_url, promo.media_type)
+            : { kind: /^data:video\//i.test(promo.image_url) ? 'video' : 'image', src: promo.image_url };
+
+        wrap.innerHTML = '';
+        if (media.kind === 'youtube' && media.embedUrl) {
+            const box = document.createElement('div');
+            box.className = 'w-full aspect-video max-h-[70vh] bg-black overflow-hidden';
+            box.style.width = '100%';
+            box.style.aspectRatio = '16 / 9';
+            box.style.maxHeight = '70vh';
+            const iframe = document.createElement('iframe');
+            iframe.src = media.embedUrl;
+            iframe.title = promo.title || 'Promotional Offer';
+            iframe.className = 'w-full h-full border-0 block';
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = '0';
+            iframe.allow = 'autoplay; encrypted-media; picture-in-picture';
+            iframe.allowFullscreen = true;
+            box.appendChild(iframe);
+            wrap.appendChild(box);
+        } else if (media.kind === 'video') {
+            const vid = document.createElement('video');
+            vid.src = media.src;
+            vid.autoplay = true;
+            vid.loop = true;
+            vid.muted = true;
+            vid.defaultMuted = true;
+            vid.playsInline = true;
+            vid.controls = true;
+            vid.className = 'w-full h-auto max-h-[70vh] object-contain rounded-3xl block mx-auto bg-slate-950';
+            vid.style.width = '100%';
+            vid.style.height = 'auto';
+            vid.style.maxHeight = '70vh';
+            vid.style.objectFit = 'contain';
+            vid.style.display = 'block';
+            wrap.appendChild(vid);
+        } else {
+            const img = document.createElement('img');
+            img.src = media.src;
+            img.alt = promo.title || 'Promotional Offer';
+            img.className = 'w-full h-auto max-h-[70vh] object-contain rounded-3xl block mx-auto select-none';
+            img.style.width = '100%';
+            img.style.height = 'auto';
+            img.style.maxHeight = '70vh';
+            img.style.objectFit = 'contain';
+            img.style.display = 'block';
+            wrap.appendChild(img);
+        }
+
+        const hasLink = Boolean(promo.link_url && promo.link_url.trim() && !/^(javascript|data|vbscript):/i.test(promo.link_url.trim()));
+        if (clickable) {
+            clickable.classList.toggle('cursor-pointer', hasLink);
+            clickable.classList.toggle('cursor-default', !hasLink);
+        }
+        if (visitBar) visitBar.classList.toggle('hidden', !hasLink);
 
         setTimeout(() => {
             modal.classList.remove('hidden');
@@ -3416,7 +3475,11 @@ async function checkAndDisplayActivePromo(target = 'owner') {
 
 function closePromoAdModal() {
     const modal = document.getElementById('promoAdModal');
-    if (modal) modal.classList.add('hidden');
+    if (modal) {
+        const vid = modal.querySelector('video');
+        if (vid) vid.pause();
+        modal.classList.add('hidden');
+    }
     if (activePromoData) {
         sessionStorage.setItem(`dismissed_promo_${activePromoData.id}`, 'true');
         localStorage.setItem(`dismissed_promo_ts_${activePromoData.id}`, Date.now().toString());
@@ -3426,16 +3489,13 @@ function closePromoAdModal() {
 function handlePromoAdClick() {
     if (!activePromoData) return;
     const promo = activePromoData;
+    let link = (promo.link_url || '').trim();
+    if (!link || /^(javascript|data|vbscript):/i.test(link)) return;
+    if (!/^https?:\/\//i.test(link)) link = 'https://' + link;
     if (promo.id) {
         apiRequest(`/api/promotions/${encodeURIComponent(promo.id)}/click`, { method: 'POST' }).catch(() => {});
     }
-    if (promo.link_url && promo.link_url.trim()) {
-        let link = promo.link_url.trim();
-        if (!/^https?:\/\//i.test(link)) {
-            link = 'https://' + link;
-        }
-        window.open(link, '_blank', 'noopener,noreferrer');
-    }
+    window.open(link, '_blank', 'noopener,noreferrer');
     closePromoAdModal();
 }
 

@@ -680,30 +680,281 @@ window.addEventListener('DOMContentLoaded', () => {
     checkAndDisplayActivePromo('customer');
 });
 
-// --- Promotional Popup Banner Ads ---
+// --- Promotional Search-Below & Popup Banner Ads ---
 let activePromoData = null;
+let activeSearchBanners = [];
+let currentSearchPromoIdx = 0;
+let searchPromoAutoTimer = null;
+let isSearchPromoMuted = true;
+
+function isPromoDismissed(promo, prefix = 'dismissed_promo') {
+    if (!promo || !promo.id) return true;
+    const sessionKey = `${prefix}_${promo.id}`;
+    const tsKey = `${prefix}_ts_${promo.id}`;
+    const updatedTs = promo.updated_at ? new Date(promo.updated_at).getTime() : 0;
+
+    if (sessionStorage.getItem(sessionKey)) {
+        const storedTs = parseInt(localStorage.getItem(tsKey) || '0', 10);
+        if (!updatedTs || storedTs >= updatedTs) return true;
+        sessionStorage.removeItem(sessionKey);
+    }
+    const lastDismissedTs = parseInt(localStorage.getItem(tsKey) || '0', 10);
+    if (lastDismissedTs && (!updatedTs || lastDismissedTs >= updatedTs)) {
+        if ((Date.now() - lastDismissedTs) < (12 * 3600 * 1000)) return true;
+    }
+    return false;
+}
+
+function getVisibleSearchBanners() {
+    return (Array.isArray(activeSearchBanners) ? activeSearchBanners : []).filter(
+        p => p && p.image_url && !isPromoDismissed(p, 'dismissed_search_promo')
+    );
+}
+
+function resolvePromoMediaHelper(rawUrl, declaredType) {
+    if (typeof parsePromoMediaSource === 'function') {
+        return parsePromoMediaSource(rawUrl, declaredType);
+    }
+    const clean = String(rawUrl || '').trim();
+    const isVid = /^data:video\//i.test(clean) || /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(clean) || String(declaredType || '').toLowerCase() === 'video';
+    return { kind: isVid ? 'video' : 'image', src: clean };
+}
+
+function normalizeSafeAdLink(rawLink) {
+    let link = String(rawLink || '').trim();
+    if (!link) return '';
+    if (/^(javascript|data|vbscript):/i.test(link)) return '';
+    if (!/^https?:\/\//i.test(link)) link = 'https://' + link;
+    return link;
+}
+
+function createPromoMediaElement(media, title, isModal = false) {
+    const maxHeightCss = isModal ? '70vh' : '420px';
+    const maxHeightCls = isModal ? 'max-h-[70vh]' : 'max-h-[420px]';
+    if (media.kind === 'youtube' && media.embedUrl) {
+        const wrap = document.createElement('div');
+        wrap.className = `w-full aspect-video ${maxHeightCls} bg-black overflow-hidden`;
+        wrap.style.width = '100%';
+        wrap.style.aspectRatio = '16 / 9';
+        wrap.style.maxHeight = maxHeightCss;
+        wrap.style.backgroundColor = '#000';
+        const iframe = document.createElement('iframe');
+        iframe.src = media.embedUrl;
+        iframe.title = title || 'Promotional Video';
+        iframe.className = 'w-full h-full border-0 block';
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.style.border = '0';
+        iframe.style.display = 'block';
+        iframe.allow = 'autoplay; encrypted-media; picture-in-picture';
+        iframe.allowFullscreen = true;
+        iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+        wrap.appendChild(iframe);
+        return wrap;
+    }
+    if (media.kind === 'video') {
+        const video = document.createElement('video');
+        video.src = media.src;
+        video.autoplay = true;
+        video.loop = true;
+        video.muted = isModal ? true : isSearchPromoMuted;
+        video.defaultMuted = video.muted;
+        video.playsInline = true;
+        video.preload = 'auto';
+        if (isModal) video.controls = true;
+        video.setAttribute('playsinline', '');
+        video.setAttribute('webkit-playsinline', '');
+        video.setAttribute('autoplay', '');
+        video.setAttribute('loop', '');
+        if (video.muted) video.setAttribute('muted', '');
+        video.className = `w-full h-auto ${maxHeightCls} object-contain block mx-auto bg-slate-950 select-none`;
+        video.style.width = '100%';
+        video.style.height = 'auto';
+        video.style.maxHeight = maxHeightCss;
+        video.style.objectFit = 'contain';
+        video.style.display = 'block';
+        video.style.backgroundColor = '#020617';
+        video.addEventListener('loadeddata', () => {
+            video.play().catch(() => {});
+        });
+        setTimeout(() => video.play().catch(() => {}), 80);
+        return video;
+    }
+    const img = document.createElement('img');
+    img.src = media.src;
+    img.alt = title || 'Promotional Offer';
+    img.className = `w-full h-auto ${maxHeightCls} object-contain block mx-auto select-none transition-transform duration-300`;
+    img.style.width = '100%';
+    img.style.height = 'auto';
+    img.style.maxHeight = maxHeightCss;
+    img.style.objectFit = 'contain';
+    img.style.display = 'block';
+    return img;
+}
+
+function renderSearchPromoBanner() {
+    if (searchPromoAutoTimer) {
+        clearTimeout(searchPromoAutoTimer);
+        searchPromoAutoTimer = null;
+    }
+    const section = document.getElementById('customerSearchPromoSection');
+    const slot = document.getElementById('customerSearchPromoMediaSlot');
+    const muteBtn = document.getElementById('customerSearchPromoMuteBtn');
+    const linkBadge = document.getElementById('customerSearchPromoLinkBadge');
+    const ctrlBar = document.getElementById('customerSearchPromoCarouselCtrl');
+    const dotsEl = document.getElementById('customerSearchPromoDots');
+    if (!section || !slot) return;
+
+    const visible = getVisibleSearchBanners();
+    if (!visible.length) {
+        section.classList.add('hidden');
+        slot.innerHTML = '';
+        return;
+    }
+
+    currentSearchPromoIdx = ((currentSearchPromoIdx % visible.length) + visible.length) % visible.length;
+    const promo = visible[currentSearchPromoIdx];
+    const media = resolvePromoMediaHelper(promo.image_url, promo.media_type);
+    const hasLink = Boolean(normalizeSafeAdLink(promo.link_url));
+
+    slot.innerHTML = '';
+    slot.classList.toggle('cursor-pointer', hasLink);
+    slot.classList.toggle('cursor-default', !hasLink);
+    slot.setAttribute('data-promo-id', promo.id);
+
+    const mediaEl = createPromoMediaElement(media, promo.title, false);
+    slot.appendChild(mediaEl);
+
+    if (muteBtn) {
+        if (media.kind === 'video') {
+            muteBtn.classList.remove('hidden');
+            muteBtn.textContent = isSearchPromoMuted ? '🔇' : '🔊';
+        } else {
+            muteBtn.classList.add('hidden');
+        }
+    }
+
+    if (linkBadge) {
+        linkBadge.classList.toggle('hidden', !hasLink);
+    }
+
+    if (ctrlBar && dotsEl) {
+        dotsEl.innerHTML = '';
+        if (visible.length > 1) {
+            ctrlBar.classList.remove('hidden');
+            ctrlBar.classList.add('flex');
+            visible.forEach((item, idx) => {
+                const dot = document.createElement('button');
+                dot.type = 'button';
+                dot.ariaLabel = `Slide ${idx + 1}`;
+                dot.className = idx === currentSearchPromoIdx
+                    ? 'w-5 h-2 rounded-full bg-rose-600 transition-all cursor-pointer'
+                    : 'w-2 h-2 rounded-full bg-gray-300 hover:bg-gray-400 transition-all cursor-pointer';
+                dot.onclick = (e) => selectSearchPromoSlide(idx, e);
+                dotsEl.appendChild(dot);
+            });
+            const delayMs = media.kind === 'image' ? 6500 : 14000;
+            searchPromoAutoTimer = setTimeout(() => {
+                currentSearchPromoIdx += 1;
+                renderSearchPromoBanner();
+            }, delayMs);
+        } else {
+            ctrlBar.classList.add('hidden');
+            ctrlBar.classList.remove('flex');
+        }
+    }
+
+    section.classList.remove('hidden');
+}
+
+function dismissSearchPromoBanner(e) {
+    if (e) e.stopPropagation();
+    const visible = getVisibleSearchBanners();
+    const promo = visible[currentSearchPromoIdx] || visible[0];
+    if (promo && promo.id) {
+        sessionStorage.setItem(`dismissed_search_promo_${promo.id}`, 'true');
+        localStorage.setItem(`dismissed_search_promo_ts_${promo.id}`, Date.now().toString());
+    }
+    renderSearchPromoBanner();
+}
+
+function toggleSearchPromoMute(e) {
+    if (e) e.stopPropagation();
+    isSearchPromoMuted = !isSearchPromoMuted;
+    const slot = document.getElementById('customerSearchPromoMediaSlot');
+    const muteBtn = document.getElementById('customerSearchPromoMuteBtn');
+    const vid = slot ? slot.querySelector('video') : null;
+    if (vid) {
+        vid.muted = isSearchPromoMuted;
+        if (!isSearchPromoMuted) vid.play().catch(() => {});
+    }
+    if (muteBtn) muteBtn.textContent = isSearchPromoMuted ? '🔇' : '🔊';
+}
+
+function stepSearchPromoSlide(delta, e) {
+    if (e) e.stopPropagation();
+    currentSearchPromoIdx += delta;
+    renderSearchPromoBanner();
+}
+
+function selectSearchPromoSlide(idx, e) {
+    if (e) e.stopPropagation();
+    currentSearchPromoIdx = idx;
+    renderSearchPromoBanner();
+}
+
+function handleSearchPromoBannerClick(e) {
+    if (e && e.target && e.target.closest('button')) return;
+    const visible = getVisibleSearchBanners();
+    const promo = visible[currentSearchPromoIdx] || visible[0];
+    if (!promo) return;
+
+    const safeLink = normalizeSafeAdLink(promo.link_url);
+    if (!safeLink) return; // Optional link not set — clicking photo/video intentionally does nothing
+
+    if (promo.id) {
+        apiRequest(`/api/promotions/${encodeURIComponent(promo.id)}/click`, { method: 'POST' }).catch(() => {});
+    }
+    window.open(safeLink, '_blank', 'noopener,noreferrer');
+}
 
 async function checkAndDisplayActivePromo(target = 'customer') {
     try {
         const res = await apiRequest(`/api/promotions/active?target=${encodeURIComponent(target)}`);
-        if (!res || !res.ok || !res.promotion) return;
+        if (!res || !res.ok) return;
+
+        // 1. Render Search-Below Banner Slot immediately if present & enabled
+        if (target === 'customer') {
+            activeSearchBanners = (res.searchBannerAdsEnabled !== false && Array.isArray(res.searchBanners))
+                ? res.searchBanners
+                : [];
+            currentSearchPromoIdx = 0;
+            renderSearchPromoBanner();
+        }
+
+        // 2. Render Popup Modal Ad if targeted for popup/both and not dismissed
+        if (!res.promotion) return;
         const promo = res.promotion;
         activePromoData = promo;
-
-        // Dismissal check: don't show if dismissed in this session, or dismissed within last 12 hours
-        const sessionDismissed = sessionStorage.getItem(`dismissed_promo_${promo.id}`);
-        const lastDismissedTs = localStorage.getItem(`dismissed_promo_ts_${promo.id}`);
-        if (sessionDismissed) return;
-        if (lastDismissedTs && (Date.now() - parseInt(lastDismissedTs, 10)) < (12 * 3600 * 1000)) return;
+        if (isPromoDismissed(promo, 'dismissed_promo')) return;
 
         const modal = document.getElementById('promoAdModal');
-        const img = document.getElementById('promoAdImage');
-        if (!modal || !img) return;
+        const mediaWrap = document.getElementById('promoAdMediaContainer');
+        const clickable = document.getElementById('promoAdClickable');
+        const visitBar = document.getElementById('promoAdVisitBar');
+        if (!modal || !mediaWrap) return;
 
-        img.src = promo.image_url;
-        img.alt = promo.title || 'Promotional Offer';
+        const media = resolvePromoMediaHelper(promo.image_url, promo.media_type);
+        mediaWrap.innerHTML = '';
+        mediaWrap.appendChild(createPromoMediaElement(media, promo.title, true));
 
-        // Show after smooth 1.2s delay for natural UX
+        const hasLink = Boolean(normalizeSafeAdLink(promo.link_url));
+        if (clickable) {
+            clickable.classList.toggle('cursor-pointer', hasLink);
+            clickable.classList.toggle('cursor-default', !hasLink);
+        }
+        if (visitBar) visitBar.classList.toggle('hidden', !hasLink);
+
         setTimeout(() => {
             modal.classList.remove('hidden');
         }, 1200);
@@ -714,7 +965,11 @@ async function checkAndDisplayActivePromo(target = 'customer') {
 
 function closePromoAdModal() {
     const modal = document.getElementById('promoAdModal');
-    if (modal) modal.classList.add('hidden');
+    if (modal) {
+        const vid = modal.querySelector('video');
+        if (vid) vid.pause();
+        modal.classList.add('hidden');
+    }
     if (activePromoData) {
         sessionStorage.setItem(`dismissed_promo_${activePromoData.id}`, 'true');
         localStorage.setItem(`dismissed_promo_ts_${activePromoData.id}`, Date.now().toString());
@@ -724,23 +979,23 @@ function closePromoAdModal() {
 function handlePromoAdClick() {
     if (!activePromoData) return;
     const promo = activePromoData;
-    // Track click asynchronously
+    const safeLink = normalizeSafeAdLink(promo.link_url);
+    if (!safeLink) return; // Optional link not set
+
     if (promo.id) {
         apiRequest(`/api/promotions/${encodeURIComponent(promo.id)}/click`, { method: 'POST' }).catch(() => {});
     }
-    // If a website link is configured, open in new tab
-    if (promo.link_url && promo.link_url.trim()) {
-        let link = promo.link_url.trim();
-        if (!/^https?:\/\//i.test(link)) {
-            link = 'https://' + link;
-        }
-        window.open(link, '_blank', 'noopener,noreferrer');
-    }
+    window.open(safeLink, '_blank', 'noopener,noreferrer');
     closePromoAdModal();
 }
 
 window.closePromoAdModal = closePromoAdModal;
 window.handlePromoAdClick = handlePromoAdClick;
+window.dismissSearchPromoBanner = dismissSearchPromoBanner;
+window.handleSearchPromoBannerClick = handleSearchPromoBannerClick;
+window.toggleSearchPromoMute = toggleSearchPromoMute;
+window.stepSearchPromoSlide = stepSearchPromoSlide;
+window.selectSearchPromoSlide = selectSearchPromoSlide;
 
 async function loadPublicBuses() {
     // 0. Immediate optimistic render from local cache (< 2ms!)
@@ -4756,12 +5011,14 @@ function showOfflineTicketDetail(bookingId) {
     lastTicketText = `🚌 *Bus Yatra Offline Ticket*\nBooking ID: ${b.id}\nBus: ${b.bus_name || ''}\nPassenger: ${b.name} (${b.phone})\nSeats: ${seatsArr.join(', ')}\nRoute: ${b.from_city || ''} ➔ ${b.to_city || ''}\nDate: ${b.journey_date || ''}\nTotal Fare: ₹${b.total_fare || '0'}\nStatus: ${b.status || 'Confirmed'}`;
 
     const searchSec = document.getElementById('searchSection');
+    const promoBannerSec = document.getElementById('customerSearchPromoSection');
     const busListSec = document.getElementById('busListSection');
     const seatSec = document.getElementById('seatSelectionSection');
     const paySec = document.getElementById('paymentSection');
     const successSec = document.getElementById('successSection');
 
     if (searchSec) searchSec.classList.add('hidden');
+    if (promoBannerSec) promoBannerSec.classList.add('hidden');
     if (busListSec) busListSec.classList.add('hidden');
     if (seatSec) seatSec.classList.add('hidden');
     if (paySec) paySec.classList.add('hidden');
