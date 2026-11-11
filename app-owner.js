@@ -126,7 +126,7 @@ async function ownerLogout() {
     const ok = await showBusYatraConfirm({
         title: "বাস মালিক পোর্টাল থেকে লগআউট?",
         subtitle: "আপনি কি নিশ্চিতভাবে ওনার ড্যাশবোর্ড থেকে লগআউট করতে চান?",
-        icon: '👑',
+        icon: 'logout',
         confirmText: "হ্যাঁ, লগআউট",
         cancelText: "না, ফিরে যান",
         danger: true

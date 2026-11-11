@@ -2560,7 +2560,7 @@ function ensureBusYatraConfirmSheet() {
                 <!-- Hero Visual Icon Circle -->
                 <div class="flex justify-center">
                     <div id="busYatraConfirmIconWrap" class="w-16 h-16 rounded-3xl bg-red-50 border-2 border-red-100 flex items-center justify-center shadow-inner transition-transform duration-300 transform scale-90">
-                        <span id="busYatraConfirmIcon" class="text-3xl">🚪</span>
+                        <span id="busYatraConfirmIcon" class="text-3xl inline-flex items-center justify-center"></span>
                     </div>
                 </div>
 
@@ -2639,7 +2639,13 @@ function showBusYatraConfirm(options = {}) {
             subtitleEl.innerHTML = (subtitle || '').replace(/\n/g, '<br>');
             subtitleEl.classList.toggle('hidden', !subtitle);
         }
-        if (iconEl) iconEl.innerText = icon;
+        if (iconEl) {
+            if (icon === 'logout' || icon === '🚪') {
+                iconEl.innerHTML = `<svg viewBox="0 0 24 24" class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`;
+            } else {
+                iconEl.innerText = icon;
+            }
+        }
 
         if (badgeEl && badgeWrap) {
             if (badge) {
@@ -2824,7 +2830,13 @@ function showBusYatraAlert(options = {}) {
         if (subtitleEl) {
             subtitleEl.innerHTML = content.replace(/\n/g, '<br>');
         }
-        if (iconEl) iconEl.innerText = icon;
+        if (iconEl) {
+            if (icon === 'logout' || icon === '🚪') {
+                iconEl.innerHTML = `<svg viewBox="0 0 24 24" class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`;
+            } else {
+                iconEl.innerText = icon;
+            }
+        }
 
         if (badgeEl && badgeWrap) {
             if (badge) {

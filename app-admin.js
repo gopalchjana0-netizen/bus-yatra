@@ -382,7 +382,7 @@ async function adminLogout() {
     const ok = await showBusYatraConfirm({
         title: "অ্যাডমিন প্যানেল থেকে লগআউট?",
         subtitle: "আপনি কি নিশ্চিতভাবে সুপার অ্যাডমিন ড্যাশবোর্ড থেকে লগআউট করতে চান?",
-        icon: '🛡️',
+        icon: 'logout',
         confirmText: "হ্যাঁ, লগআউট",
         cancelText: "না, ফিরে যান",
         danger: true

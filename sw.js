@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bus-yatra-v10.47';
+const CACHE_NAME = 'bus-yatra-v10.48';
 const urlsToCache = [
   '/style.css',
   '/tailwind.js',
@@ -7,6 +7,9 @@ const urlsToCache = [
   '/app-owner.js',
   '/app-captain.js',
   '/common.js',
+  '/assets/ai-agent-avatar.jpg',
+  '/assets/avatar-customer-male.jpg',
+  '/assets/avatar-customer-female.jpg',
   '/manifest.json',
   '/manifest-diwali.json',
   '/manifest-owner.json',

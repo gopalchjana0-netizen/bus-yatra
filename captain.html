@@ -15,8 +15,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preload" href="common.js?v=10.47" as="script">
-    <link rel="preload" href="app-captain.js?v=10.47" as="script">
+    <link rel="preload" href="common.js?v=10.48" as="script">
+    <link rel="preload" href="app-captain.js?v=10.48" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
     <script src="tailwind.js?v=10.37" defer></script>
@@ -268,7 +268,7 @@
 
                     <!-- Logout Button (Visible on Desktop / Tablets, inside Drawer on Mobile) -->
                     <button type="button" onclick="captainLogout()" class="hidden sm:flex bg-red-600/80 hover:bg-red-700 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap border border-red-500/40 active:scale-95" title="Logout">
-                        <span>🚪</span>
+                        <svg viewBox="0 0 24 24" class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                         <span class="font-bold text-xs" data-bn="লগআউট" data-en="Logout">লগআউট</span>
                     </button>
                 </div>
@@ -365,7 +365,10 @@
             <!-- Sticky Bottom Footer -->
             <div class="border-t p-4 sm:p-5 space-y-1.5 shrink-0 bg-gray-50">
                 <button onclick="captainLogout()" class="w-full text-left p-3 rounded-2xl hover:bg-red-50 text-red-600 font-bold text-sm flex items-center gap-3 transition active:scale-98">
-                    <span>🚪</span> <span data-bn="লগআউট" data-en="Logout">লগআউট</span>
+                    <span class="w-7 h-7 rounded-xl bg-red-100/80 text-red-600 flex items-center justify-center shrink-0">
+                        <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    </span>
+                    <span data-bn="লগআউট" data-en="Logout">লগআউট</span>
                 </button>
                 <div class="text-[10px] text-gray-400 text-center font-medium pt-1">
                     Bus Yatra Captain Conductor Panel
@@ -936,8 +939,8 @@
     <!-- Firebase App & Firestore Compat SDKs for Real-Time Live Bus Tracking -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="common.js?v=10.47"></script>
-    <script src="app-captain.js?v=10.47"></script>
+    <script src="common.js?v=10.48"></script>
+    <script src="app-captain.js?v=10.48"></script>
     <script>
         function toggleCaptainSidebar() {
             const sb = document.getElementById('captainSidebar');
@@ -968,7 +971,7 @@
             initFestivalThemeSync('captain');
         }
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js?v=10.47', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+            navigator.serviceWorker.register('/sw.js?v=10.48', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
         }
     </script>
 

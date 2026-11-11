@@ -57,8 +57,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preload" href="common.js?v=10.47" as="script">
-    <link rel="preload" href="app.js?v=10.47" as="script">
+    <link rel="preload" href="common.js?v=10.48" as="script">
+    <link rel="preload" href="app.js?v=10.48" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
     <script src="tailwind.js?v=10.37" defer></script>
@@ -375,7 +375,10 @@
                     <span id="lblHeaderAiSupport">সাহায্য</span>
                 </button>
                 <button id="btnHeaderCustomerAuth" onclick="openCustomerAuthModal()" class="hidden sm:flex bg-white text-gray-900 hover:bg-gray-100 text-xs font-bold px-2.5 py-1.5 rounded-full shadow-sm transition items-center gap-1.5 active:scale-95">
-                    <span>👤</span> <span id="headerCustomerName">লগইন / রেজিস্টার</span>
+                    <span id="headerCustomerAvatarSlot" class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-700 shrink-0 overflow-hidden">
+                        <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="currentColor" aria-hidden="true"><path d="M12 12a4.2 4.2 0 1 0 0-8.4 4.2 4.2 0 0 0 0 8.4Zm0 2.1c-4.05 0-7.5 2.02-7.5 4.65 0 .75.6 1.35 1.35 1.35h12.3c.75 0 1.35-.6 1.35-1.35 0-2.63-3.45-4.65-7.5-4.65Z"/></svg>
+                    </span>
+                    <span id="headerCustomerName">লগইন / রেজিস্টার</span>
                 </button>
             </div>
         </div>
@@ -425,7 +428,13 @@
                 <!-- Primary Passenger Navigation -->
                 <nav class="space-y-1.5 pb-2">
                     <button onclick="toggleSidebar(); resetApp();" id="lblMenuHome" class="w-full text-left p-2.5 rounded-xl hover:bg-red-50 text-gray-800 font-semibold text-xs flex items-center gap-3 transition">
-                        🏠 <span>Home / Bus Search</span>
+                        <span class="w-6 h-6 rounded-lg bg-red-50 border border-red-200 flex items-center justify-center shrink-0">
+                            <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" aria-hidden="true">
+                                <path d="M11.35 3.28a1 1 0 0 1 1.3 0l8.2 7.03a.85.85 0 0 1-.55 1.49H19v7.1a1.6 1.6 0 0 1-1.6 1.6H6.6A1.6 1.6 0 0 1 5 18.9V11.8H3.7a.85.85 0 0 1-.55-1.49l8.2-7.03Z" fill="#dc2626"/>
+                                <path d="M9.75 20.5v-4.6a2.25 2.25 0 0 1 4.5 0v4.6" fill="#fef3c7"/>
+                            </svg>
+                        </span>
+                        <span id="lblMenuHomeText">Home / Bus Search</span>
                     </button>
                     <button onclick="toggleSidebar(); openCustomerNotificationModal();" class="w-full text-left p-2.5 rounded-xl hover:bg-red-50 text-gray-800 font-semibold text-xs flex items-center justify-between transition">
                         <span class="flex items-center gap-3">🔔 <span id="lblMenuNotice">Notifications &amp; Notice</span></span>
@@ -435,7 +444,10 @@
                         🎟️ <span>My Bookings &amp; PDF Ticket</span>
                     </button>
                     <button onclick="toggleSidebar(); openCustomerAuthModal();" id="lblMenuAuth" class="w-full text-left p-2.5 rounded-xl hover:bg-red-50 text-gray-800 font-semibold text-xs flex items-center gap-3 transition">
-                        👤 <span id="lblSidebarAuthText">লগইন / নতুন অ্যাকাউন্ট</span>
+                        <span id="sidebarCustomerAvatarSlot" class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-600 shrink-0 overflow-hidden">
+                            <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="currentColor" aria-hidden="true"><path d="M12 12a4.2 4.2 0 1 0 0-8.4 4.2 4.2 0 0 0 0 8.4Zm0 2.1c-4.05 0-7.5 2.02-7.5 4.65 0 .75.6 1.35 1.35 1.35h12.3c.75 0 1.35-.6 1.35-1.35 0-2.63-3.45-4.65-7.5-4.65Z"/></svg>
+                        </span>
+                        <span id="lblSidebarAuthText">লগইন / নতুন অ্যাকাউন্ট</span>
                     </button>
                     <button onclick="toggleSidebar(); openCustomerFeedbackQrModal();" class="w-full text-left p-2.5 rounded-xl hover:bg-red-50 text-gray-800 font-semibold text-xs flex items-center gap-3 transition">
                         ⭐ <span id="lblMenuFeedback">Passenger Feedback QR</span>
@@ -476,8 +488,11 @@
 
             <!-- Sticky Bottom Footer -->
             <div class="border-t p-4 sm:p-5 space-y-1.5 shrink-0 bg-gray-50">
-                <button onclick="toggleSidebar(); customerLogout();" id="lblMenuLogout" class="hidden w-full text-left p-2 rounded-xl hover:bg-red-50 text-red-600 font-bold text-xs flex items-center gap-2 transition">
-                    🚪 <span>Logout / Reset</span>
+                <button onclick="toggleSidebar(); customerLogout();" id="lblMenuLogout" class="hidden w-full text-left p-2 rounded-xl hover:bg-red-50 text-red-600 font-bold text-xs flex items-center gap-2.5 transition">
+                    <span class="w-6 h-6 rounded-lg bg-red-100/80 text-red-600 flex items-center justify-center shrink-0">
+                        <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    </span>
+                    <span id="lblMenuLogoutText">Logout / Reset</span>
                 </button>
                 <div class="text-[10px] text-gray-400 text-center font-medium leading-relaxed">
                     <p class="font-bold text-gray-600">Bus Yatra Mobility Services</p>
@@ -515,14 +530,47 @@
         <div class="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl border border-gray-200 flex flex-col max-h-[92vh]">
             <div class="bg-red-600 text-white p-4 flex justify-between items-center">
                 <div class="flex items-center gap-2">
-                    <img src="icons/logo-customer.png" class="w-7 h-7 rounded-full bg-white p-0.5" alt="Customer Logo">
-                    <h3 id="customerAuthModalTitle" class="font-bold text-base flex items-center gap-1.5">👤 <span data-bn="যাত্রী অ্যাকাউন্ট" data-en="Passenger Portal">যাত্রী অ্যাকাউন্ট</span></h3>
+                    <img id="authModalHeaderAvatar" src="icons/logo-customer.png" class="w-7 h-7 rounded-full bg-white p-0.5 object-cover object-top" alt="Customer Logo">
+                    <h3 id="customerAuthModalTitle" class="font-bold text-base flex items-center gap-1.5"><span data-bn="যাত্রী অ্যাকাউন্ট" data-en="Passenger Portal">যাত্রী অ্যাকাউন্ট</span></h3>
                 </div>
                 <button onclick="closeCustomerAuthModal()" id="btnCustomerAuthClose" class="text-white hover:bg-red-700 p-1.5 rounded-lg text-sm font-bold">✕ Close</button>
             </div>
 
+            <!-- Logged-in Verified Profile Card (Big-Company Style) -->
+            <div id="customerLoggedProfileCard" class="hidden p-4 bg-gradient-to-r from-red-50 via-white to-amber-50 border-b border-gray-200 space-y-3">
+                <div class="flex items-center gap-3">
+                    <div class="relative w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-red-600 via-amber-500 to-emerald-500 shadow-md shrink-0">
+                        <img id="authModalProfileImg" src="assets/avatar-customer-male.jpg" alt="Passenger Profile" class="w-full h-full rounded-full object-cover object-top border-2 border-white">
+                        <span class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></span>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span id="authModalProfileName" class="font-black text-gray-900 text-sm truncate">Passenger</span>
+                            <span class="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full">Verified</span>
+                        </div>
+                        <p id="authModalProfilePhone" class="text-xs text-gray-600 font-semibold font-mono">+91 --</p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center justify-between gap-2 bg-white p-2 rounded-xl border border-gray-200">
+                    <span class="text-[11px] font-bold text-gray-700" data-bn="প্রোফাইল ফটো:" data-en="Profile Avatar:">প্রোফাইল ফটো:</span>
+                    <div class="flex items-center gap-1 text-[11px] font-bold">
+                        <button type="button" id="btnAvatarPrefAuto" onclick="setCustomerAvatarPreference('auto')" class="px-2 py-1 rounded-lg border transition">✨ Auto</button>
+                        <button type="button" id="btnAvatarPrefMale" onclick="setCustomerAvatarPreference('male')" class="px-2 py-1 rounded-lg border transition" data-bn="👨 পুরুষ" data-en="👨 Male">👨 Male</button>
+                        <button type="button" id="btnAvatarPrefFemale" onclick="setCustomerAvatarPreference('female')" class="px-2 py-1 rounded-lg border transition" data-bn="👩 মহিলা" data-en="👩 Female">👩 Female</button>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="closeCustomerAuthModal(); openMyBookingsModal();" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-xl font-bold text-xs shadow-xs transition" data-bn="🎟️ আমার টিকিট দেখুন" data-en="🎟️ My Bookings">🎟️ My Bookings</button>
+                    <button type="button" onclick="closeCustomerAuthModal(); customerLogout();" class="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 border border-red-200 py-2 px-3 rounded-xl font-bold text-xs transition inline-flex items-center gap-1.5">
+                        <svg viewBox="0 0 24 24" class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        <span data-bn="লগআউট" data-en="Logout">Logout</span>
+                    </button>
+                </div>
+                <button type="button" onclick="toggleCustomerSwitchAccountForms()" class="w-full text-center text-[11px] font-bold text-gray-500 hover:text-red-600 underline pt-0.5 transition" data-bn="🔄 অন্য অ্যাকাউন্টে লগইন / সুইচ করুন" data-en="🔄 Switch / Login Another Account">🔄 Switch / Login Another Account</button>
+            </div>
+
             <!-- Tabs: Login / Register / Forgot PIN -->
-            <div class="flex border-b bg-gray-50 text-xs font-bold text-center">
+            <div id="customerAuthTabsBar" class="flex border-b bg-gray-50 text-xs font-bold text-center">
                 <button type="button" onclick="switchCustomerAuthTab('login')" id="tabCustomerLoginBtn" class="flex-1 py-3 border-b-2 border-red-600 text-red-600 bg-white transition">
                     Login
                 </button>
@@ -534,7 +582,7 @@
                 </button>
             </div>
 
-            <div class="p-5 space-y-4 overflow-y-auto">
+            <div id="customerAuthFormsBody" class="p-5 space-y-4 overflow-y-auto">
                 <!-- PWA Install Banner inside Auth Modal -->
                 <div class="bg-amber-50 border border-amber-200 rounded-xl p-2.5 flex items-center justify-between gap-2 shadow-xs">
                     <div class="flex items-center gap-2 text-left">
@@ -1730,14 +1778,14 @@
     <!-- Firebase App & Firestore Compat SDKs for Real-Time Live Bus Tracking -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="common.js?v=10.47"></script>
-    <script src="app.js?v=10.47"></script>
+    <script src="common.js?v=10.48"></script>
+    <script src="app.js?v=10.48"></script>
     <script>
         if (typeof initFestivalThemeSync === 'function') {
             initFestivalThemeSync('customer');
         }
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js?v=10.47', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+            navigator.serviceWorker.register('/sw.js?v=10.48', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
         }
     </script>
 
@@ -1961,17 +2009,29 @@
     <!-- Mobile Bottom Navigation Bar (Visible strictly on mobile screens, hidden on desktop/laptop) -->
     <nav id="mobileBottomNav" class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] px-2 py-1.5 flex justify-around items-center text-center">
         <!-- 1. Home -->
-        <button type="button" onclick="resetApp(); window.scrollTo({top: 0, behavior: 'smooth'});" class="flex flex-col items-center justify-center flex-1 py-1 text-red-600 active:scale-95 transition" title="Home">
-            <span class="text-xl leading-none">🏠</span>
-            <span id="lblNavHome" class="text-[10px] font-black mt-1">Home</span>
+        <button type="button" onclick="resetApp(); window.scrollTo({top: 0, behavior: 'smooth'});" class="flex flex-col items-center justify-center flex-1 py-0.5 text-red-600 active:scale-95 transition group" title="Home">
+            <div class="w-8 h-8 rounded-2xl bg-gradient-to-br from-red-50 via-rose-50 to-amber-50 border border-red-200/90 shadow-xs flex items-center justify-center transition-transform group-hover:scale-105">
+                <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" aria-hidden="true">
+                    <defs>
+                        <linearGradient id="byNavHomeGrad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stop-color="#ef4444"/>
+                            <stop offset="100%" stop-color="#b91c1c"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M11.35 3.28a1 1 0 0 1 1.3 0l8.2 7.03a.85.85 0 0 1-.55 1.49H19v7.1a1.6 1.6 0 0 1-1.6 1.6H6.6A1.6 1.6 0 0 1 5 18.9V11.8H3.7a.85.85 0 0 1-.55-1.49l8.2-7.03Z" fill="url(#byNavHomeGrad)"/>
+                    <path d="M9.75 20.5v-4.6a2.25 2.25 0 0 1 4.5 0v4.6" fill="#fef3c7"/>
+                    <rect x="10.9" y="9.1" width="2.2" height="2.2" rx="0.6" fill="#fef3c7" opacity="0.92"/>
+                </svg>
+            </div>
+            <span id="lblNavHome" class="text-[10px] font-black mt-0.5">Home</span>
         </button>
         <!-- 2. My Bookings -->
-        <button type="button" onclick="openMyBookingsModal()" class="flex flex-col items-center justify-center flex-1 py-1 text-gray-600 hover:text-red-600 active:scale-95 transition" title="My Bookings">
-            <span class="text-xl leading-none">🎟️</span>
-            <span id="lblNavBookings" class="text-[10px] font-bold mt-1">My Bookings</span>
+        <button type="button" onclick="openMyBookingsModal()" class="flex flex-col items-center justify-center flex-1 py-0.5 text-gray-600 hover:text-red-600 active:scale-95 transition group" title="My Bookings">
+            <span class="h-8 flex items-center justify-center text-xl leading-none transition-transform group-hover:scale-105">🎟️</span>
+            <span id="lblNavBookings" class="text-[10px] font-bold mt-0.5">My Bookings</span>
         </button>
         <!-- 3. Passenger Emergency SOS Button -->
-        <button type="button" onclick="openCustomerSosModal()" class="relative flex flex-col items-center justify-center flex-1 py-1 active:scale-95 transition group" title="Emergency SOS Safety">
+        <button type="button" onclick="openCustomerSosModal()" class="relative flex flex-col items-center justify-center flex-1 py-0.5 active:scale-95 transition group" title="Emergency SOS Safety">
             <div class="relative w-8 h-8 rounded-full bg-gradient-to-tr from-red-600 via-rose-600 to-red-700 text-white flex items-center justify-center shadow-md shadow-red-500/35 group-hover:scale-110 transition-transform">
                 <span class="text-sm leading-none animate-pulse">🚨</span>
                 <span class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-400 rounded-full animate-ping"></span>
@@ -1987,9 +2047,17 @@
             <span id="lblNavAiSupport" class="text-[10px] font-black mt-0.5 text-red-700 group-hover:text-red-900 truncate max-w-[68px]" data-bn="ভার্চুয়াল AI" data-en="AI Agent">ভার্চুয়াল AI</span>
         </button>
         <!-- 5. Profile / Login -->
-        <button type="button" onclick="openCustomerAuthModal()" class="flex flex-col items-center justify-center flex-1 py-1 text-gray-600 hover:text-red-600 active:scale-95 transition" title="Profile">
-            <span class="text-xl leading-none">👤</span>
-            <span id="mobileBottomCustomerName" class="text-[10px] font-bold mt-1 truncate max-w-[64px]">Login</span>
+        <button type="button" id="btnBottomNavProfile" onclick="openCustomerAuthModal()" class="relative flex flex-col items-center justify-center flex-1 py-0.5 text-gray-700 hover:text-red-600 active:scale-95 transition group" title="Profile">
+            <div id="mobileBottomAvatarBadge" class="relative w-8 h-8 rounded-full p-[1.5px] bg-gradient-to-tr from-slate-300 to-slate-400 shadow-xs transition-transform group-hover:scale-105 flex items-center justify-center">
+                <img id="mobileBottomAvatarImg" src="assets/avatar-customer-male.jpg" alt="Passenger Profile" class="hidden w-full h-full rounded-full object-cover object-top border-2 border-white">
+                <div id="mobileBottomGuestIcon" class="w-full h-full rounded-full bg-gradient-to-br from-slate-100 to-slate-200 border-2 border-white flex items-center justify-center text-slate-600">
+                    <svg viewBox="0 0 24 24" class="w-4 h-4" fill="currentColor" aria-hidden="true">
+                        <path d="M12 12a4.2 4.2 0 1 0 0-8.4 4.2 4.2 0 0 0 0 8.4Zm0 2.1c-4.05 0-7.5 2.02-7.5 4.65 0 .75.6 1.35 1.35 1.35h12.3c.75 0 1.35-.6 1.35-1.35 0-2.63-3.45-4.65-7.5-4.65Z"/>
+                    </svg>
+                </div>
+                <span id="mobileBottomOnlineDot" class="hidden absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full shadow-xs"></span>
+            </div>
+            <span id="mobileBottomCustomerName" class="text-[10px] font-bold mt-0.5 truncate max-w-[64px]">Login</span>
         </button>
     </nav>
 

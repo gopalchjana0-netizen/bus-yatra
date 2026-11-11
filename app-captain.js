@@ -149,7 +149,7 @@ async function captainLogout() {
     const ok = await showBusYatraConfirm({
         title: "ক্যাপ্টেন পোর্টাল থেকে লগআউট?",
         subtitle: "আপনি কি নিশ্চিতভাবে ক্যাপ্টেন পোর্টাল থেকে লগআউট করতে চান?",
-        icon: '👨‍✈️',
+        icon: 'logout',
         confirmText: "হ্যাঁ, লগআউট",
         cancelText: "না, ফিরে যান",
         danger: true
