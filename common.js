@@ -428,24 +428,53 @@ function setAppData(data) {
         featureFlags: (data.featureFlags && typeof data.featureFlags === 'object') ? data.featureFlags : (appData.featureFlags || defaultFeatureFlags),
         serviceDates: Array.isArray(data.serviceDates) ? data.serviceDates : (appData.serviceDates || [])
     };
-    if (typeof localStorage !== 'undefined' && Array.isArray(data.buses) && data.buses.length > 0) {
-        try {
-            // Save lightweight offline bus schedules & feature flags cleanly for zero-wait offline boot
-            const compactBuses = appData.buses.map(b => {
+}
+
+function saveCustomerPublicOfflineCache(data) {
+    if (typeof localStorage === 'undefined' || !data || !Array.isArray(data.buses) || !data.buses.length) return;
+    savePortalOfflineSnapshot(BUS_YATRA_OFFLINE_CACHE_KEY, {
+        buses: data.buses,
+        featureFlags: data.featureFlags || appData.featureFlags,
+        coupons: data.coupons || appData.coupons
+    });
+}
+window.saveCustomerPublicOfflineCache = saveCustomerPublicOfflineCache;
+
+function savePortalOfflineSnapshot(key, data) {
+    if (typeof localStorage === 'undefined' || !key || !data || typeof data !== 'object') return;
+    try {
+        const compactBuses = Array.isArray(data.buses)
+            ? data.buses.map(b => {
                 const copy = { ...b };
                 if (typeof copy.busPhoto === 'string' && copy.busPhoto.length > 2000) copy.busPhoto = '';
                 if (Array.isArray(copy.busPhotos) && JSON.stringify(copy.busPhotos).length > 3000) copy.busPhotos = [];
                 return copy;
-            });
-            localStorage.setItem(BUS_YATRA_OFFLINE_CACHE_KEY, JSON.stringify({
-                buses: compactBuses,
-                featureFlags: appData.featureFlags,
-                coupons: appData.coupons,
-                cachedAt: Date.now()
-            }));
-        } catch (_) {}
+            })
+            : undefined;
+        const snapshot = {
+            ...(compactBuses ? { buses: compactBuses } : {}),
+            ...(data.bookings && typeof data.bookings === 'object' ? { bookings: data.bookings } : {}),
+            ...(Array.isArray(data.reviews) ? { reviews: data.reviews.slice(0, 80) } : {}),
+            ...(Array.isArray(data.coupons) ? { coupons: data.coupons } : {}),
+            ...(data.featureFlags ? { featureFlags: data.featureFlags } : {}),
+            ...(data.features ? { features: data.features } : {}),
+            savedAt: Date.now()
+        };
+        localStorage.setItem(key, JSON.stringify(snapshot));
+    } catch (_) {}
+}
+window.savePortalOfflineSnapshot = savePortalOfflineSnapshot;
+
+function loadPortalOfflineSnapshot(key) {
+    if (typeof localStorage === 'undefined' || !key) return null;
+    try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : null;
+    } catch (_) {
+        return null;
     }
 }
+window.loadPortalOfflineSnapshot = loadPortalOfflineSnapshot;
 
 // --- Offline / Poor-Network Status Banner Across All Portals ---
 function updateOfflineStatusBanner() {

@@ -1013,6 +1013,9 @@ async function loadPublicBuses() {
             apiRequest('/api/config')
         ]);
         setAppData({ buses: result.buses, featureFlags: config.featureFlags });
+        if (typeof saveCustomerPublicOfflineCache === 'function') {
+            saveCustomerPublicOfflineCache({ buses: result.buses, featureFlags: config.featureFlags });
+        }
         await restoreCustomerFlowState();
         initCityAutocomplete();
     } catch (error) {

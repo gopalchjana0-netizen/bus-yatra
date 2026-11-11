@@ -15,8 +15,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preload" href="common.js?v=10.52" as="script">
-    <link rel="preload" href="app-captain.js?v=10.52" as="script">
+    <link rel="preload" href="common.js?v=10.53" as="script">
+    <link rel="preload" href="app-captain.js?v=10.53" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
     <script src="tailwind.js?v=10.37" defer></script>
@@ -936,8 +936,8 @@
         </div>
     </div>
 
-    <script src="common.js?v=10.52"></script>
-    <script src="app-captain.js?v=10.52"></script>
+    <script src="common.js?v=10.53"></script>
+    <script src="app-captain.js?v=10.53"></script>
     <!-- Non-blocking QR Scanner & Firebase Realtime Sync -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" defer></script>
@@ -972,7 +972,7 @@
             initFestivalThemeSync('captain');
         }
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js?v=10.52', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+            navigator.serviceWorker.register('/sw.js?v=10.53', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
         }
     </script>
 

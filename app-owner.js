@@ -631,15 +631,62 @@ function startCooldown(buttonEl, originalText) {
     }, 1000);
 }
 
+function applyOwnerDashboardView(data) {
+    if (!data) return;
+    const ownerSession = getOwnerSession();
+    const buses = data.buses || [];
+    const firstBus = buses[0];
+    const ownerNameEl = document.getElementById('ownerSubBannerName');
+    const ownerCompanyEl = document.getElementById('ownerSubBannerCompany');
+    const ownerFleetEl = document.getElementById('ownerSubBannerFleetBadge');
+    if (ownerNameEl) ownerNameEl.innerText = firstBus?.owner_name || ownerSession?.phone || window.t('বাস মালিক', 'Bus Owner');
+    if (ownerCompanyEl) ownerCompanyEl.innerText = firstBus?.name || 'Bus Yatra Fleet';
+    if (ownerFleetEl) {
+        const busCount = buses.length;
+        const bnText = `${busCount}টি সক্রিয় বাস`;
+        const enText = `${busCount} Active ${busCount === 1 ? 'Bus' : 'Buses'}`;
+        ownerFleetEl.setAttribute('data-bn', bnText);
+        ownerFleetEl.setAttribute('data-en', enText);
+        ownerFleetEl.innerText = window.t(bnText, enText);
+    }
+
+    loadOwnerBuses();
+    renderOwnerApprovals();
+    renderPassengerManifest();
+    loadOwnerReviews();
+
+    const savedOwnerTab = sessionStorage.getItem('owner_active_tab') || (window.location.hash ? window.location.hash.replace('#', '') : null);
+    const isMobile = window.innerWidth < 768;
+    if (isMobile && (!savedOwnerTab || savedOwnerTab === 'home')) {
+        returnToOwnerMobileHome();
+    } else if (savedOwnerTab && ['approvals', 'settings', 'captains', 'manifest', 'ledger', 'reviews', 'notifications'].includes(savedOwnerTab)) {
+        switchOwnerTab(savedOwnerTab);
+    } else if (!isMobile) {
+        switchOwnerTab('approvals');
+    }
+}
+
 async function loadOwnerDashboard() {
-    // 0. Instant Optimistic Render from cached local data (< 5ms on slow 2G/3G)
+    // 0. Instant Optimistic & Offline Render from saved Owner snapshot (< 5ms)
+    const snap = typeof loadPortalOfflineSnapshot === 'function'
+        ? loadPortalOfflineSnapshot('busyatra_offline_owner_state_v1')
+        : null;
+    if (snap && (snap.buses?.length || Object.keys(snap.bookings || {}).length)) {
+        ownerAppData = snap;
+        ownerBuses = snap.buses || [];
+        setAppData(snap);
+        if (snap.features) applyOwnerFeatures(snap.features);
+    }
     const cachedData = getAppData();
-    if (cachedData && (cachedData.buses?.length || cachedData.bookings?.length)) {
+    const hasCachedOfflineData = Boolean(
+        cachedData && (
+            (cachedData.buses && cachedData.buses.length > 0) ||
+            Object.keys(cachedData.bookings || {}).length > 0
+        )
+    );
+    if (hasCachedOfflineData) {
         try {
-            loadOwnerBuses();
-            renderOwnerApprovals();
-            renderPassengerManifest();
-            loadOwnerReviews();
+            applyOwnerDashboardView(snap || cachedData);
         } catch (_) {}
     }
 
@@ -648,6 +695,9 @@ async function loadOwnerDashboard() {
         ownerAppData = data;
         ownerBuses = data.buses || [];
         setAppData(data);
+        if (typeof savePortalOfflineSnapshot === 'function') {
+            savePortalOfflineSnapshot('busyatra_offline_owner_state_v1', data);
+        }
         applyOwnerFeatures(data.features);
 
         // 1. Check Suspension / Block Status
@@ -664,38 +714,7 @@ async function loadOwnerDashboard() {
             hideOwnerSubscriptionDue();
         }
 
-        // 3. Update Sub-Banner Info
-        const ownerSession = getOwnerSession();
-        const firstBus = (data.buses || [])[0];
-        const ownerNameEl = document.getElementById('ownerSubBannerName');
-        const ownerCompanyEl = document.getElementById('ownerSubBannerCompany');
-        const ownerFleetEl = document.getElementById('ownerSubBannerFleetBadge');
-        if (ownerNameEl) ownerNameEl.innerText = firstBus?.owner_name || ownerSession?.phone || window.t('বাস মালিক', 'Bus Owner');
-        if (ownerCompanyEl) ownerCompanyEl.innerText = firstBus?.name || 'Bus Yatra Fleet';
-        if (ownerFleetEl) {
-            const busCount = (data.buses || []).length;
-            const bnText = `${busCount}টি সক্রিয় বাস`;
-            const enText = `${busCount} Active ${busCount === 1 ? 'Bus' : 'Buses'}`;
-            ownerFleetEl.setAttribute('data-bn', bnText);
-            ownerFleetEl.setAttribute('data-en', enText);
-            ownerFleetEl.innerText = window.t(bnText, enText);
-        }
-
-        loadOwnerBuses();
-        renderOwnerApprovals();
-        renderPassengerManifest();
-        loadOwnerReviews();
-
-        // Restore active tab across page refresh / reload
-        const savedOwnerTab = sessionStorage.getItem('owner_active_tab') || (window.location.hash ? window.location.hash.replace('#', '') : null);
-        const isMobile = window.innerWidth < 768;
-        if (isMobile && (!savedOwnerTab || savedOwnerTab === 'home')) {
-            returnToOwnerMobileHome();
-        } else if (savedOwnerTab && ['approvals', 'settings', 'captains', 'manifest', 'ledger', 'reviews', 'notifications'].includes(savedOwnerTab)) {
-            switchOwnerTab(savedOwnerTab);
-        } else if (!isMobile) {
-            switchOwnerTab('approvals');
-        }
+        applyOwnerDashboardView(data);
     } catch (error) {
         if (error.status === 401) {
             localStorage.removeItem('owner_session');
@@ -723,11 +742,13 @@ async function loadOwnerDashboard() {
             }
         }
         console.error('Failed to load owner dashboard:', error);
-        const container = document.getElementById('ownerBookingsList');
-        if (container) {
-            container.innerHTML = `<div class="p-4 bg-red-50 text-red-700 text-xs rounded-xl border border-red-200">
-                Failed to sync with server: ${escapeHtml(error.message)}. Please check your internet connection or refresh.
-            </div>`;
+        if (!hasCachedOfflineData) {
+            const container = document.getElementById('ownerBookingsList');
+            if (container) {
+                container.innerHTML = `<div class="p-4 bg-red-50 text-red-700 text-xs rounded-xl border border-red-200">
+                    Failed to sync with server: ${escapeHtml(error.message)}. Please check your internet connection or refresh.
+                </div>`;
+            }
         }
     }
 }

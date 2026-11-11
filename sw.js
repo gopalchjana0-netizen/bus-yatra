@@ -1,10 +1,9 @@
-const CACHE_NAME = 'bus-yatra-v10.52';
+const CACHE_NAME = 'bus-yatra-v10.53';
 const urlsToCache = [
   '/',
-  '/index.html',
-  '/owner.html',
-  '/captain.html',
-  '/admin.html',
+  '/owner',
+  '/captain',
+  '/admin',
   '/style.css',
   '/tailwind.js',
   '/app.js',
@@ -57,6 +56,17 @@ self.addEventListener('message', event => {
   }
 });
 
+async function unwrapCleanResponse(resp) {
+  if (!resp || resp.status !== 200) return resp;
+  if (!resp.redirected) return resp;
+  const buf = await resp.clone().arrayBuffer();
+  return new Response(buf, {
+    status: resp.status,
+    statusText: resp.statusText || 'OK',
+    headers: new Headers(resp.headers)
+  });
+}
+
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
@@ -66,7 +76,8 @@ self.addEventListener('install', event => {
           try {
             const resp = await fetch(url, { cache: 'reload' });
             if (resp && resp.status === 200) {
-              await cache.put(url, resp);
+              const clean = await unwrapCleanResponse(resp);
+              await cache.put(url, clean);
             }
           } catch (_) {}
         })
@@ -90,12 +101,12 @@ self.addEventListener('activate', event => {
 });
 
 function resolveNavigationCacheKey(pathname) {
-  const clean = (pathname || '/').toLowerCase();
-  if (clean === '/' || clean === '/index' || clean === '/index.html') return '/index.html';
-  if (clean === '/owner' || clean === '/owner.html') return '/owner.html';
-  if (clean === '/captain' || clean === '/captain.html') return '/captain.html';
-  if (clean === '/admin' || clean === '/admin.html') return '/admin.html';
-  return '/index.html';
+  const clean = (pathname || '/').replace(/\/+$/, '').toLowerCase() || '/';
+  if (clean === '/' || clean === '/index' || clean === '/index.html') return '/';
+  if (clean === '/owner' || clean === '/owner.html') return '/owner';
+  if (clean === '/captain' || clean === '/captain.html') return '/captain';
+  if (clean === '/admin' || clean === '/admin.html') return '/admin';
+  return '/';
 }
 
 function buildOfflineHtmlResponse() {
@@ -128,17 +139,20 @@ self.addEventListener('fetch', event => {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE_NAME);
       const cached = (await cache.match(cacheKey, { ignoreSearch: true })) ||
+                     (await cache.match('/', { ignoreSearch: true })) ||
                      (await cache.match('/index.html', { ignoreSearch: true }));
 
-      const networkFetch = fetch(event.request).then(resp => {
+      const networkFetch = fetch(cacheKey).then(async resp => {
         if (resp && resp.status === 200) {
-          cache.put(cacheKey, resp.clone()).catch(() => {});
+          const clean = await unwrapCleanResponse(resp);
+          cache.put(cacheKey, clean.clone()).catch(() => {});
+          return clean;
         }
         return resp;
       });
 
       if (cached) {
-        // Race fresh edge fetch with 1.2s ceiling so poor 2G or offline opens the app immediately
+        // Race fresh edge fetch with 1.2s ceiling so poor 2G or offline opens ALL 4 portals cleanly
         try {
           const raceResult = await Promise.race([
             networkFetch,

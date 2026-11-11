@@ -225,9 +225,27 @@ function applyCaptainFeatures(features = {}) {
 window.applyCaptainFeatures = applyCaptainFeatures;
 
 async function loadCaptainDashboard() {
-    // 0. Instant Optimistic Render from cached local data (< 5ms on slow 2G/3G)
+    // 0. Instant Optimistic & Offline Render from saved Captain snapshot (< 5ms)
+    const snap = typeof loadPortalOfflineSnapshot === 'function'
+        ? loadPortalOfflineSnapshot('busyatra_offline_captain_state_v1')
+        : null;
+    if (snap && (snap.buses?.length || Object.keys(snap.bookings || {}).length)) {
+        setAppData(snap);
+        if (snap.features) applyCaptainFeatures(snap.features);
+        if (loggedInCaptain) {
+            const nameEl = document.getElementById('captainHeaderName');
+            const busEl = document.getElementById('captainHeaderBus');
+            const routeEl = document.getElementById('captainHeaderRoute');
+            if (nameEl) nameEl.innerText = `👨‍✈️ ${loggedInCaptain.name || 'Captain'}`;
+            const cachedBus = (snap.buses || []).find(b => b.id === loggedInCaptain.busId);
+            if (cachedBus) {
+                if (busEl) busEl.innerText = `${cachedBus.name} (${cachedBus.busNumber || 'Express'})`;
+                if (routeEl) routeEl.innerText = cachedBus.route || (cachedBus.stoppages ? `${cachedBus.stoppages[0]} ➔ ${cachedBus.stoppages[cachedBus.stoppages.length - 1]}` : 'Pingla ➔ Kolkata');
+            }
+        }
+    }
     const cachedData = getAppData();
-    if (cachedData && (cachedData.buses?.length || cachedData.bookings?.length)) {
+    if (cachedData && ((cachedData.buses && cachedData.buses.length > 0) || Object.keys(cachedData.bookings || {}).length > 0)) {
         try {
             renderCaptainApprovals();
             loadCaptainSeatLayout();
@@ -238,6 +256,9 @@ async function loadCaptainDashboard() {
     try {
         const data = await apiRequest('/api/captain/state');
         setAppData(data);
+        if (typeof savePortalOfflineSnapshot === 'function') {
+            savePortalOfflineSnapshot('busyatra_offline_captain_state_v1', data);
+        }
         if (data.features) {
             applyCaptainFeatures(data.features);
         }

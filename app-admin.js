@@ -410,9 +410,21 @@ async function adminLogout() {
 }
 
 async function loadAdminDashboard() {
-    // 0. Instant Optimistic Render from cached local data (< 5ms on slow 2G/3G)
+    // 0. Instant Optimistic & Offline Render from saved Admin snapshot (< 5ms)
+    const snap = typeof loadPortalOfflineSnapshot === 'function'
+        ? loadPortalOfflineSnapshot('busyatra_offline_admin_state_v1')
+        : null;
+    if (snap && (snap.buses?.length || Object.keys(snap.bookings || {}).length)) {
+        setAppData(snap);
+    }
     const cachedData = getAppData();
-    if (cachedData && (cachedData.buses?.length || cachedData.bookings?.length)) {
+    const hasCachedOfflineData = Boolean(
+        cachedData && (
+            (cachedData.buses && cachedData.buses.length > 0) ||
+            Object.keys(cachedData.bookings || {}).length > 0
+        )
+    );
+    if (hasCachedOfflineData) {
         try {
             loadAdminStats();
             loadAdminBuses();
@@ -425,6 +437,9 @@ async function loadAdminDashboard() {
     try {
         const data = await apiRequest('/api/admin/state');
         setAppData(data);
+        if (typeof savePortalOfflineSnapshot === 'function') {
+            savePortalOfflineSnapshot('busyatra_offline_admin_state_v1', data);
+        }
         loadAdminStats();
         loadAdminBuses();
         renderAdminCustomersList();
@@ -470,7 +485,9 @@ async function loadAdminDashboard() {
             showLoginView();
             return;
         }
-        alert(`Failed to load admin data from the server: ${error.message}`);
+        if (!hasCachedOfflineData && navigator.onLine !== false) {
+            alert(`Failed to load admin data from the server: ${error.message}`);
+        }
     }
 }
 
