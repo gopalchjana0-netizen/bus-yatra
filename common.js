@@ -594,6 +594,23 @@ window.addEventListener('beforeinstallprompt', (e) => {
     console.log('Bus Yatra PWA install prompt is ready.');
 
     if (!isPwaStandalone()) {
+        const portal = typeof getCurrentAnalyticsPortal === 'function' ? getCurrentAnalyticsPortal() : 'customer';
+        try {
+            const portalInstalledKey = `busyatra_pwa_installed_${portal}`;
+            const legacyCustomerInstalled = portal === 'customer' && localStorage.getItem('busyatra_pwa_installed') === 'true' && localStorage.getItem('busyatra_pwa_uninstalled_customer') !== 'true';
+            if (localStorage.getItem(portalInstalledKey) === 'true' || legacyCustomerInstalled) {
+                localStorage.removeItem(portalInstalledKey);
+                localStorage.setItem(`busyatra_pwa_uninstalled_${portal}`, 'true');
+                if (portal === 'customer') {
+                    localStorage.removeItem('busyatra_pwa_installed');
+                    localStorage.removeItem('busyatra_app_installed');
+                }
+                if (typeof sendClientTelemetryEvent === 'function') {
+                    sendClientTelemetryEvent('uninstalled', { reason: 'install_prompt_reappeared' });
+                }
+            }
+        } catch (_) {}
+
         const path = (window.location.pathname || '').toLowerCase();
         if (!path.includes('owner') && !path.includes('captain') && !path.includes('admin')) {
             if (document.readyState === 'loading') {
@@ -623,12 +640,19 @@ window.addEventListener('beforeinstallprompt', (e) => {
 
 window.addEventListener('appinstalled', () => {
     pwaDeferredPrompt = null;
+    const portal = typeof getCurrentAnalyticsPortal === 'function' ? getCurrentAnalyticsPortal() : 'customer';
     try {
         localStorage.setItem('busyatra_pwa_installed', 'true');
         localStorage.setItem('busyatra_app_installed', 'true');
+        localStorage.setItem(`busyatra_pwa_installed_${portal}`, 'true');
+        localStorage.setItem(`busyatra_pwa_installed_at_${portal}`, String(Date.now()));
+        localStorage.removeItem(`busyatra_pwa_uninstalled_${portal}`);
     } catch (_) {}
     saveCustomerInstallBannerState({ count: 2, hiddenUntil: 0, permanent: true });
     hideAllInstallBanners();
+    if (typeof sendClientTelemetryEvent === 'function') {
+        sendClientTelemetryEvent('installed');
+    }
     console.log('Bus Yatra PWA successfully installed!');
 });
 
@@ -2735,6 +2759,152 @@ function copyCaptainAppLink() {
     }
 }
 window.copyCaptainAppLink = copyCaptainAppLink;
+
+// --- Website Visit, PWA App Install & Uninstall Analytics Telemetry ---
+function getCurrentAnalyticsPortal() {
+    if (typeof window === 'undefined') return 'customer';
+    const path = (window.location.pathname || '').toLowerCase();
+    if (path.includes('owner')) return 'owner';
+    if (path.includes('captain')) return 'captain';
+    if (path.includes('admin')) return 'admin';
+    return 'customer';
+}
+
+function getOrCreateClientUid() {
+    const key = 'busyatra_client_uid';
+    try {
+        const existing = localStorage.getItem(key);
+        if (existing && /^[a-zA-Z0-9_-]{6,64}$/.test(existing)) return existing;
+        const generated = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+            ? ('byc_' + crypto.randomUUID().replace(/-/g, '').slice(0, 24))
+            : ('byc_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12));
+        localStorage.setItem(key, generated);
+        return generated;
+    } catch {
+        return 'byc_ephemeral_' + Date.now().toString(36);
+    }
+}
+
+function getCurrentPortalSessionMeta(portal) {
+    try {
+        const raw = localStorage.getItem(`${portal}_session`) ||
+                    sessionStorage.getItem(`${portal}_session`) ||
+                    localStorage.getItem(`portal_session_${portal}`) ||
+                    sessionStorage.getItem(`portal_session_${portal}`);
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (parsed && parsed.token) {
+            return {
+                token: parsed.token,
+                userRole: portal,
+                userIdentifier: parsed.phone || parsed.email || parsed.identifier || ''
+            };
+        }
+        if (portal === 'customer') {
+            const custPhone = localStorage.getItem('customer_phone') || '';
+            return { token: null, userRole: custPhone ? 'customer' : '', userIdentifier: custPhone };
+        }
+    } catch (_) {}
+    return { token: null, userRole: '', userIdentifier: '' };
+}
+
+async function sendClientTelemetryEvent(event, extra = {}) {
+    if (typeof window === 'undefined' || typeof fetch === 'undefined') return;
+    try {
+        const portal = getCurrentAnalyticsPortal();
+        const deviceUid = getOrCreateClientUid();
+        const deviceInfo = (typeof getRealDeviceTelemetrySync === 'function') ? getRealDeviceTelemetrySync() : {};
+        const sessionMeta = getCurrentPortalSessionMeta(portal);
+        const host = window.location.hostname || '';
+        const endpoint = (host.includes('web.app') || host.includes('firebaseapp.com'))
+            ? 'https://busyatra.pages.dev/api/telemetry/client-event'
+            : '/api/telemetry/client-event';
+
+        const headers = {
+            'Content-Type': 'application/json',
+            ...(sessionMeta.token ? { Authorization: `Bearer ${sessionMeta.token}` } : {}),
+            ...(deviceInfo ? { 'x-device-telemetry': JSON.stringify(deviceInfo) } : {})
+        };
+
+        await fetch(endpoint, {
+            method: 'POST',
+            keepalive: true,
+            headers,
+            body: JSON.stringify({
+                deviceUid,
+                portal,
+                event,
+                screen: deviceInfo.screen || `${window.screen?.width || 0}x${window.screen?.height || 0}`,
+                deviceInfo,
+                userRole: sessionMeta.userRole,
+                userIdentifier: sessionMeta.userIdentifier,
+                ...extra
+            })
+        }).catch(() => {});
+    } catch (_) {}
+}
+window.sendClientTelemetryEvent = sendClientTelemetryEvent;
+
+async function trackPortalClientAnalyticsOnBoot() {
+    if (typeof window === 'undefined') return;
+    const portal = getCurrentAnalyticsPortal();
+    const installedKey = `busyatra_pwa_installed_${portal}`;
+    const uninstalledKey = `busyatra_pwa_uninstalled_${portal}`;
+    const installedAtKey = `busyatra_pwa_installed_at_${portal}`;
+    const standalone = typeof isPwaStandalone === 'function' && isPwaStandalone();
+
+    if (standalone) {
+        try {
+            localStorage.setItem(installedKey, 'true');
+            if (!localStorage.getItem(installedAtKey)) {
+                localStorage.setItem(installedAtKey, String(Date.now()));
+            }
+            localStorage.removeItem(uninstalledKey);
+        } catch (_) {}
+        const ssKey = `by_sa_ping_${portal}`;
+        const firstInSession = !sessionStorage.getItem(ssKey);
+        if (firstInSession) sessionStorage.setItem(ssKey, '1');
+        await sendClientTelemetryEvent('standalone_open', { countVisit: firstInSession });
+        return;
+    }
+
+    const visitSessionKey = `by_visit_ping_${portal}`;
+    const countVisit = !sessionStorage.getItem(visitSessionKey);
+    if (countVisit) sessionStorage.setItem(visitSessionKey, '1');
+    await sendClientTelemetryEvent('visit', { countVisit });
+
+    // Android Chrome reactive uninstall check via related_applications on production host
+    try {
+        const isProdHost = window.location.hostname === 'busyatra.pages.dev';
+        const isAndroid = typeof isAndroidChromeBrowser === 'function' && isAndroidChromeBrowser();
+        const wasInstalled = localStorage.getItem(installedKey) === 'true' ||
+            (portal === 'customer' && localStorage.getItem('busyatra_pwa_installed') === 'true' && localStorage.getItem(uninstalledKey) !== 'true');
+        const installedAt = Number(localStorage.getItem(installedAtKey) || '0');
+        const oldEnough = !installedAt || (Date.now() - installedAt > 60000);
+
+        if (isProdHost && isAndroid && wasInstalled && oldEnough && typeof navigator.getInstalledRelatedApps === 'function') {
+            const relatedApps = await navigator.getInstalledRelatedApps();
+            if (Array.isArray(relatedApps) && relatedApps.length === 0) {
+                localStorage.removeItem(installedKey);
+                localStorage.setItem(uninstalledKey, 'true');
+                if (portal === 'customer') {
+                    localStorage.removeItem('busyatra_pwa_installed');
+                    localStorage.removeItem('busyatra_app_installed');
+                }
+                await sendClientTelemetryEvent('uninstalled', { reason: 'related_apps_empty' });
+            }
+        }
+    } catch (_) {}
+}
+
+if (typeof window !== 'undefined') {
+    const startAnalyticsTimer = () => setTimeout(() => { trackPortalClientAnalyticsOnBoot(); }, 900);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startAnalyticsTimer, { once: true });
+    } else {
+        startAnalyticsTimer();
+    }
+}
+
 
 
 

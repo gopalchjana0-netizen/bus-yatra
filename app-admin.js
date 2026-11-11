@@ -4678,6 +4678,8 @@ if (typeof window !== 'undefined') {
         if (typeof renderAdminCaptainsList === 'function') renderAdminCaptainsList(adminCaptainsList || adminCaptainsData || []);
         if (typeof renderAdminDevicesList === 'function') renderAdminDevicesList(adminDevicesCache.devices);
         if (typeof renderAdminLoginLogsList === 'function') renderAdminLoginLogsList(adminDevicesCache.recentLogs);
+        if (typeof updateAdminAnalyticsKpiUI === 'function') updateAdminAnalyticsKpiUI(adminClientAnalyticsCache.stats);
+        if (typeof renderAdminClientAnalyticsList === 'function') renderAdminClientAnalyticsList(adminClientAnalyticsCache.list);
         if (typeof renderAdminSubscriptionsUI === 'function') renderAdminSubscriptionsUI();
         if (typeof renderAdminCouponsList === 'function') renderAdminCouponsList();
         if (typeof loadAdminPromotions === 'function') loadAdminPromotions();
@@ -6471,21 +6473,33 @@ window.formatDeviceInlineBadge = formatDeviceInlineBadge;
 function formatTimeAgo(date) {
     if (!date || isNaN(date.getTime())) return '';
     const diff = Math.floor((Date.now() - date.getTime()) / 1000);
-    if (diff < 60) return 'এইমাত্র';
-    if (diff < 3600) return `${Math.floor(diff / 60)} মিনিট আগে`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)} ঘণ্টা আগে`;
-    return `${Math.floor(diff / 86400)} দিন আগে`;
+    if (diff < 60) return window.t('এইমাত্র', 'Just now');
+    if (diff < 3600) {
+        const m = Math.floor(diff / 60);
+        return window.t(`${m} মিনিট আগে`, `${m}m ago`);
+    }
+    if (diff < 86400) {
+        const h = Math.floor(diff / 3600);
+        return window.t(`${h} ঘণ্টা আগে`, `${h}h ago`);
+    }
+    const d = Math.floor(diff / 86400);
+    return window.t(`${d} দিন আগে`, `${d}d ago`);
 }
+
+let currentAnalyticsStatusFilter = 'all';
+let currentAnalyticsPortalFilter = 'all';
+let adminClientAnalyticsCache = { list: [], stats: {} };
 
 async function loadAdminDevicesData() {
     const container = document.getElementById('adminDevicesContainer');
     const logsContainer = document.getElementById('adminLoginLogsContainer');
+    const analyticsContainer = document.getElementById('adminClientAnalyticsContainer');
     const countBadge = document.getElementById('adminDevCount');
     const searchInput = document.getElementById('adminDeviceSearchInput');
     const query = searchInput ? searchInput.value.trim() : '';
 
     if (container) {
-        container.innerHTML = '<div class="text-center text-gray-400 py-10 text-xs animate-pulse">ডিভাইস অডিট ডেটা ফেচ করা হচ্ছে...</div>';
+        container.innerHTML = `<div class="text-center text-gray-400 py-10 text-xs animate-pulse">${window.t('ডিভাইস অডিট ডেটা ফেচ করা হচ্ছে...', 'Fetching device audit telemetry...')}</div>`;
     }
 
     try {
@@ -6493,12 +6507,26 @@ async function loadAdminDevicesData() {
         if (currentAdminDeviceRoleFilter && currentAdminDeviceRoleFilter !== 'all') {
             queryParams.set('role', currentAdminDeviceRoleFilter);
         }
+        if (currentAnalyticsStatusFilter && currentAnalyticsStatusFilter !== 'all') {
+            queryParams.set('analyticsStatus', currentAnalyticsStatusFilter);
+        }
+        if (currentAnalyticsPortalFilter && currentAnalyticsPortalFilter !== 'all') {
+            queryParams.set('analyticsPortal', currentAnalyticsPortalFilter);
+        }
         if (query) {
             queryParams.set('query', query);
         }
 
         const res = await apiRequest(`/api/admin/devices?${queryParams.toString()}`);
         adminDevicesCache = res || { devices: [], recentLogs: [], stats: {} };
+        adminClientAnalyticsCache = {
+            list: res?.clientAnalytics || [],
+            stats: res?.analyticsStats || {}
+        };
+
+        // Update Traffic, App Installs & Uninstall KPI Cards
+        updateAdminAnalyticsKpiUI(adminClientAnalyticsCache.stats);
+        renderAdminClientAnalyticsList(adminClientAnalyticsCache.list);
 
         // Update Overview Stats
         const stats = adminDevicesCache.stats || {};
@@ -6524,12 +6552,12 @@ async function loadAdminDevicesData() {
         if (devTopBrands) {
             const brands = stats.topBrands || [];
             if (brands.length === 0) {
-                devTopBrands.innerHTML = '<span class="text-gray-400 text-[11px] font-normal">কোনো ব্র্যান্ড লগ নেই</span>';
+                devTopBrands.innerHTML = `<span class="text-gray-400 text-[11px] font-normal">${window.t('কোনো ব্র্যান্ড লগ নেই', 'No brand logs')}</span>`;
             } else {
                 devTopBrands.innerHTML = brands.map(b => 
                     `<div class="flex items-center justify-between text-[11px]">
                         <span class="text-gray-700">${escapeHtml(b.device_brand)}</span>
-                        <span class="text-indigo-600 font-bold">${b.count}টি</span>
+                        <span class="text-indigo-600 font-bold">${b.count}</span>
                     </div>`
                 ).join('');
             }
@@ -6543,14 +6571,225 @@ async function loadAdminDevicesData() {
         renderAdminLoginLogsList(adminDevicesCache.recentLogs || []);
     } catch (err) {
         if (container) {
-            container.innerHTML = `<div class="text-center text-red-500 py-10 text-xs">ডিভাইস ডেটা লোড করতে ব্যর্থ: ${escapeHtml(err.message)}</div>`;
+            container.innerHTML = `<div class="text-center text-red-500 py-10 text-xs">${window.t('ডিভাইস ডেটা লোড করতে ব্যর্থ', 'Failed to load device data')}: ${escapeHtml(err.message)}</div>`;
         }
         if (logsContainer) {
-            logsContainer.innerHTML = `<div class="text-center text-red-500 py-6 text-xs">লগইন হিস্টোরি লোড করতে ব্যর্থ: ${escapeHtml(err.message)}</div>`;
+            logsContainer.innerHTML = `<div class="text-center text-red-500 py-6 text-xs">${window.t('লগইন হিস্টোরি লোড করতে ব্যর্থ', 'Failed to load login history')}: ${escapeHtml(err.message)}</div>`;
+        }
+        if (analyticsContainer) {
+            analyticsContainer.innerHTML = `<div class="text-center text-red-500 py-6 text-xs">${window.t('ভিজিট ও ইনস্টল ডেটা লোড করতে ব্যর্থ', 'Failed to load traffic & install data')}: ${escapeHtml(err.message)}</div>`;
         }
     }
 }
 window.loadAdminDevicesData = loadAdminDevicesData;
+
+function updateAdminAnalyticsKpiUI(st = {}) {
+    const visitsEl = document.getElementById('statAnalyticsVisits');
+    const uniqueSubEl = document.getElementById('statAnalyticsUniqueSub');
+    const installedEl = document.getElementById('statAnalyticsInstalled');
+    const installedSubEl = document.getElementById('statAnalyticsInstalledSub');
+    const activeAppEl = document.getElementById('statAnalyticsActiveApp');
+    const portalSubEl = document.getElementById('statAnalyticsPortalSub');
+    const uninstalledEl = document.getElementById('statAnalyticsUninstalled');
+    const inactiveSubEl = document.getElementById('statAnalyticsInactiveSub');
+    const countEl = document.getElementById('adminAnalyticsCount');
+
+    if (visitsEl) visitsEl.innerText = st.totalVisits ?? 0;
+    if (uniqueSubEl) {
+        uniqueSubEl.innerText = window.t(
+            `${st.uniqueVisitors ?? 0}টি ডিভাইস • আজ ${st.todayVisitors ?? 0}`,
+            `${st.uniqueVisitors ?? 0} unique • ${st.todayVisitors ?? 0} today`
+        );
+    }
+    if (installedEl) installedEl.innerText = st.installedTotal ?? 0;
+    if (installedSubEl) {
+        installedSubEl.innerText = window.t(
+            `📱 ${st.mobileInstalled ?? 0} মোবাইল • 💻 ${st.desktopInstalled ?? 0} পিসি`,
+            `📱 ${st.mobileInstalled ?? 0} mobile • 💻 ${st.desktopInstalled ?? 0} PC`
+        );
+    }
+    if (activeAppEl) activeAppEl.innerText = st.activeApp14d ?? 0;
+    if (portalSubEl) {
+        const bd = {};
+        (st.portalBreakdown || []).forEach(p => { bd[p.portal] = p.installs || 0; });
+        portalSubEl.innerText = `Cust:${bd.customer || 0} • Own:${bd.owner || 0} • Cap:${bd.captain || 0}`;
+    }
+    if (uninstalledEl) uninstalledEl.innerText = st.uninstalledTotal ?? 0;
+    if (inactiveSubEl) {
+        inactiveSubEl.innerText = window.t(
+            `⏸️ ${st.inactiveApp14d ?? 0}টি ১৪ দিন+ নিষ্ক্রিয়`,
+            `⏸️ ${st.inactiveApp14d ?? 0} inactive 14d+`
+        );
+    }
+    if (countEl) {
+        countEl.innerText = (adminClientAnalyticsCache.list || []).length;
+    }
+}
+
+function setAdminAnalyticsStatusFilter(status) {
+    currentAnalyticsStatusFilter = status || 'all';
+    document.querySelectorAll('.admin-ana-status-btn').forEach(btn => {
+        const s = btn.getAttribute('data-status');
+        if (s === currentAnalyticsStatusFilter) {
+            btn.className = 'admin-ana-status-btn px-2.5 py-1.5 rounded-xl font-bold bg-indigo-600 text-white shadow-xs cursor-pointer';
+        } else {
+            btn.className = 'admin-ana-status-btn px-2.5 py-1.5 rounded-xl font-bold bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer';
+        }
+    });
+    loadAdminDevicesData();
+}
+window.setAdminAnalyticsStatusFilter = setAdminAnalyticsStatusFilter;
+
+function setAdminAnalyticsPortalFilter(portal) {
+    currentAnalyticsPortalFilter = portal || 'all';
+    loadAdminDevicesData();
+}
+window.setAdminAnalyticsPortalFilter = setAdminAnalyticsPortalFilter;
+
+function renderAdminClientAnalyticsList(list) {
+    const container = document.getElementById('adminClientAnalyticsContainer');
+    if (!container) return;
+
+    const countEl = document.getElementById('adminAnalyticsCount');
+    if (countEl) countEl.innerText = (list || []).length;
+
+    if (!list || list.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-8 text-gray-400 text-xs">
+                <span class="text-2xl block mb-1.5">🌐</span>
+                ${window.t('এই ফিল্টারে কোনো ভিজিট বা অ্যাপ ইনস্টল রেকর্ড পাওয়া যায়নি।', 'No traffic or app install records found for this filter.')}
+            </div>
+        `;
+        return;
+    }
+
+    const fourteenDaysMs = 14 * 24 * 3600 * 1000;
+    container.innerHTML = list.map(rec => {
+        const portalMap = {
+            customer: { label: window.t('কাস্টমার', 'Customer'), cls: 'bg-red-100 text-red-700' },
+            owner: { label: window.t('ওনার', 'Owner'), cls: 'bg-amber-100 text-amber-800' },
+            captain: { label: window.t('ক্যাপ্টেন', 'Captain'), cls: 'bg-blue-100 text-blue-700' },
+            admin: { label: window.t('অ্যাডমিন', 'Admin'), cls: 'bg-slate-200 text-slate-800' }
+        };
+        const pInfo = portalMap[rec.portal] || portalMap.customer;
+        const lastStandTs = rec.last_standalone_at || rec.installed_at || rec.last_seen_at;
+        const isInactive = rec.install_status === 'installed' && lastStandTs && (Date.now() - new Date(lastStandTs).getTime() > fourteenDaysMs);
+
+        let statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">${window.t('🌐 ওয়েব ভিজিটর', '🌐 Web Visitor')}</span>`;
+        let icon = '🌐';
+        if (rec.install_status === 'uninstalled') {
+            statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200">${window.t('❌ আনইনস্টল', '❌ Uninstalled')}</span>`;
+            icon = '❌';
+        } else if (rec.install_status === 'installed' && isInactive) {
+            statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">${window.t('⏸️ ইনস্টল (নিষ্ক্রিয়)', '⏸️ Installed (Inactive)')}</span>`;
+            icon = '📲';
+        } else if (rec.install_status === 'installed') {
+            statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">${window.t('📲 অ্যাপ ইনস্টল', '📲 Installed')}</span>`;
+            icon = '📲';
+        }
+
+        const brandModel = [rec.device_brand && rec.device_brand !== 'Unknown' ? rec.device_brand : '', rec.device_model || ''].filter(Boolean).join(' ')
+            || (rec.device_type === 'Desktop' ? 'Desktop / PC' : 'Mobile Device');
+        const loc = [rec.city, rec.region, rec.country].filter(Boolean).join(', ') || 'Online';
+        const lastSeenAgo = rec.last_seen_at ? formatTimeAgo(new Date(rec.last_seen_at)) : '';
+        const statusDateText = rec.uninstalled_at
+            ? `${window.t('সরানো হয়েছে', 'Removed')}: ${formatTimeAgo(new Date(rec.uninstalled_at))}`
+            : (rec.installed_at ? `${window.t('ইনস্টল', 'Installed')}: ${formatTimeAgo(new Date(rec.installed_at))}` : '');
+        const label = `${brandModel} (${pInfo.label})`;
+
+        return `
+            <div class="p-3 rounded-xl bg-gray-50/80 hover:bg-gray-100/90 border border-gray-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs transition min-w-0">
+                <div class="flex items-start gap-2.5 min-w-0">
+                    <span class="text-lg shrink-0 mt-0.5">${icon}</span>
+                    <div class="min-w-0 space-y-1">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="font-black text-gray-900">${escapeHtml(brandModel)}</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${pInfo.cls}">${escapeHtml(pInfo.label)}</span>
+                            ${statusBadge}
+                            ${rec.user_identifier ? `<span class="font-mono text-[10px] bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded">👤 ${escapeHtml(rec.user_identifier)}</span>` : ''}
+                        </div>
+                        <div class="text-[11px] text-gray-600 flex items-center gap-2 flex-wrap">
+                            <span>⚙️ ${escapeHtml(rec.os || 'Unknown')} (${escapeHtml(rec.browser || 'Browser')})</span>
+                            <span>•</span>
+                            <span>📍 ${escapeHtml(loc)}</span>
+                            <span>•</span>
+                            <span class="font-semibold text-slate-700">👁️ ${rec.visit_count || 0} ${window.t('ভিজিট', 'visits')}</span>
+                            ${(rec.standalone_open_count || 0) > 0 ? `<span class="text-emerald-700 font-semibold">• 📱 ${rec.standalone_open_count} ${window.t('অ্যাপ ওপেন', 'app opens')}</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between sm:justify-end gap-2.5 shrink-0 pl-7 sm:pl-0">
+                    <div class="text-left sm:text-right text-[10px] text-gray-500">
+                        <div class="font-bold text-gray-700">${escapeHtml(lastSeenAgo)}</div>
+                        ${statusDateText ? `<div class="text-gray-500">${escapeHtml(statusDateText)}</div>` : ''}
+                    </div>
+                    <button type="button" onclick="adminDeleteClientAnalyticsRecord('${escapeHtml(rec.client_id)}', '${escapeHtml(label)}')" class="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1.5 rounded-lg transition active:scale-95 cursor-pointer shrink-0">
+                        <span>🗑️</span> <span>${window.t('মুছুন', 'Delete')}</span>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function runAdminAnalyticsDelete(queryString, successFallback) {
+    try {
+        const res = await apiRequest(`/api/admin/devices/analytics?${queryString}`, { method: 'DELETE' });
+        if (successFallback) alert(res?.message || successFallback);
+        await loadAdminDevicesData();
+    } catch (err) {
+        try {
+            const res = await apiRequest(`/api/admin/devices/analytics/delete?${queryString}`, { method: 'POST' });
+            if (successFallback) alert(res?.message || successFallback);
+            await loadAdminDevicesData();
+        } catch (err2) {
+            alert(window.t('মুছতে ব্যর্থ: ', 'Delete failed: ') + (err2.message || err.message));
+        }
+    }
+}
+
+async function adminDeleteClientAnalyticsRecord(clientId, label) {
+    if (!clientId) return;
+    const ok = await showBusYatraConfirm({
+        title: window.t('ভিজিট / ইনস্টল রেকর্ড ডিলিট', 'Delete Traffic / Install Record'),
+        subtitle: window.t(`আপনি কি ${label}-এর ভিজিট ও অ্যাপ ইনস্টল রেকর্ড মুছে ফেলতে চান?`, `Delete stored visit and app install telemetry for ${label}?`),
+        icon: '🗑️',
+        confirmText: window.t('হ্যাঁ, মুছে ফেলুন', 'Yes, Delete'),
+        cancelText: window.t('বাতিল', 'Cancel'),
+        danger: true
+    });
+    if (!ok) return;
+    await runAdminAnalyticsDelete(`id=${encodeURIComponent(clientId)}`, window.t('✅ রেকর্ড মুছে ফেলা হয়েছে।', '✅ Record deleted.'));
+}
+window.adminDeleteClientAnalyticsRecord = adminDeleteClientAnalyticsRecord;
+
+async function adminClearUninstalledAnalyticsPrompt() {
+    const ok = await showBusYatraConfirm({
+        title: window.t('আনইনস্টল রেকর্ড মুছুন', 'Clear Uninstalled Records'),
+        subtitle: window.t('যারা অ্যাপ আনইনস্টল করেছেন সেই সব ডিভাইসের রেকর্ড মুছে ফেলতে চান?', 'Delete all device records marked as Uninstalled?'),
+        icon: '🧹',
+        confirmText: window.t('হ্যাঁ, মুছে ফেলুন', 'Clear Uninstalled'),
+        cancelText: window.t('বাতিল', 'Cancel'),
+        danger: true
+    });
+    if (!ok) return;
+    await runAdminAnalyticsDelete('status=uninstalled', window.t('✅ আনইনস্টল রেকর্ডগুলো মুছে ফেলা হয়েছে।', '✅ Uninstalled records cleared.'));
+}
+window.adminClearUninstalledAnalyticsPrompt = adminClearUninstalledAnalyticsPrompt;
+
+async function adminClearAllClientAnalyticsPrompt() {
+    const ok = await showBusYatraConfirm({
+        title: window.t('সব ভিজিট ও ইনস্টল ডেটা মুছুন', 'Clear All Traffic & App Data'),
+        subtitle: window.t('⚠️ সমস্ত ওয়েবসাইট ভিজিটর, অ্যাপ ইনস্টল এবং আনইনস্টল পরিসংখ্যান চিরতরে মুছে ফেলতে চান?', '⚠️ Permanently delete all website visitor, app install, and uninstall telemetry records?'),
+        icon: '⚠️',
+        confirmText: window.t('হ্যাঁ, সব মুছে ফেলুন', 'Yes, Clear All'),
+        cancelText: window.t('বাতিল', 'Cancel'),
+        danger: true
+    });
+    if (!ok) return;
+    await runAdminAnalyticsDelete('all=true', window.t('✅ সমস্ত ভিজিট ও অ্যাপ ইনস্টল ডেটা মুছে ফেলা হয়েছে।', '✅ All traffic & app install analytics cleared.'));
+}
+window.adminClearAllClientAnalyticsPrompt = adminClearAllClientAnalyticsPrompt;
 
 function setAdminDeviceRoleFilter(role) {
     currentAdminDeviceRoleFilter = role;

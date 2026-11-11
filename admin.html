@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preload" href="common.js?v=10.45" as="script">
-    <link rel="preload" href="app-admin.js?v=10.45" as="script">
+    <link rel="preload" href="common.js?v=10.46" as="script">
+    <link rel="preload" href="app-admin.js?v=10.46" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
     <script src="tailwind.js?v=10.37" defer></script>
@@ -2795,6 +2795,96 @@
                 </div>
             </div>
 
+            <!-- Website Visits, Mobile App Installs & Uninstall Monitor -->
+            <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-indigo-200/80 space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
+                    <div class="min-w-0">
+                        <h3 class="font-bold text-sm sm:text-base text-gray-900 flex items-center gap-2 flex-wrap">
+                            <span>🌐</span>
+                            <span data-bn="ওয়েবসাইট ভিজিট, অ্যাপ ইনস্টল ও আনইনস্টল মনিটর" data-en="Website Traffic, App Installs &amp; Uninstalls">ওয়েবসাইট ভিজিট, অ্যাপ ইনস্টল ও আনইনস্টল মনিটর</span>
+                            <span class="bg-indigo-100 text-indigo-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">Live</span>
+                        </h3>
+                        <p class="text-[11px] text-gray-500 mt-0.5" data-bn="লগইন ছাড়াই কতজন ওয়েবসাইট ভিজিট করছে, কতজন মোবাইল অ্যাপ ইনস্টল করেছে এবং কারা অ্যাপ সরিয়ে দিয়েছে তা দেখুন।" data-en="Track total &amp; unique website visitors, mobile PWA installations across portals, and detected uninstalls or inactive installs.">লগইন ছাড়াই কতজন ওয়েবসাইট ভিজিট করছে, কতজন মোবাইল অ্যাপ ইনস্টল করেছে এবং কারা অ্যাপ সরিয়ে দিয়েছে তা দেখুন।</p>
+                    </div>
+                    <div class="flex items-center gap-2 flex-wrap shrink-0">
+                        <button type="button" onclick="adminClearUninstalledAnalyticsPrompt()" class="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 px-3 py-1.5 rounded-xl font-bold text-[11px] transition flex items-center gap-1 active:scale-95 cursor-pointer">
+                            <span>🧹</span> <span data-bn="আনইনস্টল মুছুন" data-en="Clear Uninstalled">আনইনস্টল মুছুন</span>
+                        </button>
+                        <button type="button" onclick="adminClearAllClientAnalyticsPrompt()" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-3 py-1.5 rounded-xl font-bold text-[11px] transition flex items-center gap-1 active:scale-95 cursor-pointer">
+                            <span>🗑️</span> <span data-bn="সব ভিজিট/ইনস্টল মুছুন" data-en="Clear All Traffic">সব ভিজিট/ইনস্টল মুছুন</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4 Traffic & Install KPI Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 min-w-0">
+                        <div class="flex items-center justify-between gap-1">
+                            <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider truncate" data-bn="🌐 মোট ভিজিট" data-en="🌐 Site Visits">🌐 মোট ভিজিট</span>
+                            <span>👁️</span>
+                        </div>
+                        <h4 id="statAnalyticsVisits" class="text-xl sm:text-2xl font-black text-slate-900 mt-1.5">0</h4>
+                        <span id="statAnalyticsUniqueSub" class="text-[10px] text-slate-600 mt-1 block truncate">0 unique • 0 today</span>
+                    </div>
+                    <div class="bg-emerald-50/70 p-3.5 rounded-xl border border-emerald-200 min-w-0">
+                        <div class="flex items-center justify-between gap-1">
+                            <span class="text-[10px] uppercase font-bold text-emerald-700 tracking-wider truncate" data-bn="📲 অ্যাপ ইনস্টল" data-en="📲 App Installed">📲 অ্যাপ ইনস্টল</span>
+                            <span>⬇️</span>
+                        </div>
+                        <h4 id="statAnalyticsInstalled" class="text-xl sm:text-2xl font-black text-emerald-700 mt-1.5">0</h4>
+                        <span id="statAnalyticsInstalledSub" class="text-[10px] text-emerald-800 mt-1 block truncate">0 mobile • 0 PC</span>
+                    </div>
+                    <div class="bg-indigo-50/70 p-3.5 rounded-xl border border-indigo-200 min-w-0">
+                        <div class="flex items-center justify-between gap-1">
+                            <span class="text-[10px] uppercase font-bold text-indigo-700 tracking-wider truncate" data-bn="📱 সক্রিয় অ্যাপ (১৪ দিন)" data-en="📱 Active Apps (14d)">📱 সক্রিয় অ্যাপ (১৪ দিন)</span>
+                            <span>⚡</span>
+                        </div>
+                        <h4 id="statAnalyticsActiveApp" class="text-xl sm:text-2xl font-black text-indigo-700 mt-1.5">0</h4>
+                        <span id="statAnalyticsPortalSub" class="text-[10px] text-indigo-800 mt-1 block truncate">C:0 • O:0 • Cap:0</span>
+                    </div>
+                    <div class="bg-rose-50/70 p-3.5 rounded-xl border border-rose-200 min-w-0">
+                        <div class="flex items-center justify-between gap-1">
+                            <span class="text-[10px] uppercase font-bold text-rose-700 tracking-wider truncate" data-bn="❌ অ্যাপ আনইনস্টল" data-en="❌ Uninstalled">❌ অ্যাপ আনইনস্টল</span>
+                            <span>⚠️</span>
+                        </div>
+                        <h4 id="statAnalyticsUninstalled" class="text-xl sm:text-2xl font-black text-rose-700 mt-1.5">0</h4>
+                        <span id="statAnalyticsInactiveSub" class="text-[10px] text-rose-800 mt-1 block truncate">0 inactive 14d+</span>
+                    </div>
+                </div>
+
+                <!-- Browser Reality / Accuracy Hint -->
+                <div class="bg-blue-50/70 border border-blue-200 rounded-xl px-3 py-2 text-[11px] text-blue-900 flex items-start gap-2">
+                    <span class="shrink-0">ℹ️</span>
+                    <span class="min-w-0 leading-relaxed" data-bn="নোট: ভিজিট ও অ্যাপ ইনস্টল সাথে সাথে রেকর্ড হয়। মোবাইল OS আনইনস্টল করার সময় সরাসরি সিগন্যাল পাঠায় না—তাই ইউজার আনইনস্টল করে পুনরায় ব্রাউজারে এলে অটো-ডিটেক্ট হয় এবং ১৪ দিন+ অ্যাপ না খুললে নিষ্ক্রিয় হিসেবে দেখায়।" data-en="Note: Site visits and app installs log in real time. Since mobile OS privacy hides silent home-screen uninstalls, uninstalls are auto-detected when the user revisits in browser (or flagged if inactive 14+ days).">নোট: ভিজিট ও অ্যাপ ইনস্টল সাথে সাথে রেকর্ড হয়। মোবাইল OS আনইনস্টল করার সময় সরাসরি সিগন্যাল পাঠায় না—তাই ইউজার আনইনস্টল করে পুনরায় ব্রাউজারে এলে অটো-ডিটেক্ট হয় এবং ১৪ দিন+ অ্যাপ না খুললে নিষ্ক্রিয় হিসেবে দেখায়।</span>
+                </div>
+
+                <!-- Traffic Status & Portal Filter Toolbar -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs pt-1">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <button type="button" onclick="setAdminAnalyticsStatusFilter('all')" class="admin-ana-status-btn px-2.5 py-1.5 rounded-xl font-bold bg-indigo-600 text-white shadow-xs cursor-pointer" data-status="all" data-bn="সব" data-en="All">সব</button>
+                        <button type="button" onclick="setAdminAnalyticsStatusFilter('web_only')" class="admin-ana-status-btn px-2.5 py-1.5 rounded-xl font-bold bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer" data-status="web_only" data-bn="🌐 ওয়েব ভিজিট" data-en="🌐 Web Visits">🌐 ওয়েব ভিজিট</button>
+                        <button type="button" onclick="setAdminAnalyticsStatusFilter('installed')" class="admin-ana-status-btn px-2.5 py-1.5 rounded-xl font-bold bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer" data-status="installed" data-bn="📲 ইনস্টল করা" data-en="📲 Installed">📲 ইনস্টল করা</button>
+                        <button type="button" onclick="setAdminAnalyticsStatusFilter('uninstalled')" class="admin-ana-status-btn px-2.5 py-1.5 rounded-xl font-bold bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer" data-status="uninstalled" data-bn="❌ আনইনস্টল" data-en="❌ Uninstalled">❌ আনইনস্টল</button>
+                        <button type="button" onclick="setAdminAnalyticsStatusFilter('inactive')" class="admin-ana-status-btn px-2.5 py-1.5 rounded-xl font-bold bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer" data-status="inactive" data-bn="⏸️ নিষ্ক্রিয় (১৪ দিন+)" data-en="⏸️ Inactive 14d+">⏸️ নিষ্ক্রিয় (১৪ দিন+)</button>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <select id="analyticsPortalFilter" onchange="setAdminAnalyticsPortalFilter(this.value)" class="text-xs p-2 border rounded-xl bg-gray-50 font-bold text-gray-700">
+                            <option value="all" data-bn="সব পোর্টাল" data-en="All Portals">সব পোর্টাল</option>
+                            <option value="customer" data-bn="👤 কাস্টমার অ্যাপ" data-en="👤 Customer App">👤 কাস্টমার অ্যাপ</option>
+                            <option value="owner" data-bn="👥 ওনার অ্যাপ" data-en="👥 Owner App">👥 ওনার অ্যাপ</option>
+                            <option value="captain" data-bn="🧑‍✈️ ক্যাপ্টেন অ্যাপ" data-en="🧑‍✈️ Captain App">🧑‍✈️ ক্যাপ্টেন অ্যাপ</option>
+                            <option value="admin" data-bn="🛡️ অ্যাডমিন অ্যাপ" data-en="🛡️ Admin App">🛡️ অ্যাডমিন অ্যাপ</option>
+                        </select>
+                        <span class="text-[11px] font-bold text-gray-500">(<span id="adminAnalyticsCount">0</span>)</span>
+                    </div>
+                </div>
+
+                <!-- Tracked Client Analytics Cards -->
+                <div id="adminClientAnalyticsContainer" class="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+                    <div class="text-center text-gray-400 py-8 text-xs" data-bn="ভিজিট ও অ্যাপ ইনস্টল ডেটা লোড হচ্ছে..." data-en="Loading traffic &amp; app install analytics...">ভিজিট ও অ্যাপ ইনস্টল ডেটা লোড হচ্ছে...</div>
+                </div>
+            </div>
+
             <!-- Filter & Search Toolbar -->
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
                 <div class="flex items-center gap-2 flex-wrap">
@@ -3932,8 +4022,8 @@
     <!-- Firebase App & Firestore Compat SDKs for Real-Time Live Bus Tracking -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="common.js?v=10.45"></script>
-    <script src="app-admin.js?v=10.45"></script>
+    <script src="common.js?v=10.46"></script>
+    <script src="app-admin.js?v=10.46"></script>
     <script>
         function toggleAdminSidebar() {
             const sb = document.getElementById('adminSidebar');
@@ -3949,7 +4039,7 @@
             initFestivalThemeSync('admin');
         }
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js?v=10.45', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+            navigator.serviceWorker.register('/sw.js?v=10.46', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
         }
     </script>
 </body>

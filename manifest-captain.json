@@ -9,6 +9,12 @@
   "orientation": "portrait-primary",
   "background_color": "#ffffff",
   "theme_color": "#1e40af",
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://busyatra.pages.dev/manifest-captain.json"
+    }
+  ],
   "icons": [
     {
       "src": "/icons/captain-192.png",

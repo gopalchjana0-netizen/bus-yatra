@@ -100,6 +100,72 @@ async function ensureSosTable(db) {
     }
 }
 
+let _clientAnalyticsTableEnsured = false;
+/** Lazily creates the client visitor & PWA install analytics table once per isolate. */
+async function ensureClientAnalyticsTable(db) {
+    if (!db || _clientAnalyticsTableEnsured) return;
+    try {
+        await db.prepare(`
+            CREATE TABLE IF NOT EXISTS client_device_analytics (
+                client_id TEXT PRIMARY KEY,
+                device_uid TEXT NOT NULL,
+                portal TEXT NOT NULL DEFAULT 'customer',
+                device_type TEXT DEFAULT 'Mobile',
+                device_brand TEXT DEFAULT 'Unknown',
+                device_model TEXT DEFAULT '',
+                os TEXT DEFAULT 'Unknown OS',
+                browser TEXT DEFAULT 'Browser',
+                screen TEXT DEFAULT '',
+                ip_address TEXT DEFAULT '',
+                city TEXT DEFAULT '',
+                region TEXT DEFAULT '',
+                country TEXT DEFAULT 'IN',
+                install_status TEXT DEFAULT 'web_only',
+                visit_count INTEGER DEFAULT 1,
+                standalone_open_count INTEGER DEFAULT 0,
+                user_identifier TEXT DEFAULT '',
+                user_role TEXT DEFAULT '',
+                first_seen_at TEXT NOT NULL,
+                last_seen_at TEXT NOT NULL,
+                installed_at TEXT,
+                last_standalone_at TEXT,
+                uninstalled_at TEXT,
+                last_event TEXT DEFAULT 'visit',
+                updated_at TEXT NOT NULL
+            )
+        `).run();
+        await db.prepare('CREATE INDEX IF NOT EXISTS idx_cda_status ON client_device_analytics(install_status)').run();
+        await db.prepare('CREATE INDEX IF NOT EXISTS idx_cda_last_seen ON client_device_analytics(last_seen_at)').run();
+        await db.prepare('CREATE INDEX IF NOT EXISTS idx_cda_portal ON client_device_analytics(portal)').run();
+        await db.prepare('CREATE INDEX IF NOT EXISTS idx_cda_device_uid ON client_device_analytics(device_uid)').run();
+        _clientAnalyticsTableEnsured = true;
+    } catch (e) {
+        console.warn('ensureClientAnalyticsTable notice:', e);
+    }
+}
+
+/** Shared delete helper for client traffic/install analytics (all, by status, or single record). */
+async function deleteClientAnalyticsRecords(db, url) {
+    await ensureClientAnalyticsTable(db);
+    const recId = url.searchParams.get('id');
+    const clearAll = url.searchParams.get('all') === 'true';
+    const statusFilter = url.searchParams.get('status');
+
+    if (clearAll) {
+        await db.prepare('DELETE FROM client_device_analytics').run();
+        return jsonResponse({ ok: true, message: 'সমস্ত ওয়েবসাইট ভিজিট ও অ্যাপ ইনস্টল ডেটা মুছে ফেলা হয়েছে (All traffic & install analytics cleared).' });
+    }
+    if (statusFilter && ['web_only', 'installed', 'uninstalled'].includes(statusFilter)) {
+        await db.prepare('DELETE FROM client_device_analytics WHERE install_status = ?').bind(statusFilter).run();
+        return jsonResponse({ ok: true, message: `নির্বাচিত (${statusFilter}) রেকর্ডগুলো মুছে ফেলা হয়েছে।` });
+    }
+    if (recId) {
+        await db.prepare('DELETE FROM client_device_analytics WHERE client_id = ?').bind(recId).run();
+        return jsonResponse({ ok: true, message: 'ভিজিট/ইনস্টল ডিভাইস রেকর্ড মুছে ফেলা হয়েছে (Record deleted).' });
+    }
+    return jsonError(400, 'Analytics record ID, status, or all=true is required.');
+}
+
 function escapeHtml(str) {
     if (typeof str !== 'string') return (str === null || str === undefined) ? '' : String(str);
     return str.replace(/&/g, "&amp;")
@@ -1899,11 +1965,14 @@ async function handleGet(context) {
         });
     }
 
-    // GET /api/admin/devices (Real-Time Device & Security Monitoring)
+    // GET /api/admin/devices (Real-Time Device & Security Monitoring + Site Visits & App Installs)
     if (path === '/api/admin/devices') {
+        await ensureClientAnalyticsTable(env.DB);
         const role = (url.searchParams.get('role') || 'all').toLowerCase();
         const q = (url.searchParams.get('query') || '').trim().toLowerCase();
         const limit = Math.min(200, Math.max(10, parseInt(url.searchParams.get('limit') || '100', 10)));
+        const analyticsStatus = (url.searchParams.get('analyticsStatus') || 'all').toLowerCase();
+        const analyticsPortal = (url.searchParams.get('analyticsPortal') || 'all').toLowerCase();
 
         let sql = `SELECT * FROM user_login_devices`;
         let conditions = [];
@@ -1946,6 +2015,54 @@ async function handleGet(context) {
         const oneDayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
         const activeTodayRow = await env.DB.prepare('SELECT COUNT(*) AS total FROM user_login_devices WHERE last_login_at >= ?').bind(oneDayAgo).first();
 
+        // Client Traffic, App Install & Uninstall Analytics
+        const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString();
+        let cdaSql = `SELECT * FROM client_device_analytics`;
+        const cdaConds = [];
+        const cdaParams = [];
+        if (analyticsPortal !== 'all' && ['customer', 'owner', 'captain', 'admin'].includes(analyticsPortal)) {
+            cdaConds.push('portal = ?');
+            cdaParams.push(analyticsPortal);
+        }
+        if (analyticsStatus === 'inactive') {
+            cdaConds.push("install_status = 'installed' AND COALESCE(last_standalone_at, installed_at, last_seen_at) < ?");
+            cdaParams.push(fourteenDaysAgo);
+        } else if (['web_only', 'installed', 'uninstalled'].includes(analyticsStatus)) {
+            cdaConds.push('install_status = ?');
+            cdaParams.push(analyticsStatus);
+        }
+        if (q) {
+            cdaConds.push('(LOWER(device_brand) LIKE ? OR LOWER(device_model) LIKE ? OR LOWER(os) LIKE ? OR LOWER(browser) LIKE ? OR LOWER(city) LIKE ? OR LOWER(portal) LIKE ? OR LOWER(user_identifier) LIKE ? OR LOWER(ip_address) LIKE ?)');
+            cdaParams.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`);
+        }
+        if (cdaConds.length > 0) cdaSql += ' WHERE ' + cdaConds.join(' AND ');
+        cdaSql += ' ORDER BY last_seen_at DESC LIMIT 150';
+        const { results: clientAnalytics } = await env.DB.prepare(cdaSql).bind(...cdaParams).all();
+
+        const [
+            uniqueVisitorsRow,
+            totalVisitsRow,
+            todayVisitorsRow,
+            installedTotalRow,
+            mobileInstalledRow,
+            desktopInstalledRow,
+            activeAppRow,
+            inactiveAppRow,
+            uninstalledTotalRow,
+            portalBreakdownRes
+        ] = await Promise.all([
+            env.DB.prepare('SELECT COUNT(DISTINCT device_uid) AS total FROM client_device_analytics').first(),
+            env.DB.prepare('SELECT COALESCE(SUM(visit_count), 0) AS total FROM client_device_analytics').first(),
+            env.DB.prepare('SELECT COUNT(DISTINCT device_uid) AS total FROM client_device_analytics WHERE last_seen_at >= ?').bind(oneDayAgo).first(),
+            env.DB.prepare("SELECT COUNT(*) AS total FROM client_device_analytics WHERE install_status = 'installed'").first(),
+            env.DB.prepare("SELECT COUNT(*) AS total FROM client_device_analytics WHERE install_status = 'installed' AND device_type IN ('Mobile', 'Tablet')").first(),
+            env.DB.prepare("SELECT COUNT(*) AS total FROM client_device_analytics WHERE install_status = 'installed' AND device_type = 'Desktop'").first(),
+            env.DB.prepare("SELECT COUNT(*) AS total FROM client_device_analytics WHERE install_status = 'installed' AND COALESCE(last_standalone_at, installed_at, last_seen_at) >= ?").bind(fourteenDaysAgo).first(),
+            env.DB.prepare("SELECT COUNT(*) AS total FROM client_device_analytics WHERE install_status = 'installed' AND COALESCE(last_standalone_at, installed_at, last_seen_at) < ?").bind(fourteenDaysAgo).first(),
+            env.DB.prepare("SELECT COUNT(*) AS total FROM client_device_analytics WHERE install_status = 'uninstalled'").first(),
+            env.DB.prepare("SELECT portal, COUNT(*) AS visitors, COALESCE(SUM(visit_count), 0) AS visits, SUM(CASE WHEN install_status = 'installed' THEN 1 ELSE 0 END) AS installs, SUM(CASE WHEN install_status = 'uninstalled' THEN 1 ELSE 0 END) AS uninstalls FROM client_device_analytics GROUP BY portal").all()
+        ]);
+
         return jsonResponse({
             devices: devices || [],
             recentLogs: recentLogs || [],
@@ -1955,6 +2072,19 @@ async function handleGet(context) {
                 desktopDevices: desktopDevRow?.total || 0,
                 topBrands: topBrands || [],
                 activeToday: activeTodayRow?.total || 0
+            },
+            clientAnalytics: clientAnalytics || [],
+            analyticsStats: {
+                uniqueVisitors: uniqueVisitorsRow?.total || 0,
+                totalVisits: totalVisitsRow?.total || 0,
+                todayVisitors: todayVisitorsRow?.total || 0,
+                installedTotal: installedTotalRow?.total || 0,
+                mobileInstalled: mobileInstalledRow?.total || 0,
+                desktopInstalled: desktopInstalledRow?.total || 0,
+                activeApp14d: activeAppRow?.total || 0,
+                inactiveApp14d: inactiveAppRow?.total || 0,
+                uninstalledTotal: uninstalledTotalRow?.total || 0,
+                portalBreakdown: portalBreakdownRes?.results || []
             }
         });
     }
@@ -2367,6 +2497,87 @@ async function handlePost(context) {
     const { request, env, auth } = context;
     const url = new URL(request.url);
     const path = url.pathname;
+
+    // POST /api/telemetry/client-event (Public anonymous site visit, PWA install & uninstall signal)
+    if (path === '/api/telemetry/client-event') {
+        await ensureClientAnalyticsTable(env.DB);
+        const body = await readJson(request);
+        const rawUid = String(body?.deviceUid || '').trim();
+        if (!/^[a-zA-Z0-9_-]{6,64}$/.test(rawUid)) {
+            return jsonError(400, 'Invalid client device UID.');
+        }
+        const portal = ['customer', 'owner', 'captain', 'admin'].includes(body?.portal) ? body.portal : 'customer';
+        const event = ['visit', 'standalone_open', 'installed', 'uninstalled'].includes(body?.event) ? body.event : 'visit';
+        const countVisit = body?.countVisit !== false;
+        const devInfo = extractDeviceInfo(request, body);
+        const nowIso = new Date().toISOString();
+        const clientId = `${rawUid}_${portal}`;
+        const screen = String(body?.screen || body?.deviceInfo?.screen || '').slice(0, 32);
+        const userRole = String((auth?.role && auth.role !== 'guest') ? auth.role : (body?.userRole || '')).slice(0, 24);
+        const userIdentifier = String((auth?.identifier) ? auth.identifier : (body?.userIdentifier || '')).slice(0, 64);
+
+        const initialStatus = (event === 'installed' || event === 'standalone_open')
+            ? 'installed'
+            : (event === 'uninstalled' ? 'uninstalled' : 'web_only');
+        const initialVisitCount = (event === 'visit' || event === 'standalone_open') ? (countVisit ? 1 : 0) : 0;
+        const initialStandaloneCount = event === 'standalone_open' ? 1 : 0;
+        const installedAtVal = (event === 'installed' || event === 'standalone_open') ? nowIso : null;
+        const standaloneAtVal = event === 'standalone_open' ? nowIso : null;
+        const uninstalledAtVal = event === 'uninstalled' ? nowIso : null;
+
+        await env.DB.prepare(`
+            INSERT INTO client_device_analytics (
+                client_id, device_uid, portal, device_type, device_brand, device_model, os, browser, screen,
+                ip_address, city, region, country, install_status, visit_count, standalone_open_count,
+                user_identifier, user_role, first_seen_at, last_seen_at, installed_at, last_standalone_at,
+                uninstalled_at, last_event, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(client_id) DO UPDATE SET
+                device_type = CASE WHEN (excluded.os != 'Unknown OS' OR excluded.device_brand != 'Unknown') THEN excluded.device_type ELSE client_device_analytics.device_type END,
+                device_brand = CASE WHEN excluded.device_brand != 'Unknown' THEN excluded.device_brand ELSE client_device_analytics.device_brand END,
+                device_model = CASE WHEN excluded.device_model != '' THEN excluded.device_model ELSE client_device_analytics.device_model END,
+                os = CASE WHEN excluded.os != 'Unknown OS' THEN excluded.os ELSE client_device_analytics.os END,
+                browser = CASE WHEN excluded.browser != 'Browser' THEN excluded.browser ELSE client_device_analytics.browser END,
+                screen = CASE WHEN excluded.screen != '' THEN excluded.screen ELSE client_device_analytics.screen END,
+                ip_address = excluded.ip_address,
+                city = CASE WHEN excluded.city != '' THEN excluded.city ELSE client_device_analytics.city END,
+                region = CASE WHEN excluded.region != '' THEN excluded.region ELSE client_device_analytics.region END,
+                country = excluded.country,
+                user_identifier = CASE WHEN excluded.user_identifier != '' THEN excluded.user_identifier ELSE client_device_analytics.user_identifier END,
+                user_role = CASE WHEN excluded.user_role != '' THEN excluded.user_role ELSE client_device_analytics.user_role END,
+                install_status = CASE
+                    WHEN excluded.last_event IN ('installed', 'standalone_open') THEN 'installed'
+                    WHEN excluded.last_event = 'uninstalled' THEN 'uninstalled'
+                    ELSE client_device_analytics.install_status
+                END,
+                visit_count = client_device_analytics.visit_count + excluded.visit_count,
+                standalone_open_count = client_device_analytics.standalone_open_count + excluded.standalone_open_count,
+                last_seen_at = excluded.last_seen_at,
+                installed_at = CASE
+                    WHEN excluded.last_event IN ('installed', 'standalone_open') THEN COALESCE(client_device_analytics.installed_at, excluded.installed_at)
+                    ELSE client_device_analytics.installed_at
+                END,
+                last_standalone_at = CASE
+                    WHEN excluded.last_event = 'standalone_open' THEN excluded.last_standalone_at
+                    ELSE client_device_analytics.last_standalone_at
+                END,
+                uninstalled_at = CASE
+                    WHEN excluded.last_event = 'uninstalled' THEN excluded.uninstalled_at
+                    WHEN excluded.last_event IN ('installed', 'standalone_open') THEN NULL
+                    ELSE client_device_analytics.uninstalled_at
+                END,
+                last_event = excluded.last_event,
+                updated_at = excluded.updated_at
+        `).bind(
+            clientId, rawUid, portal, devInfo.deviceType, devInfo.deviceBrand, devInfo.deviceModel || '',
+            devInfo.os, devInfo.browser, screen, devInfo.ipAddress, devInfo.city || '', devInfo.region || '',
+            devInfo.country || 'IN', initialStatus, initialVisitCount, initialStandaloneCount,
+            userIdentifier, userRole, nowIso, nowIso, installedAtVal, standaloneAtVal, uninstalledAtVal,
+            event, nowIso
+        ).run();
+
+        return jsonResponse({ ok: true, clientId, event });
+    }
 
     // POST /api/promotions/:id/click
     const promoClickMatch = path.match(/^\/api\/promotions\/([^/]+)\/click$/);
@@ -6500,6 +6711,10 @@ async function handlePost(context) {
         return jsonError(400, 'Log ID required.');
     }
 
+    if (path === '/api/admin/devices/analytics/delete' || (path === '/api/admin/devices/analytics' && url.searchParams.get('_method') === 'DELETE')) {
+        return await deleteClientAnalyticsRecords(env.DB, url);
+    }
+
     // POST /api/admin/broadcast-email (Brevo Broadcast Email with support.busyatra@gmail.com Fallback)
     if (path === '/api/admin/broadcast-email') {
         if (auth?.role !== 'admin') return jsonError(403, 'Unauthorized. Super Admin only.');
@@ -7413,6 +7628,11 @@ async function handleDelete(context) {
         await env.DB.prepare("DELETE FROM portal_credentials WHERE role = 'customer' AND identifier = ?").bind(phone).run();
         await env.DB.prepare("DELETE FROM user_login_devices WHERE role = 'customer' AND identifier = ?").bind(phone).run();
         return jsonResponse({ ok: true });
+    }
+
+    // DELETE /api/admin/devices/analytics
+    if (path === '/api/admin/devices/analytics') {
+        return await deleteClientAnalyticsRecords(env.DB, url);
     }
 
     // DELETE /api/admin/devices/logs

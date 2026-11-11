@@ -9,6 +9,12 @@
   "orientation": "portrait-primary",
   "background_color": "#ffffff",
   "theme_color": "#dc2626",
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://busyatra.pages.dev/manifest.json"
+    }
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.png",

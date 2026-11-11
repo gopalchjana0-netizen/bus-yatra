@@ -9,6 +9,12 @@
   "orientation": "portrait-primary",
   "background_color": "#ffffff",
   "theme_color": "#f59e0b",
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://busyatra.pages.dev/manifest-owner.json"
+    }
+  ],
   "icons": [
     {
       "src": "/icons/owner-192.png",
