@@ -1,9 +1,10 @@
-const CACHE_NAME = 'bus-yatra-v10.54';
+const CACHE_NAME = 'bus-yatra-v10.55';
 const urlsToCache = [
   '/',
   '/owner',
   '/captain',
   '/admin',
+  '/feedback',
   '/style.css',
   '/tailwind.js',
   '/app.js',
@@ -106,7 +107,8 @@ function resolveNavigationCacheKey(pathname) {
   if (clean === '/owner' || clean === '/owner.html') return '/owner';
   if (clean === '/captain' || clean === '/captain.html') return '/captain';
   if (clean === '/admin' || clean === '/admin.html') return '/admin';
-  return '/';
+  if (clean === '/feedback' || clean === '/feedback.html') return '/feedback';
+  return null;
 }
 
 function buildOfflineHtmlResponse() {
@@ -133,25 +135,48 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // 1. HTML Navigation: Fast 1200ms Network Timeout -> Instant Offline/Cached App Shell Fallback
+  // 1. HTML Navigation: Known Portals get 1200ms Network Race -> Offline Shell Fallback;
+  // Standalone pages (e.g. site verification or future pages) pass through without portal hijack
   if (event.request.mode === 'navigate') {
     const cacheKey = resolveNavigationCacheKey(url.pathname);
+    if (!cacheKey) {
+      event.respondWith((async () => {
+        const cache = await caches.open(CACHE_NAME);
+        try {
+          const resp = await fetch(event.request);
+          if (resp && resp.status === 200) {
+            const clean = await unwrapCleanResponse(resp);
+            cache.put(url.pathname, clean.clone()).catch(() => {});
+            return clean;
+          }
+          return resp;
+        } catch (_) {
+          return (await cache.match(url.pathname, { ignoreSearch: true })) || buildOfflineHtmlResponse();
+        }
+      })());
+      return;
+    }
+
     event.respondWith((async () => {
       const cache = await caches.open(CACHE_NAME);
       const cached = (await cache.match(cacheKey, { ignoreSearch: true })) ||
                      (cacheKey === '/' ? await cache.match('/index.html', { ignoreSearch: true }) : await cache.match(cacheKey + '.html', { ignoreSearch: true }));
 
-      const networkFetch = fetch(cacheKey).then(async resp => {
+      const networkFetch = (async () => {
+        let resp = await fetch(cacheKey).catch(() => null);
+        if ((!resp || resp.status === 404) && cacheKey !== url.pathname) {
+          resp = await fetch(event.request);
+        }
         if (resp && resp.status === 200) {
           const clean = await unwrapCleanResponse(resp);
           cache.put(cacheKey, clean.clone()).catch(() => {});
           return clean;
         }
         return resp;
-      });
+      })();
 
       if (cached) {
-        // Race fresh edge fetch with 1.2s ceiling so poor 2G or offline opens ALL 4 portals cleanly
+        // Race fresh edge fetch with 1.2s ceiling so poor 2G or offline opens ALL portals cleanly
         try {
           const raceResult = await Promise.race([
             networkFetch,

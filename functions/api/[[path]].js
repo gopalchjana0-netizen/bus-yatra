@@ -34,6 +34,7 @@ function jsonResponse(data, status = 200, customHeaders = {}) {
         status,
         headers: {
             'Content-Type': 'application/json',
+            'X-Content-Type-Options': 'nosniff',
             'Cache-Control': 'no-store, no-cache, must-revalidate',
             'Access-Control-Allow-Origin': 'https://busyatra.pages.dev',
             'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
@@ -978,14 +979,14 @@ const adminPermissionKeys = ['fleet', 'bookings', 'operators', 'customers', 'fin
 
 function adminPermissionFor(path) {
     if (path === '/api/admin/state') return null;
-    if (/^\/api\/admin\/buses(?:\/|$)/.test(path)) return 'fleet';
+    if (/^\/api\/admin\/(?:buses|tracking)(?:\/|$)/.test(path)) return 'fleet';
     if (/^\/api\/admin\/bookings(?:\/|$)/.test(path)) return 'bookings';
-    if (/^\/api\/admin\/(?:owners|owner-requests|captains|reset-pin|impersonate-captain|impersonate-owner)(?:\/|$)/.test(path)) return 'operators';
-    if (/^\/api\/admin\/(?:customers|support|impersonate-customer)(?:\/|$)/.test(path)) return 'customers';
+    if (/^\/api\/admin\/(?:owners|owner-requests|captains|reset-pin|impersonate-captain|impersonate-owner|subscriptions|access)(?:\/|$)/.test(path)) return 'operators';
+    if (/^\/api\/admin\/(?:customers|support|impersonate-customer|emergency|reviews)(?:\/|$)/.test(path)) return 'customers';
     if (/^\/api\/admin\/(?:finance|operator-finance)(?:\/|$)/.test(path)) return 'finance';
     if (/^\/api\/admin\/replica-(?:status|backfill)$/.test(path)) return 'finance';
-    if (/^\/api\/admin\/reports(?:\/|$)/.test(path)) return 'reports';
-    if (/^\/api\/(?:admin\/)?(?:coupons|feature-flags|festival-theme|promotions|broadcast-email|email-recipients)(?:\/|$)/.test(path)) return 'settings';
+    if (/^\/api\/admin\/(?:reports|devices)(?:\/|$)/.test(path)) return 'reports';
+    if (/^\/api\/(?:admin\/)?(?:coupons|feature-flags|festival-theme|promotions|broadcast-email|email-recipients|expansion-settings|features)(?:\/|$)/.test(path)) return 'settings';
     if (/^\/api\/admin\/(?:users|audit)(?:\/|$)/.test(path)) return 'team';
     return null;
 }
@@ -1668,6 +1669,12 @@ async function handleGet(context) {
             ? await env.DB.prepare(query).bind(date).all()
             : await env.DB.prepare(query).all();
 
+        const toPublicBus = (busObj) => {
+            if (!busObj) return busObj;
+            const { ownerEmail: _omittedEmail, ...publicBus } = busObj;
+            return publicBus;
+        };
+
         const buses = [];
         for (const row of (result.results || [])) {
             // If inactive or not approved, completely hidden from customer search
@@ -1696,13 +1703,13 @@ async function handleGet(context) {
                 }
             }
             if (upPush) {
-                buses.push({
+                buses.push(toPublicBus({
                     ...mapBus(row),
                     tripDirection: 'UP',
                     remainingSeats: upRemaining,
                     ...(upSegmentFare !== undefined ? { segmentFare: upSegmentFare } : {}),
                     ...(upEnrouteState ? { enrouteState: upEnrouteState } : {})
-                });
+                }));
             }
 
             // 2. Return-Trip (If Return Route is Enabled)
@@ -1732,7 +1739,7 @@ async function handleGet(context) {
                 }
 
                 if (retPush) {
-                    buses.push({
+                    buses.push(toPublicBus({
                         ...mapBus(row),
                         id: row.id + '_RETURN',
                         parentBusId: row.id,
@@ -1749,7 +1756,7 @@ async function handleGet(context) {
                         remainingSeats: retRemaining,
                         ...(retSegmentFare !== undefined ? { segmentFare: retSegmentFare } : {}),
                         ...(retEnrouteState ? { enrouteState: retEnrouteState } : {})
-                    });
+                    }));
                 }
             }
         }
@@ -4748,22 +4755,6 @@ async function handlePost(context) {
         const response = { token: result.session.token, expiresAt: result.session.expiresAt };
         if (role === 'admin') response.permissions = adminPermissions;
         return jsonResponse(response);
-    }
-
-    // GET /api/auth/admin/status
-    if (path === '/api/auth/admin/status') {
-        const cred = await env.DB.prepare(
-            "SELECT security_question, security_answer_salt, security_answer_hash FROM portal_credentials WHERE role = 'admin' AND identifier = 'support.busyatra@gmail.com'"
-        ).first() || await env.DB.prepare(
-            "SELECT security_question, security_answer_salt, security_answer_hash FROM portal_credentials WHERE role = 'admin' AND identifier = 'admin'"
-        ).first();
-        const isSetup = Boolean(cred && cred.security_question && cred.security_answer_hash);
-        return jsonResponse({
-            ok: true,
-            email: 'support.busyatra@gmail.com',
-            isSetup,
-            securityQuestion: (cred && cred.security_question) || 'Primary route?'
-        });
     }
 
     // POST /api/auth/send-otp

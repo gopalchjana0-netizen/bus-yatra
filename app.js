@@ -6441,5 +6441,79 @@ async function submitCustomerSosAlert() {
 }
 window.submitCustomerSosAlert = submitCustomerSosAlert;
 
+function closeFeedbackModal() {
+    document.getElementById('feedbackModal')?.classList.add('hidden');
+}
 
+async function submitCustomerFeedback() {
+    const bookingId = (document.getElementById('feedbackBookingId')?.value || '').trim();
+    const rating = parseInt(document.getElementById('feedbackRating')?.value || '5', 10) || 5;
+    const comment = (document.getElementById('feedbackComment')?.value || '').trim();
+
+    let passengerName = '';
+    let passengerPhone = '';
+    let busId = '';
+    let busName = '';
+
+    try {
+        const cachedCustomer = JSON.parse(localStorage.getItem('busyatra_customer') || 'null');
+        if (cachedCustomer) {
+            passengerName = String(cachedCustomer.name || '').trim();
+            passengerPhone = String(cachedCustomer.phone || '').trim();
+        }
+    } catch (_) {}
+
+    if ((!passengerName || !/^[6-9]\d{9}$/.test(passengerPhone)) && typeof getLastBookedPass === 'function') {
+        const lastPass = getLastBookedPass();
+        if (lastPass) {
+            passengerName = passengerName || String(lastPass.passengerName || '').trim();
+            passengerPhone = passengerPhone || String(lastPass.passengerPhone || '').trim();
+            busId = busId || String(lastPass.busId || '').trim();
+            busName = busName || String(lastPass.busName || '').trim();
+        }
+    }
+
+    if (!passengerName || !/^[6-9]\d{9}$/.test(passengerPhone)) {
+        closeFeedbackModal();
+        window.location.href = 'feedback.html';
+        return;
+    }
+
+    const btn = document.getElementById('btnSubmitFeedback');
+    const origText = btn ? btn.innerText : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'জমা হচ্ছে...';
+    }
+    try {
+        await apiRequest('/api/reviews', {
+            method: 'POST',
+            body: JSON.stringify({
+                bookingId: bookingId || undefined,
+                passengerName,
+                passengerPhone,
+                busId,
+                busName,
+                rating,
+                comment
+            })
+        });
+        closeFeedbackModal();
+        if (typeof showDropDownToast === 'function') {
+            showDropDownToast('ধন্যবাদ! আপনার মূল্যবান মতামত সফলভাবে জমা হয়েছে।', 'success', 'ফিডব্যাক গৃহীত');
+        } else {
+            alert('ধন্যবাদ! আপনার মতামত সফলভাবে জমা হয়েছে।');
+        }
+    } catch (err) {
+        alert(err.message || 'মতামত জমা করতে সমস্যা হয়েছে।');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = origText || 'Submit Feedback';
+        }
+    }
+}
+
+window.closeFeedbackModal = closeFeedbackModal;
+window.submitCustomerFeedback = submitCustomerFeedback;
 

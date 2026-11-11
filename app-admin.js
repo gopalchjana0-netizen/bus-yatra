@@ -4991,6 +4991,7 @@ if (typeof window !== 'undefined') {
     window.addEventListener('portal-language-change', (e) => {
         const lang = e.detail?.lang || 'bn';
         console.log('Admin portal language switched to:', lang);
+        if (typeof getAdminSession === 'function' && !getAdminSession()) return;
         if (typeof updateAdminSelectionToolbar === 'function') updateAdminSelectionToolbar();
         if (typeof renderAdminSupportTicketsList === 'function') renderAdminSupportTicketsList();
         if (typeof loadAdminBuses === 'function') loadAdminBuses();
@@ -5004,7 +5005,12 @@ if (typeof window !== 'undefined') {
         if (typeof renderAdminClientAnalyticsList === 'function') renderAdminClientAnalyticsList(adminClientAnalyticsCache.list);
         if (typeof renderAdminSubscriptionsUI === 'function') renderAdminSubscriptionsUI();
         if (typeof renderAdminCouponsList === 'function') renderAdminCouponsList();
-        if (typeof loadAdminPromotions === 'function') loadAdminPromotions();
+        const promoTabEl = document.getElementById('tabPromotionsContent');
+        if (promoTabEl && !promoTabEl.classList.contains('hidden') && typeof loadAdminPromotions === 'function') {
+            loadAdminPromotions();
+        } else if (typeof renderAdminPromotionsList === 'function' && Array.isArray(adminPromotionsCache) && adminPromotionsCache.length > 0) {
+            renderAdminPromotionsList(adminPromotionsCache);
+        }
         if (typeof renderAdminFeatureFlags === 'function') renderAdminFeatureFlags();
         if (typeof updateAdminEmailRecipientsUI === 'function') updateAdminEmailRecipientsUI();
         if (typeof renderAdminOwnerAccessModal === 'function' && typeof allAdminOwnerModalList !== 'undefined' && allAdminOwnerModalList.length > 0) {
