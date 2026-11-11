@@ -166,6 +166,300 @@ async function deleteClientAnalyticsRecords(db, url) {
     return jsonError(400, 'Analytics record ID, status, or all=true is required.');
 }
 
+let _enterpriseSegmentTablesEnsured = false;
+/** Lazily ensures additive columns & hop-level segment tables once per Worker isolate. */
+async function ensureEnterpriseSegmentTables(db) {
+    if (!db || _enterpriseSegmentTablesEnsured) return;
+    try {
+        const info = await db.prepare('PRAGMA table_info(buses)').all();
+        const cols = new Set((info.results || []).map(c => String(c.name || '').toLowerCase()));
+        const additions = [
+            { name: 'stoppage_fares', sql: "ALTER TABLE buses ADD COLUMN stoppage_fares TEXT NOT NULL DEFAULT '{}'" },
+            { name: 'return_stoppage_fares', sql: "ALTER TABLE buses ADD COLUMN return_stoppage_fares TEXT NOT NULL DEFAULT '{}'" },
+            { name: 'current_stoppage', sql: "ALTER TABLE buses ADD COLUMN current_stoppage TEXT NOT NULL DEFAULT ''" },
+            { name: 'current_stoppage_updated_at', sql: "ALTER TABLE buses ADD COLUMN current_stoppage_updated_at TEXT NOT NULL DEFAULT ''" }
+        ];
+        for (const col of additions) {
+            if (!cols.has(col.name)) {
+                try { await db.prepare(col.sql).run(); } catch (_) {}
+            }
+        }
+        await db.prepare(`
+            CREATE TABLE IF NOT EXISTS booking_seat_legs (
+                bus_id TEXT NOT NULL,
+                journey_date TEXT NOT NULL,
+                seat_number TEXT NOT NULL,
+                hop_idx INTEGER NOT NULL,
+                booking_id TEXT NOT NULL,
+                boarding_idx INTEGER NOT NULL DEFAULT 0,
+                dropping_idx INTEGER NOT NULL DEFAULT 999,
+                boarding TEXT NOT NULL DEFAULT '',
+                dropping TEXT NOT NULL DEFAULT '',
+                PRIMARY KEY (bus_id, journey_date, seat_number, hop_idx)
+            )
+        `).run();
+        await db.prepare('CREATE INDEX IF NOT EXISTS idx_bsl_booking ON booking_seat_legs (booking_id)').run();
+        await db.prepare(`
+            CREATE TABLE IF NOT EXISTS seat_hold_legs (
+                bus_id TEXT NOT NULL,
+                journey_date TEXT NOT NULL,
+                seat_number TEXT NOT NULL,
+                hop_idx INTEGER NOT NULL,
+                session_id TEXT NOT NULL,
+                customer_phone TEXT,
+                boarding_idx INTEGER NOT NULL DEFAULT 0,
+                dropping_idx INTEGER NOT NULL DEFAULT 999,
+                expires_at TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                trip_direction TEXT DEFAULT 'UP',
+                PRIMARY KEY (bus_id, journey_date, seat_number, hop_idx)
+            )
+        `).run();
+        await db.prepare('CREATE INDEX IF NOT EXISTS idx_shl_expiry ON seat_hold_legs (expires_at)').run();
+        await db.prepare('CREATE INDEX IF NOT EXISTS idx_shl_session ON seat_hold_legs (bus_id, journey_date, session_id)').run();
+        _enterpriseSegmentTablesEnsured = true;
+    } catch (e) {
+        console.warn('ensureEnterpriseSegmentTables notice:', e);
+    }
+}
+
+function sanitizeStoppageFaresInput(raw) {
+    const parsed = typeof raw === 'string' ? parseJson(raw, {}) : (raw || {});
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return '{}';
+    const out = {};
+    for (const [k, v] of Object.entries(parsed)) {
+        const key = String(k || '').trim();
+        const num = Number(v);
+        if (key && key.includes('->') && Number.isFinite(num) && num > 0 && num <= 50000) {
+            out[key] = Math.round(num);
+        }
+    }
+    return JSON.stringify(out);
+}
+
+function getEffectiveStoppagesList(busRow, isReturnTrip = false) {
+    if (!busRow) return ['Pingla', 'Kolkata'];
+    const up = Array.isArray(busRow.stoppages) ? busRow.stoppages : parseJson(busRow.stoppages, ['Pingla', 'Kolkata']);
+    if (!isReturnTrip) return up.length >= 2 ? up : ['Pingla', 'Kolkata'];
+    const ret = Array.isArray(busRow.returnStoppages)
+        ? busRow.returnStoppages
+        : parseJson(busRow.return_stoppages, []);
+    if (Array.isArray(ret) && ret.length >= 2) return ret;
+    return up.length >= 2 ? [...up].reverse() : ['Kolkata', 'Pingla'];
+}
+
+function getEffectiveStoppageTimingsObj(busRow, isReturnTrip = false) {
+    if (!busRow) return {};
+    const up = (busRow.stoppageTimings && typeof busRow.stoppageTimings === 'object')
+        ? busRow.stoppageTimings
+        : parseJson(busRow.stoppage_timings, {});
+    if (!isReturnTrip) return up || {};
+    const ret = (busRow.returnStoppageTimings && typeof busRow.returnStoppageTimings === 'object')
+        ? busRow.returnStoppageTimings
+        : parseJson(busRow.return_stoppage_timings, {});
+    return (ret && Object.keys(ret).length > 0) ? ret : (up || {});
+}
+
+function resolveStoppageIdx(stops, stopName) {
+    if (!Array.isArray(stops) || !stopName) return -1;
+    const target = String(stopName).trim().toLowerCase();
+    return stops.findIndex(s => String(s || '').trim().toLowerCase() === target);
+}
+
+function resolveStoppageTimingValue(timings, stopName) {
+    if (!timings || typeof timings !== 'object' || !stopName) return null;
+    if (timings[stopName]) return timings[stopName];
+    const target = String(stopName).trim().toLowerCase();
+    for (const [k, v] of Object.entries(timings)) {
+        if (String(k || '').trim().toLowerCase() === target && v) return v;
+    }
+    return null;
+}
+
+function resolveSegmentFare(busRow, boarding, dropping, isReturnTrip = false, flags = null) {
+    const fullFare = Number(isReturnTrip ? (busRow?.return_fare || busRow?.returnFare || busRow?.fare) : busRow?.fare) || 150;
+    if (flags && flags.stoppageWiseFares === false) return Math.round(fullFare);
+
+    const stops = getEffectiveStoppagesList(busRow, isReturnTrip);
+    const fromIdx = resolveStoppageIdx(stops, boarding);
+    const toIdx = resolveStoppageIdx(stops, dropping);
+    if (fromIdx < 0 || toIdx <= fromIdx) return Math.round(fullFare);
+
+    const fromStop = stops[fromIdx];
+    const toStop = stops[toIdx];
+    const rawMap = isReturnTrip
+        ? (busRow?.returnStoppageFares || parseJson(busRow?.return_stoppage_fares, {}))
+        : (busRow?.stoppageFares || parseJson(busRow?.stoppage_fares, {}));
+
+    if (rawMap && typeof rawMap === 'object') {
+        const directKey = `${fromStop}->${toStop}`;
+        if (Number(rawMap[directKey]) > 0) return Math.round(Number(rawMap[directKey]));
+        const lcTarget = directKey.toLowerCase();
+        for (const [k, v] of Object.entries(rawMap)) {
+            if (String(k || '').trim().toLowerCase() === lcTarget && Number(v) > 0) {
+                return Math.round(Number(v));
+            }
+        }
+    }
+
+    if (fromIdx === 0 && toIdx === stops.length - 1) return Math.round(fullFare);
+
+    const totalHops = Math.max(1, stops.length - 1);
+    const hops = toIdx - fromIdx;
+    const propFare = Math.round((fullFare * (hops / totalHops)) / 5) * 5;
+    return Math.max(20, Math.min(Math.round(fullFare), propFare));
+}
+
+function addMinutesToTimeStr(timeStr, addMins) {
+    if (!timeStr) return null;
+    const m = String(timeStr).trim().match(/^(\d{1,2})[:.](\d{2})\s*(AM|PM)?$/i);
+    if (!m) return null;
+    let h = parseInt(m[1], 10);
+    const min = parseInt(m[2], 10);
+    const mer = (m[3] || '').toUpperCase();
+    if (mer === 'PM' && h < 12) h += 12;
+    if (mer === 'AM' && h === 12) h = 0;
+    const total = (h * 60 + min + addMins) % (24 * 60);
+    const nh24 = Math.floor(total / 60);
+    const nmin = total % 60;
+    const nmer = nh24 >= 12 ? 'PM' : 'AM';
+    const nh12 = (nh24 % 12) || 12;
+    return `${String(nh12).padStart(2, '0')}:${String(nmin).padStart(2, '0')} ${nmer}`;
+}
+
+function parseTripDateTimeIST(journeyDate, timeStr) {
+    if (!journeyDate || !/^\d{4}-\d{2}-\d{2}$/.test(journeyDate)) return null;
+    const clean = String(timeStr || '07:00 AM').trim();
+    const match = clean.match(/^(\d{1,2})[:.](\d{2})\s*(AM|PM)?$/i);
+    if (!match) return null;
+    let h = parseInt(match[1], 10);
+    const m = parseInt(match[2], 10);
+    const meridiem = (match[3] || '').toUpperCase();
+    if (meridiem === 'PM' && h < 12) h += 12;
+    if (meridiem === 'AM' && h === 12) h = 0;
+    const dt = new Date(`${journeyDate}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00+05:30`);
+    if (Number.isNaN(dt.getTime())) return null;
+    const diffMs = dt.getTime() - Date.now();
+    return {
+        departureMs: dt.getTime(),
+        hoursUntil: diffMs / 3600000,
+        isPassed: diffMs <= 0
+    };
+}
+
+function evaluateEnrouteStopState(busRow, journeyDate, boardingStop, isReturnTrip = false, flags = null) {
+    if (!journeyDate) return { allowed: true, isRunningEnroute: false, status: 'UPCOMING', boardingTime: null };
+    const istNow = new Date();
+    const istDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(istNow);
+    const stops = getEffectiveStoppagesList(busRow, isReturnTrip);
+    const timings = getEffectiveStoppageTimingsObj(busRow, isReturnTrip);
+    const baseTime = (isReturnTrip ? (busRow?.return_time || busRow?.returnTime || busRow?.time) : busRow?.time) || '07:00 AM';
+    const boardingIdx = Math.max(0, resolveStoppageIdx(stops, boardingStop));
+
+    let boardingTime = resolveStoppageTimingValue(timings, boardingStop);
+    if (!boardingTime) {
+        boardingTime = boardingIdx === 0 ? baseTime : (addMinutesToTimeStr(baseTime, boardingIdx * 30) || baseTime);
+    }
+
+    if (journeyDate > istDate) {
+        return { allowed: true, isRunningEnroute: false, status: 'UPCOMING', boardingTime };
+    }
+    if (journeyDate < istDate) {
+        return { allowed: false, isRunningEnroute: false, status: 'DEPARTED', boardingTime };
+    }
+
+    // Same IST calendar day: check live Captain checkpoint + GPS telemetry first if enabled
+    const enrouteEnabled = !flags || flags.enrouteRunningBooking !== false;
+    const locUpdatedAt = busRow?.location_updated_at || busRow?.locationUpdatedAt || '';
+    const curStop = String(busRow?.current_stoppage || busRow?.currentStoppage || '').trim();
+    const curStopAt = busRow?.current_stoppage_updated_at || busRow?.currentStoppageUpdatedAt || locUpdatedAt;
+    const isFreshTodayLoc = Boolean(curStopAt) &&
+        (new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(curStopAt)) === istDate) &&
+        (Date.now() - new Date(curStopAt).getTime() <= 2 * 3600 * 1000);
+
+    if (enrouteEnabled && curStop && isFreshTodayLoc) {
+        const curStopIdx = resolveStoppageIdx(stops, curStop);
+        if (curStopIdx > boardingIdx) {
+            return { allowed: false, isRunningEnroute: false, status: 'PASSED_STOP', boardingTime, currentStoppage: curStop };
+        }
+        if (curStopIdx >= 0 && curStopIdx < boardingIdx) {
+            const parsedStopTime = parseTripDateTimeIST(journeyDate, boardingTime);
+            // Allow live running booking even if bus is up to 90 mins behind schedule
+            if (!parsedStopTime || parsedStopTime.hoursUntil >= -1.5) {
+                return { allowed: true, isRunningEnroute: true, isLiveGps: true, status: 'RUNNING_APPROACHING', boardingTime, currentStoppage: curStop };
+            }
+        }
+    }
+
+    const stopPassed = isTripTimePassedIST(journeyDate, boardingTime);
+    if (stopPassed) {
+        return { allowed: false, isRunningEnroute: false, status: 'DEPARTED', boardingTime };
+    }
+
+    const originPassed = boardingIdx > 0 && isTripTimePassedIST(journeyDate, baseTime);
+    if (originPassed && !enrouteEnabled) {
+        return { allowed: false, isRunningEnroute: false, status: 'ORIGIN_DEPARTED', boardingTime };
+    }
+
+    return {
+        allowed: true,
+        isRunningEnroute: Boolean(originPassed),
+        status: originPassed ? 'RUNNING_APPROACHING' : 'UPCOMING',
+        boardingTime
+    };
+}
+
+async function getSegmentOccupiedSeats(db, busId, journeyDate, fromIdx, toIdx, flags = null) {
+    const reuseEnabled = !flags || flags.segmentSeatReuse !== false;
+    const effectiveFrom = (reuseEnabled && fromIdx >= 0 && toIdx > fromIdx) ? fromIdx : 0;
+    const effectiveTo = (reuseEnabled && fromIdx >= 0 && toIdx > fromIdx) ? toIdx : 999;
+
+    const [{ results: legRows }, { results: legacyRows }] = await Promise.all([
+        db.prepare(
+            `SELECT DISTINCT seat_number FROM booking_seat_legs
+             WHERE bus_id = ? AND journey_date = ? AND hop_idx >= ? AND hop_idx < ?`
+        ).bind(busId, journeyDate, effectiveFrom, effectiveTo).all(),
+        db.prepare(
+            `SELECT DISTINCT seat_number FROM booking_seats
+             WHERE bus_id = ? AND journey_date = ?
+               AND booking_id NOT IN (SELECT DISTINCT booking_id FROM booking_seat_legs WHERE bus_id = ? AND journey_date = ?)`
+        ).bind(busId, journeyDate, busId, journeyDate).all()
+    ]);
+
+    const seatSet = new Set();
+    (legRows || []).forEach(r => seatSet.add(r.seat_number));
+    (legacyRows || []).forEach(r => seatSet.add(r.seat_number));
+    return Array.from(seatSet);
+}
+
+async function getSegmentHeldSeats(db, busId, journeyDate, fromIdx, toIdx, sessionId, nowIso, flags = null) {
+    const reuseEnabled = !flags || flags.segmentSeatReuse !== false;
+    const effectiveFrom = (reuseEnabled && fromIdx >= 0 && toIdx > fromIdx) ? fromIdx : 0;
+    const effectiveTo = (reuseEnabled && fromIdx >= 0 && toIdx > fromIdx) ? toIdx : 999;
+
+    const [{ results: legHolds }, { results: legacyHolds }] = await Promise.all([
+        db.prepare(
+            `SELECT DISTINCT seat_number, session_id FROM seat_hold_legs
+             WHERE bus_id = ? AND journey_date = ? AND expires_at > ? AND hop_idx >= ? AND hop_idx < ?`
+        ).bind(busId, journeyDate, nowIso, effectiveFrom, effectiveTo).all(),
+        db.prepare(
+            `SELECT DISTINCT seat_number, session_id FROM seat_holds
+             WHERE bus_id = ? AND journey_date = ? AND expires_at > ?
+               AND session_id NOT IN (SELECT DISTINCT session_id FROM seat_hold_legs WHERE bus_id = ? AND journey_date = ?)`
+        ).bind(busId, journeyDate, nowIso, busId, journeyDate).all()
+    ]);
+
+    const heldSeats = new Set();
+    const myHeldSeats = new Set();
+    const applyRow = (h) => {
+        if (sessionId && h.session_id === sessionId) myHeldSeats.add(h.seat_number);
+        else heldSeats.add(h.seat_number);
+    };
+    (legHolds || []).forEach(applyRow);
+    (legacyHolds || []).forEach(applyRow);
+    return { heldSeats: Array.from(heldSeats), myHeldSeats: Array.from(myHeldSeats) };
+}
+
 function escapeHtml(str) {
     if (typeof str !== 'string') return (str === null || str === undefined) ? '' : String(str);
     return str.replace(/&/g, "&amp;")
@@ -190,6 +484,14 @@ const defaultFeatureFlags = {
     // Temporary Seat Hold Timer controls
     seatHoldTimer: true,
     seatHoldMinutes: 15,
+    // Enterprise Ticket Cancellation & Cutoff Controls
+    ticketCancellation: true,
+    cancellationCutoffEnabled: true,
+    cancellationCutoffHours: 8,
+    // Enterprise En-route & Segment Controls
+    enrouteRunningBooking: true,
+    stoppageWiseFares: true,
+    segmentSeatReuse: true,
     // Strategic Growth & Business Expansion Flags
     whatsappBooking: false,
     agentBookingPortal: false,
@@ -210,6 +512,11 @@ const defaultExpansionConfig = {
     seatHold: {
         enabled: true,
         holdMinutes: 15
+    },
+    ticketCancellation: {
+        enabled: true,
+        cutoffEnabled: true,
+        cutoffHours: 8
     },
     whatsappBooking: {
         botNumber: "8768447312",
@@ -278,6 +585,13 @@ async function getFeatureFlags(db) {
         flags.seatHoldMinutes = typeof expansionConfig.seatHold.holdMinutes === 'number' ? expansionConfig.seatHold.holdMinutes : 15;
         flags.seatHoldTimer = expansionConfig.seatHold.enabled !== false;
     }
+    if (expansionConfig.ticketCancellation) {
+        flags.ticketCancellation = expansionConfig.ticketCancellation.enabled !== false;
+        flags.cancellationCutoffEnabled = expansionConfig.ticketCancellation.cutoffEnabled !== false;
+        flags.cancellationCutoffHours = typeof expansionConfig.ticketCancellation.cutoffHours === 'number'
+            ? expansionConfig.ticketCancellation.cutoffHours
+            : 8;
+    }
     return flags;
 }
 
@@ -340,6 +654,12 @@ function mapBus(row) {
         bookingMode: row.booking_mode || 'active',
         stoppageTimings: parseJson(row.stoppage_timings, {}),
         stoppage_timings: parseJson(row.stoppage_timings, {}),
+        stoppageFares: parseJson(row.stoppage_fares, {}),
+        stoppage_fares: parseJson(row.stoppage_fares, {}),
+        returnStoppageFares: parseJson(row.return_stoppage_fares, {}),
+        return_stoppage_fares: parseJson(row.return_stoppage_fares, {}),
+        currentStoppage: row.current_stoppage || '',
+        currentStoppageUpdatedAt: row.current_stoppage_updated_at || '',
         seatLayout: parseJson(row.seat_layout, null),
         seat_layout: parseJson(row.seat_layout, null),
         approvalStatus: row.approval_status || 'approved',
@@ -1170,20 +1490,22 @@ async function handleGet(context) {
 
     // GET /api/buses
     if (path === '/api/buses') {
+        await ensureEnterpriseSegmentTables(env.DB);
         const date = url.searchParams.get('date');
+        const reqFrom = (url.searchParams.get('from') || '').trim();
+        const reqTo = (url.searchParams.get('to') || '').trim();
         if (date && !isValidJourneyDate(date)) return jsonError(400, 'A valid journey date is required.');
+        const flags = await getFeatureFlags(env.DB);
+
         const query = date
-            ? `SELECT b.*, COALESCE(sd.enabled, 1) AS service_enabled,
-                       COUNT(bs.seat_number) AS booked_seats
+            ? `SELECT b.*, COALESCE(sd.enabled, 1) AS service_enabled
                FROM buses b
                LEFT JOIN bus_service_dates sd ON sd.bus_id = b.id AND sd.journey_date = ?
-               LEFT JOIN booking_seats bs ON bs.bus_id = b.id AND bs.journey_date = ?
                WHERE COALESCE(b.approval_status, 'approved') = 'approved'
-               GROUP BY b.id
                ORDER BY b.name`
             : `SELECT * FROM buses WHERE COALESCE(approval_status, 'approved') = 'approved' ORDER BY name`;
         const result = date
-            ? await env.DB.prepare(query).bind(date, date).all()
+            ? await env.DB.prepare(query).bind(date).all()
             : await env.DB.prepare(query).all();
 
         const buses = [];
@@ -1191,43 +1513,66 @@ async function handleGet(context) {
             // If inactive or not approved, completely hidden from customer search
             if (row.booking_mode === 'inactive') continue;
             if (row.approval_status && row.approval_status !== 'approved') continue;
-            if (date) {
-                if (!row.service_enabled) continue;
-                // Auto-pilot: hides automatically when full, reappears when seats free up
-                if (row.booking_mode === 'auto_pilot' && row.booked_seats >= (row.total_seats || 65)) continue;
-                if (row.booked_seats >= (row.total_seats || 65)) continue;
-            }
+            if (date && !row.service_enabled) continue;
+
+            const totalSeats = row.total_seats || 65;
 
             // 1. Up-Trip (Standard Route)
-            const upBus = {
-                ...mapBus(row),
-                tripDirection: 'UP',
-                remainingSeats: date ? Math.max(0, (row.total_seats || 65) - (row.booked_seats || 0)) : undefined
-            };
-            buses.push(upBus);
+            let upPush = true;
+            let upRemaining = undefined;
+            let upSegmentFare = undefined;
+            let upEnrouteState = undefined;
+            if (date) {
+                const upStops = getEffectiveStoppagesList(row, false);
+                const fIdx = reqFrom ? resolveStoppageIdx(upStops, reqFrom) : -1;
+                const tIdx = reqTo ? resolveStoppageIdx(upStops, reqTo) : -1;
+                const segMatch = fIdx >= 0 && tIdx > fIdx;
+                const occupied = await getSegmentOccupiedSeats(env.DB, row.id, date, segMatch ? fIdx : 0, segMatch ? tIdx : 999, flags);
+                upRemaining = Math.max(0, totalSeats - occupied.length);
+                if (upRemaining <= 0) upPush = false;
+                if (segMatch) {
+                    upSegmentFare = resolveSegmentFare(row, upStops[fIdx], upStops[tIdx], false, flags);
+                    upEnrouteState = evaluateEnrouteStopState(row, date, upStops[fIdx], false, flags);
+                }
+            }
+            if (upPush) {
+                buses.push({
+                    ...mapBus(row),
+                    tripDirection: 'UP',
+                    remainingSeats: upRemaining,
+                    ...(upSegmentFare !== undefined ? { segmentFare: upSegmentFare } : {}),
+                    ...(upEnrouteState ? { enrouteState: upEnrouteState } : {})
+                });
+            }
 
             // 2. Return-Trip (If Return Route is Enabled)
             if (row.return_route_enabled) {
-                let returnStops = parseJson(row.return_stoppages, []);
-                if (!returnStops || returnStops.length < 2) {
-                    const upStops = parseJson(row.stoppages, []);
-                    returnStops = [...upStops].reverse();
-                }
+                const returnStops = getEffectiveStoppagesList(row, true);
                 const returnRoute = row.return_route || (returnStops[0] + ' - ' + returnStops[returnStops.length - 1]);
                 const returnTime = row.return_time || '03:30 PM';
                 const returnTimings = parseJson(row.return_stoppage_timings, {});
+                const returnFares = parseJson(row.return_stoppage_fares, {});
                 const returnFare = Number(row.return_fare || row.fare || 0);
 
-                let retBookedSeats = 0;
+                let retPush = true;
+                let retRemaining = undefined;
+                let retSegmentFare = undefined;
+                let retEnrouteState = undefined;
                 if (date) {
-                    const retCountRow = await env.DB.prepare(
-                        'SELECT COUNT(seat_number) AS cnt FROM booking_seats WHERE bus_id = ? AND journey_date = ?'
-                    ).bind(row.id + '_RETURN', date).first();
-                    retBookedSeats = (retCountRow && retCountRow.cnt) || 0;
+                    const rfIdx = reqFrom ? resolveStoppageIdx(returnStops, reqFrom) : -1;
+                    const rtIdx = reqTo ? resolveStoppageIdx(returnStops, reqTo) : -1;
+                    const retSegMatch = rfIdx >= 0 && rtIdx > rfIdx;
+                    const retOccupied = await getSegmentOccupiedSeats(env.DB, row.id + '_RETURN', date, retSegMatch ? rfIdx : 0, retSegMatch ? rtIdx : 999, flags);
+                    retRemaining = Math.max(0, totalSeats - retOccupied.length);
+                    if (retRemaining <= 0) retPush = false;
+                    if (retSegMatch) {
+                        retSegmentFare = resolveSegmentFare(row, returnStops[rfIdx], returnStops[rtIdx], true, flags);
+                        retEnrouteState = evaluateEnrouteStopState(row, date, returnStops[rfIdx], true, flags);
+                    }
                 }
 
-                if (!date || retBookedSeats < (row.total_seats || 65)) {
-                    const downBus = {
+                if (retPush) {
+                    buses.push({
                         ...mapBus(row),
                         id: row.id + '_RETURN',
                         parentBusId: row.id,
@@ -1237,15 +1582,18 @@ async function handleGet(context) {
                         stoppages: returnStops,
                         stoppageTimings: returnTimings,
                         stoppage_timings: returnTimings,
+                        stoppageFares: returnFares,
+                        stoppage_fares: returnFares,
                         fare: returnFare,
                         tripDirection: 'DOWN',
-                        remainingSeats: date ? Math.max(0, (row.total_seats || 65) - retBookedSeats) : undefined
-                    };
-                    buses.push(downBus);
+                        remainingSeats: retRemaining,
+                        ...(retSegmentFare !== undefined ? { segmentFare: retSegmentFare } : {}),
+                        ...(retEnrouteState ? { enrouteState: retEnrouteState } : {})
+                    });
                 }
             }
         }
-        return jsonResponse({ buses }, 200, { 'Cache-Control': 'public, max-age=5, stale-while-revalidate=30' });
+        return jsonResponse({ buses }, 200, { 'Cache-Control': reqFrom ? 'no-cache, max-age=0' : 'public, max-age=5, stale-while-revalidate=30' });
     }
 
     if (path === '/api/config') {
@@ -1264,17 +1612,21 @@ async function handleGet(context) {
         return jsonResponse({ festivalTheme: resolvedTheme }, 200, { 'Cache-Control': 'no-cache, no-store, must-revalidate' });
     }
 
-    // GET /api/seats?busId=...&date=...
+    // GET /api/seats?busId=...&date=...&from=...&to=...
     if (path === '/api/seats') {
+        await ensureEnterpriseSegmentTables(env.DB);
         const busId = url.searchParams.get('busId');
         const date = url.searchParams.get('date');
+        const reqFrom = (url.searchParams.get('from') || '').trim();
+        const reqTo = (url.searchParams.get('to') || '').trim();
         if (!busId || !date) return jsonError(400, 'busId and date are required.');
         if (!isValidJourneyDate(date)) return jsonError(400, 'A valid journey date is required.');
         const sessionId = url.searchParams.get('sessionId') || '';
+        const isReturnTrip = String(busId).endsWith('_RETURN');
         const physicalBusId = busId.replace('_RETURN', '');
 
         const bus = await env.DB.prepare(
-            `SELECT b.total_seats, b.booking_mode, b.approval_status, b.seat_layout, COALESCE(sd.enabled, 1) AS service_enabled
+            `SELECT b.*, COALESCE(sd.enabled, 1) AS service_enabled
              FROM buses b
              LEFT JOIN bus_service_dates sd ON sd.bus_id = b.id AND sd.journey_date = ?
              WHERE b.id = ?`
@@ -1285,38 +1637,35 @@ async function handleGet(context) {
         if (!bus.service_enabled) return jsonError(409, 'This bus is not operating on the selected date.');
 
         const nowIso = new Date().toISOString();
-        // Purge expired holds
-        await env.DB.prepare('DELETE FROM seat_holds WHERE expires_at <= ?').bind(nowIso).run();
-
-        const { results } = await env.DB.prepare(
-            'SELECT seat_number FROM booking_seats WHERE bus_id = ? AND journey_date = ?'
-        ).bind(busId, date).all();
-        const bookedSeats = (results || []).map(r => r.seat_number);
-
-        const { results: holds } = await env.DB.prepare(
-            'SELECT seat_number, session_id FROM seat_holds WHERE bus_id = ? AND journey_date = ? AND expires_at > ?'
-        ).bind(busId, date, nowIso).all();
-
-        const heldSeats = [];
-        const myHeldSeats = [];
-        for (const h of (holds || [])) {
-            if (sessionId && h.session_id === sessionId) {
-                myHeldSeats.push(h.seat_number);
-            } else {
-                heldSeats.push(h.seat_number);
-            }
-        }
+        await Promise.all([
+            env.DB.prepare('DELETE FROM seat_holds WHERE expires_at <= ?').bind(nowIso).run(),
+            env.DB.prepare('DELETE FROM seat_hold_legs WHERE expires_at <= ?').bind(nowIso).run()
+        ]);
 
         const flags = await getFeatureFlags(env.DB);
+        const stops = getEffectiveStoppagesList(bus, isReturnTrip);
+        const fromIdx = reqFrom ? resolveStoppageIdx(stops, reqFrom) : 0;
+        const toIdx = reqTo ? resolveStoppageIdx(stops, reqTo) : Math.max(1, stops.length - 1);
+        const validSeg = fromIdx >= 0 && toIdx > fromIdx;
+        const effFrom = validSeg ? fromIdx : 0;
+        const effTo = validSeg ? toIdx : Math.max(1, stops.length - 1);
+
+        const bookedSeats = await getSegmentOccupiedSeats(env.DB, busId, date, effFrom, effTo, flags);
+        const { heldSeats, myHeldSeats } = await getSegmentHeldSeats(env.DB, busId, date, effFrom, effTo, sessionId, nowIso, flags);
+
         const isHoldEnabled = flags.seatHoldTimer !== false;
         const holdMins = Number(flags.seatHoldMinutes) || 15;
+        const segmentFare = (reqFrom && reqTo && validSeg)
+            ? resolveSegmentFare(bus, stops[effFrom], stops[effTo], isReturnTrip, flags)
+            : undefined;
 
         return jsonResponse({
             seats: bookedSeats,
             heldSeats: isHoldEnabled ? heldSeats : [],
             myHeldSeats: isHoldEnabled ? myHeldSeats : [],
             holdMinutes: isHoldEnabled ? holdMins : 0,
-            seatHoldEnabled: isHoldEnabled
+            seatHoldEnabled: isHoldEnabled,
+            ...(segmentFare !== undefined ? { segmentFare } : {})
         });
     }
 
@@ -1476,6 +1825,7 @@ async function handleGet(context) {
 
     // GET /api/owner/state
     if (path === '/api/owner/state') {
+        await ensureEnterpriseSegmentTables(env.DB);
         const ownerPhone = auth?.identifier || url.searchParams.get('phone') || '';
         let busesRows = [];
         let bookingRows = [];
@@ -1576,6 +1926,7 @@ async function handleGet(context) {
 
     // GET /api/admin/state
     if (path === '/api/admin/state') {
+        await ensureEnterpriseSegmentTables(env.DB);
         const { results: busesRows } = await env.DB.prepare('SELECT * FROM buses ORDER BY name').all();
         const { results: bookingRows } = await env.DB.prepare(
             `SELECT b.*, bs.company_name, bs.gst_number, bs.ticket_terms, bs.emergency_phone, bs.time, bs.stoppage_timings
@@ -1727,6 +2078,7 @@ async function handleGet(context) {
 
     // GET /api/captain/state
     if (path === '/api/captain/state') {
+        await ensureEnterpriseSegmentTables(env.DB);
         const busId = auth.busId;
         if (!busId) return jsonError(403, 'No bus is assigned to this captain account.');
         const bus = await env.DB.prepare('SELECT * FROM buses WHERE id = ?').bind(busId).first();
@@ -4484,53 +4836,73 @@ async function handlePost(context) {
         return jsonResponse({ ok: true });
     }
 
-    // POST /api/seats/hold (Enterprise Atomic Seat Lock via SQLite UNIQUE Constraint)
+    // POST /api/seats/hold (Enterprise Atomic Hop-Level Seat Lock via PRIMARY KEY Constraint)
     if (path === '/api/seats/hold') {
+        await ensureEnterpriseSegmentTables(env.DB);
         const body = await readJson(request);
-        const { busId, journeyDate, seats: rawSeats, sessionId, customerPhone } = body || {};
+        const { busId, journeyDate, seats: rawSeats, sessionId, customerPhone, boarding, dropping } = body || {};
         const seats = Array.isArray(rawSeats) ? [...new Set(rawSeats.map(s => String(s).trim()).filter(Boolean))] : [];
         if (!busId || !journeyDate || !seats.length || !sessionId) {
             return jsonError(400, 'Missing busId, journeyDate, seats, or sessionId.');
         }
 
-        // Check if bus departure time has already passed today (handle outbound & _RETURN trips)
-        const checkBus = await env.DB.prepare('SELECT time, return_time FROM buses WHERE id = ?').bind(String(busId).replace('_RETURN', '')).first();
-        const effectiveDepTime = checkBus ? (String(busId).endsWith('_RETURN') ? (checkBus.return_time || checkBus.time) : checkBus.time) : null;
-        if (checkBus && isTripTimePassedIST(journeyDate, effectiveDepTime || '07:00 AM')) {
-            return jsonError(400, 'দুঃখিত! এই বাসের ছাড়ার সময় ইতিমধ্যে পার হয়ে গেছে। অন্য বাস বা ভবিষ্যতের তারিখ নির্বাচন করুন। (Bus has already departed.)');
+        const isReturnTrip = String(busId).endsWith('_RETURN');
+        const physicalBusId = String(busId).replace('_RETURN', '');
+        const checkBus = await env.DB.prepare('SELECT * FROM buses WHERE id = ?').bind(physicalBusId).first();
+        if (!checkBus) return jsonError(404, 'Bus not found.');
+        const flags = await getFeatureFlags(env.DB);
+
+        const stops = getEffectiveStoppagesList(checkBus, isReturnTrip);
+        let bIdx = boarding ? resolveStoppageIdx(stops, boarding) : 0;
+        let dIdx = dropping ? resolveStoppageIdx(stops, dropping) : Math.max(1, stops.length - 1);
+        if (bIdx < 0 || dIdx <= bIdx) {
+            bIdx = 0;
+            dIdx = Math.max(1, stops.length - 1);
+        }
+        const effectiveBoarding = stops[bIdx] || boarding || stops[0];
+
+        // Check boarding-stop departure state (supports mid-route running bus booking!)
+        const enrouteState = evaluateEnrouteStopState(checkBus, journeyDate, effectiveBoarding, isReturnTrip, flags);
+        if (!enrouteState.allowed) {
+            return jsonError(400, `দুঃখিত! ${effectiveBoarding} স্টপেজে বাসটির ছাড়ার সময় ইতিমধ্যে পার হয়ে গেছে। অন্য স্টপেজ বা ভবিষ্যতের তারিখ নির্বাচন করুন। (Bus already departed/passed ${effectiveBoarding}.)`);
         }
 
         const now = new Date();
         const nowIso = now.toISOString();
 
         // 1. Purge expired holds atomically
-        await env.DB.prepare('DELETE FROM seat_holds WHERE expires_at <= ?').bind(nowIso).run();
+        await Promise.all([
+            env.DB.prepare('DELETE FROM seat_holds WHERE expires_at <= ?').bind(nowIso).run(),
+            env.DB.prepare('DELETE FROM seat_hold_legs WHERE expires_at <= ?').bind(nowIso).run()
+        ]);
 
-        // 2. Check if already permanently booked in booking_seats
-        const placeholders = seats.map(() => '?').join(',');
-        const booked = await env.DB.prepare(
-            `SELECT seat_number FROM booking_seats WHERE bus_id = ? AND journey_date = ? AND seat_number IN (${placeholders})`
-        ).bind(busId, journeyDate, ...seats).all();
-        if (booked.results && booked.results.length > 0) {
-            const taken = booked.results.map(r => r.seat_number).join(', ');
-            return jsonError(409, `সিট ${taken} ইতিমধ্যে বুক হয়ে গেছে। অন্য সিট নির্বাচন করুন। (Seat ${taken} is already booked.)`);
+        const reuseEnabled = flags.segmentSeatReuse !== false;
+        const holdFrom = reuseEnabled ? bIdx : 0;
+        const holdTo = reuseEnabled ? dIdx : Math.max(1, stops.length - 1);
+
+        // 2. Check if already permanently booked on overlapping hops
+        const occupiedForSeg = new Set(await getSegmentOccupiedSeats(env.DB, busId, journeyDate, holdFrom, holdTo, flags));
+        const conflictingBooked = seats.filter(s => occupiedForSeg.has(s));
+        if (conflictingBooked.length > 0) {
+            const taken = conflictingBooked.join(', ');
+            return jsonError(409, `সিট ${taken} এই রুটে ইতিমধ্যে বুক হয়ে গেছে। অন্য সিট নির্বাচন করুন। (Seat ${taken} is already booked.)`);
         }
 
-        // 3. Check if temporarily locked by someone else
-        const heldByOthers = await env.DB.prepare(
-            `SELECT seat_number FROM seat_holds WHERE bus_id = ? AND journey_date = ? AND expires_at > ? AND session_id != ? AND seat_number IN (${placeholders})`
-        ).bind(busId, journeyDate, nowIso, sessionId, ...seats).all();
-        if (heldByOthers.results && heldByOthers.results.length > 0) {
-            const lockedSeats = heldByOthers.results.map(r => r.seat_number).join(', ');
-            return jsonError(409, `সিট ${lockedSeats} সাময়িকভাবে অন্য যাত্রীর জন্য লক রয়েছে (১৫ মিনিট)। অনুগ্রহ করে অন্য সিট বাছুন। (Seat ${lockedSeats} is temporarily held.)`);
+        // 3. Check if temporarily locked by another passenger on overlapping hops
+        const { heldSeats } = await getSegmentHeldSeats(env.DB, busId, journeyDate, holdFrom, holdTo, sessionId, nowIso, flags);
+        const heldSet = new Set(heldSeats);
+        const heldConflict = seats.filter(s => heldSet.has(s));
+        if (heldConflict.length > 0) {
+            const lockedSeats = heldConflict.join(', ');
+            return jsonError(409, `সিট ${lockedSeats} সাময়িকভাবে অন্য যাত্রীর জন্য লক রয়েছে। অনুগ্রহ করে অন্য সিট বাছুন। (Seat ${lockedSeats} is temporarily held.)`);
         }
 
-        // 4. Check if this session ALREADY has an active, unexpired hold for these exact seats on this bus & date
-        const existingHolds = await env.DB.prepare(
-            `SELECT seat_number, expires_at FROM seat_holds WHERE bus_id = ? AND journey_date = ? AND session_id = ? AND expires_at > ?`
+        // 4. Preserve existing active hold expiry ONLY if this session already holds the exact same seats & segment
+        const { results: existingLegRows } = await env.DB.prepare(
+            `SELECT DISTINCT seat_number, expires_at, boarding_idx, dropping_idx FROM seat_hold_legs
+             WHERE bus_id = ? AND journey_date = ? AND session_id = ? AND expires_at > ?`
         ).bind(busId, journeyDate, sessionId, nowIso).all();
 
-        const flags = await getFeatureFlags(env.DB);
         if (flags.seatHoldTimer === false) {
             return jsonResponse({
                 ok: true,
@@ -4544,26 +4916,31 @@ async function handlePost(context) {
         const holdMins = Number(flags.seatHoldMinutes) || 15;
 
         let expiresAt;
-        const existingList = existingHolds.results || [];
+        const existingList = existingLegRows || [];
         const existingSeatSet = new Set(existingList.map(r => r.seat_number));
-        const allSeatsAlreadyHeld = seats.length > 0 && seats.every(s => existingSeatSet.has(s)) && existingList.length === seats.length;
+        const sameSeg = existingList.length > 0 && existingList.every(r => Number(r.boarding_idx) === holdFrom && Number(r.dropping_idx) === holdTo);
+        const allSeatsAlreadyHeld = sameSeg && seats.length > 0 && seats.every(s => existingSeatSet.has(s)) && existingSeatSet.size === seats.length;
 
         if (allSeatsAlreadyHeld && existingList[0]?.expires_at) {
-            // PRESERVE EXISTING EXPIRY! Do not reset timer when page is refreshed
             expiresAt = existingList[0].expires_at;
         } else {
-            // Atomic batch: release this session's old holds on this trip and lock requested seats via idx_seat_holds_unique
             expiresAt = new Date(now.getTime() + holdMins * 60 * 1000).toISOString();
-            const tripDir = busId.endsWith('_RETURN') ? 'DOWN' : 'UP';
+            const tripDir = isReturnTrip ? 'DOWN' : 'UP';
+            const hopInserts = [];
+            for (const seat of seats) {
+                for (let h = holdFrom; h < holdTo; h++) {
+                    hopInserts.push(
+                        env.DB.prepare(
+                            `INSERT INTO seat_hold_legs (bus_id, journey_date, seat_number, hop_idx, session_id, customer_phone, boarding_idx, dropping_idx, expires_at, created_at, trip_direction)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                        ).bind(busId, journeyDate, seat, h, sessionId, customerPhone || null, holdFrom, holdTo, expiresAt, nowIso, tripDir)
+                    );
+                }
+            }
             const statements = [
-                env.DB.prepare(
-                    'DELETE FROM seat_holds WHERE bus_id = ? AND journey_date = ? AND session_id = ?'
-                ).bind(busId, journeyDate, sessionId),
-                ...seats.map(seat =>
-                    env.DB.prepare(
-                        'INSERT INTO seat_holds (bus_id, journey_date, seat_number, session_id, customer_phone, expires_at, created_at, trip_direction) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-                    ).bind(busId, journeyDate, seat, sessionId, customerPhone || null, expiresAt, nowIso, tripDir)
-                )
+                env.DB.prepare('DELETE FROM seat_hold_legs WHERE bus_id = ? AND journey_date = ? AND session_id = ?').bind(busId, journeyDate, sessionId),
+                env.DB.prepare('DELETE FROM seat_holds WHERE bus_id = ? AND journey_date = ? AND session_id = ?').bind(busId, journeyDate, sessionId),
+                ...hopInserts
             ];
             try {
                 await env.DB.batch(statements);
@@ -4587,23 +4964,33 @@ async function handlePost(context) {
 
     // POST /api/seats/release
     if (path === '/api/seats/release') {
+        await ensureEnterpriseSegmentTables(env.DB);
         const body = await readJson(request);
         const { busId, journeyDate, sessionId, seats } = body || {};
         if (sessionId) {
             if (seats && Array.isArray(seats) && seats.length > 0) {
                 const placeholders = seats.map(() => '?').join(',');
                 if (busId && journeyDate) {
-                    await env.DB.prepare(`DELETE FROM seat_holds WHERE bus_id = ? AND journey_date = ? AND session_id = ? AND seat_number IN (${placeholders})`)
-                        .bind(busId, journeyDate, sessionId, ...seats).run();
+                    await Promise.all([
+                        env.DB.prepare(`DELETE FROM seat_holds WHERE bus_id = ? AND journey_date = ? AND session_id = ? AND seat_number IN (${placeholders})`).bind(busId, journeyDate, sessionId, ...seats).run(),
+                        env.DB.prepare(`DELETE FROM seat_hold_legs WHERE bus_id = ? AND journey_date = ? AND session_id = ? AND seat_number IN (${placeholders})`).bind(busId, journeyDate, sessionId, ...seats).run()
+                    ]);
                 } else {
-                    await env.DB.prepare(`DELETE FROM seat_holds WHERE session_id = ? AND seat_number IN (${placeholders})`)
-                        .bind(sessionId, ...seats).run();
+                    await Promise.all([
+                        env.DB.prepare(`DELETE FROM seat_holds WHERE session_id = ? AND seat_number IN (${placeholders})`).bind(sessionId, ...seats).run(),
+                        env.DB.prepare(`DELETE FROM seat_hold_legs WHERE session_id = ? AND seat_number IN (${placeholders})`).bind(sessionId, ...seats).run()
+                    ]);
                 }
             } else if (busId && journeyDate) {
-                await env.DB.prepare('DELETE FROM seat_holds WHERE bus_id = ? AND journey_date = ? AND session_id = ?')
-                    .bind(busId, journeyDate, sessionId).run();
+                await Promise.all([
+                    env.DB.prepare('DELETE FROM seat_holds WHERE bus_id = ? AND journey_date = ? AND session_id = ?').bind(busId, journeyDate, sessionId).run(),
+                    env.DB.prepare('DELETE FROM seat_hold_legs WHERE bus_id = ? AND journey_date = ? AND session_id = ?').bind(busId, journeyDate, sessionId).run()
+                ]);
             } else {
-                await env.DB.prepare('DELETE FROM seat_holds WHERE session_id = ?').bind(sessionId).run();
+                await Promise.all([
+                    env.DB.prepare('DELETE FROM seat_holds WHERE session_id = ?').bind(sessionId).run(),
+                    env.DB.prepare('DELETE FROM seat_hold_legs WHERE session_id = ?').bind(sessionId).run()
+                ]);
             }
         }
         return jsonResponse({ ok: true });
@@ -4767,44 +5154,43 @@ async function handlePost(context) {
             return jsonError(401, 'টিকিট বুকিং করার জন্য অনুগ্রহ করে প্রথমে লগইন করুন (Please login to book seats).');
         }
 
+        await ensureEnterpriseSegmentTables(env.DB);
         const physicalBusId = String(busId).replace('_RETURN', '');
         const isReturnTrip = String(busId).endsWith('_RETURN');
         const bus = await env.DB.prepare('SELECT * FROM buses WHERE id = ?').bind(physicalBusId).first();
         if (!bus) return jsonError(404, 'Selected bus does not exist.');
         const flags = await getFeatureFlags(env.DB);
         const service = await env.DB.prepare(
-            `SELECT COALESCE(sd.enabled, 1) AS enabled, COUNT(bs.seat_number) AS booked_seats
-             FROM buses b
-             LEFT JOIN bus_service_dates sd ON sd.bus_id = b.id AND sd.journey_date = ?
-             LEFT JOIN booking_seats bs ON bs.bus_id = ? AND bs.journey_date = ?
-             WHERE b.id = ?`
-        ).bind(date, busId, date, physicalBusId).first();
-        if (!service || !service.enabled) return jsonError(409, 'This bus is not operating on the selected date.');
-        if (service.booked_seats + seats.length > (bus.total_seats || 65)) {
-            return jsonError(409, 'Not enough seats remain for this bus on the selected date.');
-        }
+            `SELECT COALESCE(enabled, 1) AS enabled FROM bus_service_dates WHERE bus_id = ? AND journey_date = ?`
+        ).bind(physicalBusId, date).first();
+        if (service && !service.enabled) return jsonError(409, 'This bus is not operating on the selected date.');
         if (seats.some(seat => Number(seat.slice(1)) < 1 || Number(seat.slice(1)) > (bus.total_seats || 65))) {
             return jsonError(400, 'One or more selected seats do not exist on this bus.');
         }
 
-        const stoppages = isReturnTrip
-            ? (parseJson(bus.return_stoppages, []).length >= 2 ? parseJson(bus.return_stoppages, []) : [...parseJson(bus.stoppages, [])].reverse())
-            : parseJson(bus.stoppages, []);
-        const boardingIndex = stoppages.findIndex(stop => stop.toLowerCase() === String(boarding).toLowerCase());
-        const droppingIndex = stoppages.findIndex(stop => stop.toLowerCase() === String(dropping).toLowerCase());
+        const stoppages = getEffectiveStoppagesList(bus, isReturnTrip);
+        const boardingIndex = resolveStoppageIdx(stoppages, boarding);
+        const droppingIndex = resolveStoppageIdx(stoppages, dropping);
         if (boardingIndex < 0 || droppingIndex <= boardingIndex) {
             return jsonError(400, 'The selected boarding and dropping points are invalid.');
         }
+        const canonicalBoarding = stoppages[boardingIndex];
+        const canonicalDropping = stoppages[droppingIndex];
 
-        // Check if boarding departure time has already passed for today
-        const activeTimingsRaw = isReturnTrip ? (bus.return_stoppage_timings || bus.stoppage_timings) : bus.stoppage_timings;
-        let boardingTime = (isReturnTrip ? (bus.return_time || bus.time) : bus.time) || '07:00 AM';
-        if (activeTimingsRaw && boarding) {
-            const stpTimings = parseJson(activeTimingsRaw, {});
-            if (stpTimings && stpTimings[boarding]) boardingTime = stpTimings[boarding];
+        // Check boarding-stop departure state (supports mid-route running bus booking!)
+        const enrouteState = evaluateEnrouteStopState(bus, date, canonicalBoarding, isReturnTrip, flags);
+        if (!enrouteState.allowed) {
+            return jsonError(400, `দুঃখিত! ${canonicalBoarding} স্টপেজে বাসটির ছাড়ার সময় ইতিমধ্যে পার হয়ে গেছে। টিকিট বুকিং সম্ভব নয়। (Bus departure time for ${canonicalBoarding} has already passed.)`);
         }
-        if (isTripTimePassedIST(date, boardingTime)) {
-            return jsonError(400, 'দুঃখিত! এই বাসের ছাড়ার সময় ইতিমধ্যে পার হয়ে গেছে। টিকিট বুকিং সম্ভব নয়। (Bus departure time has already passed.)');
+
+        const reuseEnabled = flags.segmentSeatReuse !== false;
+        const legFromIdx = reuseEnabled ? boardingIndex : 0;
+        const legToIdx = reuseEnabled ? droppingIndex : Math.max(1, stoppages.length - 1);
+
+        const occupiedForSeg = new Set(await getSegmentOccupiedSeats(env.DB, busId, date, legFromIdx, legToIdx, flags));
+        const alreadyBookedConflict = seats.filter(s => occupiedForSeg.has(s));
+        if (alreadyBookedConflict.length > 0) {
+            return jsonError(409, `সিট ${alreadyBookedConflict.join(', ')} ইতিমধ্যেই বুক হয়ে গেছে। অনুগ্রহ করে অন্য আসন নির্বাচন করুন। (Seat ${alreadyBookedConflict.join(', ')} is already booked.)`);
         }
 
         const cleanMode = (paymentMode === 'Cash' || String(paymentMode).toLowerCase().includes('cash')) ? 'Cash' : 'UPI';
@@ -4831,7 +5217,7 @@ async function handlePost(context) {
         }
         const cleanUtr = cleanMode === 'UPI' ? (utrNumber ? String(utrNumber).trim() : 'N/A') : null;
 
-        const baseBusFare = isReturnTrip ? (Number(bus.return_fare) || bus.fare || 150) : (bus.fare || 150);
+        const baseBusFare = resolveSegmentFare(bus, canonicalBoarding, canonicalDropping, isReturnTrip, flags);
         const seatLayoutParsed = parseJson(bus.seat_layout, null);
         const winExtra = flags.windowSeatPricing ? Number(bus.window_seat_extra || 0) : 0;
         const isSeatWindowServer = (seatNum) => {
@@ -4881,21 +5267,19 @@ async function handlePost(context) {
             }
         }
 
-        // Purge expired holds and verify no other passenger holds an active lock on these seats
+        // Purge expired holds and verify no other passenger holds an active lock on overlapping hops
         const nowHoldIso = new Date().toISOString();
-        await env.DB.prepare('DELETE FROM seat_holds WHERE expires_at <= ?').bind(nowHoldIso).run();
+        await Promise.all([
+            env.DB.prepare('DELETE FROM seat_holds WHERE expires_at <= ?').bind(nowHoldIso).run(),
+            env.DB.prepare('DELETE FROM seat_hold_legs WHERE expires_at <= ?').bind(nowHoldIso).run()
+        ]);
         if (flags.seatHoldTimer !== false) {
-            const seatPlaceholders = seats.map(() => '?').join(',');
-            const activeHoldSql = cleanSessionId
-                ? `SELECT seat_number FROM seat_holds WHERE bus_id = ? AND journey_date = ? AND expires_at > ? AND session_id != ? AND seat_number IN (${seatPlaceholders})`
-                : `SELECT seat_number FROM seat_holds WHERE bus_id = ? AND journey_date = ? AND expires_at > ? AND seat_number IN (${seatPlaceholders})`;
-            const activeHoldArgs = cleanSessionId
-                ? [busId, date, nowHoldIso, cleanSessionId, ...seats]
-                : [busId, date, nowHoldIso, ...seats];
-            const holdConflict = await env.DB.prepare(activeHoldSql).bind(...activeHoldArgs).all();
-            if (holdConflict.results && holdConflict.results.length > 0) {
-                const lockedList = holdConflict.results.map(r => r.seat_number).join(', ');
-                return jsonError(409, `সিট ${lockedList} সাময়িকভাবে অন্য যাত্রীর জন্য লক রয়েছে (১৫ মিনিট)। অনুগ্রহ করে অন্য সিট বাছুন। (Seat ${lockedList} is currently held by another passenger.)`);
+            const { heldSeats: otherHeldSeats } = await getSegmentHeldSeats(env.DB, busId, date, legFromIdx, legToIdx, cleanSessionId, nowHoldIso, flags);
+            const otherHeldSet = new Set(otherHeldSeats);
+            const holdConflictList = seats.filter(s => otherHeldSet.has(s));
+            if (holdConflictList.length > 0) {
+                const lockedList = holdConflictList.join(', ');
+                return jsonError(409, `সিট ${lockedList} সাময়িকভাবে অন্য যাত্রীর জন্য লক রয়েছে। অনুগ্রহ করে অন্য সিট বাছুন। (Seat ${lockedList} is currently held by another passenger.)`);
             }
         }
 
@@ -4905,8 +5289,19 @@ async function handlePost(context) {
         const tripDirection = isReturnTrip ? 'DOWN' : 'UP';
         const bookingBusName = isReturnTrip ? `${bus.name} (Return)` : bus.name;
 
-        // Atomic batch: Insert booking + seat reservations + release temporary holds in ONE D1 transaction
+        // Atomic batch: Insert booking + hop-level seat leg reservations + release temporary holds in ONE D1 transaction
         const heldPlaceholders = seats.map(() => '?').join(',');
+        const legInsertStmts = [];
+        for (const s of seats) {
+            for (let h = legFromIdx; h < legToIdx; h++) {
+                legInsertStmts.push(
+                    env.DB.prepare(
+                        `INSERT INTO booking_seat_legs (bus_id, journey_date, seat_number, hop_idx, booking_id, boarding_idx, dropping_idx, boarding, dropping)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                    ).bind(busId, date, s, h, bookingId, legFromIdx, legToIdx, canonicalBoarding, canonicalDropping)
+                );
+            }
+        }
         const statements = [
             env.DB.prepare(
                 `INSERT INTO bookings (
@@ -4915,11 +5310,12 @@ async function handlePost(context) {
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
             ).bind(
                 bookingId, busId, bookingBusName, bus.bus_number, bus.owner_name, passengerName.trim(), passengerPhone.trim(),
-                JSON.stringify(seats), boarding, dropping, date, finalBookingFare, cleanMode, cleanUtr, status, createdAt, tripDirection, paymentScreenshot, cleanIdempotencyKey
+                JSON.stringify(seats), canonicalBoarding, canonicalDropping, date, finalBookingFare, cleanMode, cleanUtr, status, createdAt, tripDirection, paymentScreenshot, cleanIdempotencyKey
             ),
-            ...seats.map(s => env.DB.prepare(
-                'INSERT INTO booking_seats (bus_id, journey_date, seat_number, booking_id) VALUES (?, ?, ?, ?)'
-            ).bind(busId, date, s, bookingId)),
+            ...legInsertStmts,
+            env.DB.prepare(
+                `DELETE FROM seat_hold_legs WHERE bus_id = ? AND journey_date = ? AND seat_number IN (${heldPlaceholders}) AND hop_idx >= ? AND hop_idx < ?`
+            ).bind(busId, date, ...seats, legFromIdx, legToIdx),
             env.DB.prepare(
                 `DELETE FROM seat_holds WHERE bus_id = ? AND journey_date = ? AND seat_number IN (${heldPlaceholders})`
             ).bind(busId, date, ...seats)
@@ -5024,8 +5420,13 @@ async function handlePost(context) {
 
     // POST /api/bookings/cancellation
     if (path === '/api/bookings/cancellation') {
+        await ensureEnterpriseSegmentTables(env.DB);
         const body = await readJson(request);
         if (!body || !body.bookingId) return jsonError(400, 'bookingId required.');
+        const flags = await getFeatureFlags(env.DB);
+        if (flags.ticketCancellation === false) {
+            return jsonError(403, 'অ্যাডমিন কর্তৃক বর্তমানে অনলাইন টিকিট বাতিল অপশনটি বন্ধ রাখা হয়েছে। (Online ticket cancellation is currently disabled by Admin.)');
+        }
         const bId = String(body.bookingId).trim();
         const reason = String(body.reason || body.cancelReason || '').trim();
         const customerPhone = String(auth?.identifier || body.phone || body.passengerPhone || '').trim();
@@ -5055,10 +5456,18 @@ async function handlePost(context) {
         const timingsRaw = isRet ? (existing.return_stoppage_timings || existing.stoppage_timings) : existing.stoppage_timings;
         if (timingsRaw && existing.boarding) {
             const tObj = parseJson(timingsRaw, {});
-            if (tObj && tObj[existing.boarding]) depTime = tObj[existing.boarding];
+            const foundTime = resolveStoppageTimingValue(tObj, existing.boarding);
+            if (foundTime) depTime = foundTime;
         }
         if (isTripTimePassedIST(existing.journey_date, depTime)) {
             return jsonError(400, 'বাস ছেড়ে দেওয়ার সময় পেরিয়ে গেছে। এখন আর অনলাইনে টিকিট বাতিল করা সম্ভব নয়। (Cannot cancel after bus departure.)');
+        }
+        if (flags.cancellationCutoffEnabled !== false) {
+            const cutoffHours = Number(flags.cancellationCutoffHours ?? 8);
+            const parsedDep = parseTripDateTimeIST(existing.journey_date, depTime);
+            if (parsedDep && cutoffHours > 0 && parsedDep.hoursUntil < cutoffHours) {
+                return jsonError(400, `যাত্রা শুরুর ${cutoffHours} ঘণ্টার কম সময় বাকি থাকায় এখন আর অনলাইনে টিকিট বাতিল করা সম্ভব নয়। (Cancellation closed within ${cutoffHours} hours of departure.)`);
+            }
         }
 
         const update = await env.DB.prepare(
@@ -5084,7 +5493,8 @@ async function handlePost(context) {
             return jsonError(400, 'Valid status is required.');
         }
 
-        const existingBooking = await env.DB.prepare('SELECT id, status, fare, bus_id, journey_date, seats FROM bookings WHERE id = ?').bind(bookingId).first();
+        await ensureEnterpriseSegmentTables(env.DB);
+        const existingBooking = await env.DB.prepare('SELECT id, status, fare, bus_id, journey_date, seats, boarding, dropping FROM bookings WHERE id = ?').bind(bookingId).first();
         if (!existingBooking) return jsonError(404, 'Booking not found.');
         if (auth && auth.role === 'owner') {
             const ownedBooking = await env.DB.prepare(
@@ -5117,32 +5527,59 @@ async function handlePost(context) {
                 `UPDATE bookings SET status = 'Cancelled', rejection_remarks = ?, refund_amount = ?, refund_status = ?, cancelled_at = ? WHERE id = ?`
             ).bind(remarks, refundAmount, refundStatus, nowIso, bookingId).run();
             await env.DB.prepare('DELETE FROM booking_seats WHERE booking_id = ?').bind(bookingId).run();
+            await env.DB.prepare('DELETE FROM booking_seat_legs WHERE booking_id = ?').bind(bookingId).run();
         } else if (newStatus === 'Rejected') {
             await env.DB.prepare('UPDATE bookings SET status = ?, rejection_remarks = ? WHERE id = ?').bind(newStatus, remarks, bookingId).run();
             await env.DB.prepare('DELETE FROM booking_seats WHERE booking_id = ?').bind(bookingId).run();
+            await env.DB.prepare('DELETE FROM booking_seat_legs WHERE booking_id = ?').bind(bookingId).run();
         } else if (wasInactive && becomingActive) {
             const seatList = parseJson(existingBooking.seats, []);
+            const flags = await getFeatureFlags(env.DB);
+            const isRetBk = String(existingBooking.bus_id || '').endsWith('_RETURN');
+            const busForBk = await env.DB.prepare('SELECT stoppages, return_stoppages FROM buses WHERE id = ?')
+                .bind(String(existingBooking.bus_id || '').replace('_RETURN', '')).first();
+            const stopsList = getEffectiveStoppagesList(busForBk, isRetBk);
+            let fIdx = resolveStoppageIdx(stopsList, existingBooking.boarding);
+            let tIdx = resolveStoppageIdx(stopsList, existingBooking.dropping);
+            if (flags.segmentSeatReuse === false || fIdx < 0 || tIdx <= fIdx) {
+                fIdx = 0;
+                tIdx = Math.max(1, stopsList.length - 1);
+            }
             if (Array.isArray(seatList) && seatList.length > 0) {
-                await env.DB.prepare('DELETE FROM seat_holds WHERE expires_at <= ?').bind(nowIso).run();
-                const placeholders = seatList.map(() => '?').join(',');
-                const held = await env.DB.prepare(
-                    `SELECT seat_number FROM seat_holds WHERE bus_id = ? AND journey_date = ? AND expires_at > ? AND seat_number IN (${placeholders})`
-                ).bind(existingBooking.bus_id, existingBooking.journey_date, nowIso, ...seatList).all();
-                if (held.results && held.results.length > 0) {
-                    const taken = held.results.map(r => r.seat_number).join(', ');
+                await Promise.all([
+                    env.DB.prepare('DELETE FROM seat_holds WHERE expires_at <= ?').bind(nowIso).run(),
+                    env.DB.prepare('DELETE FROM seat_hold_legs WHERE expires_at <= ?').bind(nowIso).run()
+                ]);
+                const { heldSeats: otherHeld } = await getSegmentHeldSeats(env.DB, existingBooking.bus_id, existingBooking.journey_date, fIdx, tIdx, '', nowIso, flags);
+                const conflictHeld = seatList.filter(s => otherHeld.includes(s));
+                if (conflictHeld.length > 0) {
+                    const taken = conflictHeld.join(', ');
                     return jsonError(409, `সিট ${taken} বর্তমানে অন্য যাত্রী পেমেন্টের জন্য হোল্ড করে রেখেছেন। তাই পুনরায় Approve করা যাবে না। (Seats ${taken} currently held.)`);
+                }
+                const occupied = await getSegmentOccupiedSeats(env.DB, existingBooking.bus_id, existingBooking.journey_date, fIdx, tIdx, flags);
+                const conflictOcc = seatList.filter(s => occupied.includes(s));
+                if (conflictOcc.length > 0) {
+                    return jsonError(409, 'এই বুকিংয়ের আসনগুলো ইতিমধ্যেই অন্য যাত্রী বুক করে নিয়েছেন। পুনরায় Approve করা সম্ভব নয়।');
                 }
             }
             const statusStmt = newStatus === 'Approved'
                 ? env.DB.prepare("UPDATE bookings SET status = 'Approved', refund_status = 'none' WHERE id = ?").bind(bookingId)
                 : env.DB.prepare('UPDATE bookings SET status = ? WHERE id = ?').bind(newStatus, bookingId);
-            const seatStmts = Array.isArray(seatList)
-                ? seatList.map(seat => env.DB.prepare(
-                    'INSERT INTO booking_seats (bus_id, journey_date, seat_number, booking_id) VALUES (?, ?, ?, ?)'
-                ).bind(existingBooking.bus_id, existingBooking.journey_date, seat, bookingId))
-                : [];
+            const legReactivateStmts = [];
+            if (Array.isArray(seatList)) {
+                for (const seat of seatList) {
+                    for (let h = fIdx; h < tIdx; h++) {
+                        legReactivateStmts.push(
+                            env.DB.prepare(
+                                `INSERT INTO booking_seat_legs (bus_id, journey_date, seat_number, hop_idx, booking_id, boarding_idx, dropping_idx, boarding, dropping)
+                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                            ).bind(existingBooking.bus_id, existingBooking.journey_date, seat, h, bookingId, fIdx, tIdx, existingBooking.boarding || '', existingBooking.dropping || '')
+                        );
+                    }
+                }
+            }
             try {
-                await env.DB.batch([statusStmt, ...seatStmts]);
+                await env.DB.batch([statusStmt, ...legReactivateStmts]);
             } catch (reactivateErr) {
                 if (/UNIQUE|constraint/i.test(reactivateErr.message || '')) {
                     return jsonError(409, 'এই বুকিংয়ের আসনগুলো ইতিমধ্যেই অন্য যাত্রী বুক করে নিয়েছেন। পুনরায় Approve করা সম্ভব নয়। (One or more seats are already booked by another passenger.)');
@@ -5274,11 +5711,37 @@ async function handlePost(context) {
             mergedExp.seatHold = baseHold;
         }
 
+        const hasCancellationUpdates = Boolean(
+            bodyExp.ticketCancellation ||
+            body.ticketCancellation !== undefined ||
+            body.cancellationCutoffEnabled !== undefined ||
+            body.cancellationCutoffHours !== undefined
+        );
+        if (hasCancellationUpdates) {
+            const baseCancel = mergedExp.ticketCancellation || { ...defaultExpansionConfig.ticketCancellation };
+            if (body.ticketCancellation !== undefined) {
+                baseCancel.enabled = Boolean(body.ticketCancellation);
+            }
+            if (body.cancellationCutoffEnabled !== undefined) {
+                baseCancel.cutoffEnabled = Boolean(body.cancellationCutoffEnabled);
+            }
+            if (body.cancellationCutoffHours !== undefined) {
+                const parsedCutoff = parseFloat(body.cancellationCutoffHours);
+                baseCancel.cutoffHours = (Number.isFinite(parsedCutoff) && parsedCutoff >= 0 && parsedCutoff <= 168) ? parsedCutoff : 8;
+            }
+            mergedExp.ticketCancellation = baseCancel;
+        }
+
         const allKeys = Object.keys(defaultFeatureFlags);
         const statements = [];
         for (const key of allKeys) {
             const hasFlagInput = typeof body[key] === 'boolean' || (body.flags && typeof body.flags[key] === 'boolean');
-            const hasConfigInput = mergedExp[key] && (bodyExp[key] || (key === 'liveTracking' && hasLiveTrackingUpdates) || (key === 'seatHold' && hasSeatHoldUpdates));
+            const hasConfigInput = mergedExp[key] && (
+                bodyExp[key] ||
+                (key === 'liveTracking' && hasLiveTrackingUpdates) ||
+                (key === 'seatHold' && hasSeatHoldUpdates) ||
+                (key === 'ticketCancellation' && hasCancellationUpdates)
+            );
             if (!hasFlagInput && !hasConfigInput) continue;
 
             const isEnabled = typeof body[key] === 'boolean'
@@ -5291,6 +5754,18 @@ async function handlePost(context) {
                 `INSERT INTO platform_features (feature_key, enabled, config) VALUES (?, ?, ?)
                  ON CONFLICT (feature_key) DO UPDATE SET enabled = excluded.enabled, config = COALESCE(excluded.config, platform_features.config)`
             ).bind(key, isEnabled ? 1 : 0, cfg));
+        }
+        if (hasSeatHoldUpdates) {
+            statements.push(env.DB.prepare(
+                `INSERT INTO platform_features (feature_key, enabled, config) VALUES ('seatHold', ?, ?)
+                 ON CONFLICT (feature_key) DO UPDATE SET enabled = excluded.enabled, config = excluded.config`
+            ).bind(mergedExp.seatHold.enabled ? 1 : 0, JSON.stringify(mergedExp.seatHold)));
+        }
+        if (hasCancellationUpdates) {
+            statements.push(env.DB.prepare(
+                `INSERT INTO platform_features (feature_key, enabled, config) VALUES ('cancellationCutoffEnabled', ?, NULL)
+                 ON CONFLICT (feature_key) DO UPDATE SET enabled = excluded.enabled`
+            ).bind(mergedExp.ticketCancellation.cutoffEnabled ? 1 : 0));
         }
         if (hasLiveTrackingUpdates) {
             statements.push(env.DB.prepare(
@@ -5437,7 +5912,14 @@ async function handlePost(context) {
             }
             returnFareVal = parsedRetFare;
         }
+        await ensureEnterpriseSegmentTables(env.DB);
         const returnRouteEnabledVal = body.returnRouteEnabled !== undefined ? (body.returnRouteEnabled ? 1 : 0) : null;
+        const stoppageFaresPayload = (body.stoppageFares !== undefined || body.stoppage_fares !== undefined)
+            ? sanitizeStoppageFaresInput(body.stoppageFares || body.stoppage_fares)
+            : null;
+        const returnStoppageFaresPayload = (body.returnStoppageFares !== undefined || body.return_stoppage_fares !== undefined)
+            ? sanitizeStoppageFaresInput(body.returnStoppageFares || body.return_stoppage_fares)
+            : null;
 
         const resubmit = body.resubmitApproval === true;
         const approvalClause = resubmit ? ", approval_status = 'pending', rejection_reason = ''" : "";
@@ -5470,7 +5952,9 @@ async function handlePost(context) {
                 return_route = COALESCE(?, return_route),
                 return_stoppages = COALESCE(?, return_stoppages),
                 return_stoppage_timings = COALESCE(?, return_stoppage_timings),
-                return_fare = COALESCE(?, return_fare)
+                return_fare = COALESCE(?, return_fare),
+                stoppage_fares = COALESCE(?, stoppage_fares),
+                return_stoppage_fares = COALESCE(?, return_stoppage_fares)
                 ${approvalClause}
              WHERE id = ?`
         ).bind(
@@ -5501,6 +5985,8 @@ async function handlePost(context) {
             returnStoppagesPayload,
             returnStoppageTimingsPayload,
             returnFareVal,
+            stoppageFaresPayload,
+            returnStoppageFaresPayload,
             busId
         ).run();
 
@@ -5783,8 +6269,12 @@ async function handlePost(context) {
         if (!name || name.length < 2) return jsonError(400, 'Enter a valid bus name.');
         if (busNumber.length < 3) return jsonError(400, 'Enter a valid bus registration number.');
 
+        await ensureEnterpriseSegmentTables(env.DB);
         const owner = await env.DB.prepare('SELECT * FROM owners WHERE phone = ?').bind(auth.identifier).first();
         const busId = `BUS_${Date.now()}_${secureRandomHex(4)}`;
+        const stoppageFaresPayload = sanitizeStoppageFaresInput(body?.stoppageFares || body?.stoppage_fares);
+        const returnStoppageFaresPayload = sanitizeStoppageFaresInput(body?.returnStoppageFares || body?.return_stoppage_fares);
+        const ownerFarePerStop = Number(body?.farePerStop) > 0 ? Number(body.farePerStop) : 45;
 
         // New bus created by owner has 'pending' approval status until admin approves
         await env.DB.prepare(
@@ -5792,10 +6282,11 @@ async function handlePost(context) {
                 id, name, bus_number, owner_name, owner_phone, owner_email, route,
                 active_routes, stoppages, stoppage_timings, fare_per_stop, fare_per_km, window_seat_extra, time, fare, total_seats, image, driver_phone,
                 company_name, ticket_terms, emergency_phone, allow_online_payment, allow_cash_payment,
-                approval_status, rejection_reason, return_route_enabled, return_time, return_route, return_stoppages, return_stoppage_timings, return_fare
-             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 45, 3.5, 30, ?, ?, ?, '', '',
+                approval_status, rejection_reason, return_route_enabled, return_time, return_route, return_stoppages, return_stoppage_timings, return_fare,
+                stoppage_fares, return_stoppage_fares
+             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 3.5, 30, ?, ?, ?, '', '',
                        ?, 'Please arrive 15 minutes before scheduled departure.', ?, 1, 1,
-                       'pending', '', ?, ?, ?, ?, ?, ?)`
+                       'pending', '', ?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
             busId,
             name,
@@ -5807,6 +6298,7 @@ async function handlePost(context) {
             JSON.stringify([route]),
             JSON.stringify(stoppages),
             stoppageTimings,
+            ownerFarePerStop,
             time,
             fare,
             totalSeats,
@@ -5817,7 +6309,9 @@ async function handlePost(context) {
             returnRoute,
             JSON.stringify(returnStoppages),
             returnStoppageTimings,
-            returnFare
+            returnFare,
+            stoppageFaresPayload,
+            returnStoppageFaresPayload
         ).run();
 
         return jsonResponse({
@@ -5892,10 +6386,17 @@ async function handlePost(context) {
                 }
             } catch (oe) {}
         }
+        await ensureEnterpriseSegmentTables(env.DB);
         const nowIso = new Date().toISOString();
-        const result = await env.DB.prepare(
-            'UPDATE buses SET lat = ?, lng = ?, location_updated_at = ? WHERE id = ?'
-        ).bind(body.lat, body.lng, nowIso, targetBusId).run();
+        const rawStopName = body.stopName ?? body.stoppage ?? body.currentStoppage;
+        const stopNameClean = (typeof rawStopName === 'string' && rawStopName.trim()) ? rawStopName.trim().slice(0, 80) : null;
+        const result = stopNameClean
+            ? await env.DB.prepare(
+                'UPDATE buses SET lat = ?, lng = ?, location_updated_at = ?, current_stoppage = ?, current_stoppage_updated_at = ? WHERE id = ?'
+            ).bind(body.lat, body.lng, nowIso, stopNameClean, nowIso, targetBusId).run()
+            : await env.DB.prepare(
+                'UPDATE buses SET lat = ?, lng = ?, location_updated_at = ? WHERE id = ?'
+            ).bind(body.lat, body.lng, nowIso, targetBusId).run();
         if (!result.meta?.changes) return jsonError(404, 'Bus not found.');
 
         await writeFirestoreDocument(env, `bus_locations/${targetBusId}`, {
@@ -6062,7 +6563,8 @@ async function handlePost(context) {
         const stoppageTimings = (body.stoppageTimings || body.stoppage_timings) && typeof (body.stoppageTimings || body.stoppage_timings) === 'object'
             ? JSON.stringify(body.stoppageTimings || body.stoppage_timings)
             : '{}';
-        const existingBus = await env.DB.prepare('SELECT seat_layout, approval_status, return_route_enabled, return_time, return_route, return_stoppages, return_stoppage_timings, return_fare, require_payment_screenshot, enable_utr FROM buses WHERE id = ?').bind(id).first();
+        await ensureEnterpriseSegmentTables(env.DB);
+        const existingBus = await env.DB.prepare('SELECT seat_layout, approval_status, return_route_enabled, return_time, return_route, return_stoppages, return_stoppage_timings, return_fare, require_payment_screenshot, enable_utr, stoppage_fares, return_stoppage_fares FROM buses WHERE id = ?').bind(id).first();
         const seatLayoutPayload = (body.seatLayout || body.seat_layout)
             ? (typeof (body.seatLayout || body.seat_layout) === 'object' ? JSON.stringify(body.seatLayout || body.seat_layout) : String(body.seatLayout || body.seat_layout))
             : (existingBus?.seat_layout || null);
@@ -6076,6 +6578,12 @@ async function handlePost(context) {
             ? JSON.stringify(body.returnStoppageTimings || body.return_stoppage_timings || {})
             : (existingBus?.return_stoppage_timings || '{}');
         const returnFare = body.returnFare !== undefined ? Number(body.returnFare) : (existingBus?.return_fare || body.fare || 399);
+        const stoppageFares = (body.stoppageFares !== undefined || body.stoppage_fares !== undefined)
+            ? sanitizeStoppageFaresInput(body.stoppageFares || body.stoppage_fares)
+            : (existingBus?.stoppage_fares || '{}');
+        const returnStoppageFares = (body.returnStoppageFares !== undefined || body.return_stoppage_fares !== undefined)
+            ? sanitizeStoppageFaresInput(body.returnStoppageFares || body.return_stoppage_fares)
+            : (existingBus?.return_stoppage_fares || '{}');
 
         const requireScreenshot = body.requirePaymentScreenshot !== undefined ? (body.requirePaymentScreenshot ? 1 : 0) : (existingBus?.require_payment_screenshot !== undefined ? existingBus.require_payment_screenshot : 1);
         const enableUtr = body.enableUtr !== undefined ? (body.enableUtr ? 1 : 0) : (existingBus?.enable_utr !== undefined ? existingBus.enable_utr : 0);
@@ -6087,9 +6595,9 @@ async function handlePost(context) {
                 qr_image, allow_online_payment, allow_cash_payment, driver_phone, company_name,
                 gst_number, ticket_terms, emergency_phone, rating, booking_mode, seat_layout,
                 approval_status, rejection_reason, return_route_enabled, return_time, return_route, return_stoppages, return_stoppage_timings, return_fare,
-                require_payment_screenshot, enable_utr,
+                require_payment_screenshot, enable_utr, stoppage_fares, return_stoppage_fares,
                 pending_images, photo_approval_status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', 'approved')
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', 'approved')
             ON CONFLICT (id) DO UPDATE SET
                 name = excluded.name,
                 bus_number = excluded.bus_number,
@@ -6128,7 +6636,9 @@ async function handlePost(context) {
                 return_stoppage_timings = excluded.return_stoppage_timings,
                 return_fare = excluded.return_fare,
                 require_payment_screenshot = excluded.require_payment_screenshot,
-                enable_utr = excluded.enable_utr`
+                enable_utr = excluded.enable_utr,
+                stoppage_fares = excluded.stoppage_fares,
+                return_stoppage_fares = excluded.return_stoppage_fares`
         ).bind(
             id, body.name, body.busNumber, body.ownerName, body.ownerPhone || '', body.ownerEmail || '',
             body.route || 'Pingla to Kolkata', JSON.stringify(body.activeRoutes || [body.route]),
@@ -6140,7 +6650,7 @@ async function handlePost(context) {
             body.gstNumber || '', body.ticketTerms || '', body.emergencyPhone || body.ownerPhone || '',
             busRating, bookingMode, seatLayoutPayload,
             approvalStatus, rejectionReason, returnRouteEnabled, returnTime, returnRoute, returnStoppagesPayload, returnStoppageTimings, returnFare,
-            requireScreenshot, enableUtr
+            requireScreenshot, enableUtr, stoppageFares, returnStoppageFares
         ).run();
         return jsonResponse({ ok: true, id }, 201);
     }
@@ -7231,6 +7741,11 @@ async function deleteBookingsHelper(db, bookingIds) {
         await db.prepare(`DELETE FROM booking_seats WHERE booking_id IN (${placeholders})`).bind(...safeIds).run();
     } catch (e) {
         console.warn('Booking seats cleanup notice:', e);
+    }
+    try {
+        await db.prepare(`DELETE FROM booking_seat_legs WHERE booking_id IN (${placeholders})`).bind(...safeIds).run();
+    } catch (e) {
+        console.warn('Booking seat legs cleanup notice:', e);
     }
     const result = await db.prepare(`DELETE FROM bookings WHERE id IN (${placeholders})`).bind(...safeIds).run();
     return result.meta?.changes || 0;

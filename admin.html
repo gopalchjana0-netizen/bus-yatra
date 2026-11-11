@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preload" href="common.js?v=10.46" as="script">
-    <link rel="preload" href="app-admin.js?v=10.46" as="script">
+    <link rel="preload" href="common.js?v=10.47" as="script">
+    <link rel="preload" href="app-admin.js?v=10.47" as="script">
 
     <link rel="stylesheet" href="style.css?v=10.37">
     <script src="tailwind.js?v=10.37" defer></script>
@@ -989,6 +989,11 @@
                         <div id="adminStoppagesContainer" class="space-y-2"></div>
                     </div>
 
+                    <div class="md:col-span-2 p-3 sm:p-4 bg-amber-50/40 border border-amber-200 rounded-2xl space-y-2">
+                        <label class="block text-xs font-black text-amber-950" data-bn="💰 স্টপেজ অনুযায়ী From ➔ To ভাড়া ম্যাট্রিক্স (কম ও কাস্টম ভাড়া)" data-en="💰 Stoppage-Wise From ➔ To Fare Matrix">💰 Stoppage-Wise From ➔ To Fare Matrix</label>
+                        <div id="adminFareMatrixContainer" class="space-y-2"></div>
+                    </div>
+
                     <!-- Admin Return Route (Round Trip) Settings -->
                     <div class="md:col-span-2 p-3 sm:p-4 bg-blue-50/70 border border-blue-200 rounded-2xl space-y-3">
                         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-blue-200 pb-2">
@@ -1026,6 +1031,10 @@
                             <div>
                                 <label class="block text-xs font-semibold text-gray-700 mb-1" data-bn="ফিরতি স্টপেজ ও সময়সূচি" data-en="Return Stoppages &amp; Timings">Return Stoppages &amp; Timings</label>
                                 <div id="adminReturnStoppagesContainer" class="space-y-2"></div>
+                            </div>
+                            <div class="p-3 bg-white/80 border border-blue-200 rounded-xl space-y-2">
+                                <label class="block text-xs font-black text-blue-950" data-bn="💰 ফিরতি স্টপেজ From ➔ To ভাড়া" data-en="💰 Return Stoppage From ➔ To Fares">💰 Return Stoppage From ➔ To Fares</label>
+                                <div id="adminReturnFareMatrixContainer" class="space-y-2"></div>
                             </div>
                         </div>
                     </div>
@@ -2468,6 +2477,78 @@
                                     💡 <strong>নিয়ম:</strong> চালু থাকলে যাত্রী সিট বেছে নিলে টাইমার শুরু হবে।
                                 </p>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Ticket Cancellation & Cutoff Timer Controls -->
+                    <div class="p-4 bg-white rounded-xl border-2 border-rose-200 hover:border-rose-400 transition space-y-3 sm:col-span-2 shadow-xs">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2.5">
+                            <div class="flex items-center gap-2.5">
+                                <span class="text-xl">🚫</span>
+                                <div>
+                                    <div class="text-xs font-black text-gray-900 flex flex-wrap items-center gap-1.5">
+                                        <span data-bn="টিকিট বাতিল ও ৮ ঘণ্টার সময়সীমা নিয়ন্ত্রণ" data-en="Ticket Cancellation &amp; Cutoff Hours Control">টিকিট বাতিল ও সময়সীমা নিয়ন্ত্রণ</span>
+                                        <span class="bg-rose-100 text-rose-800 text-[10px] px-2 py-0.5 rounded-full font-bold">Admin Control</span>
+                                    </div>
+                                    <p class="text-[11px] text-gray-500 mt-0.5" data-bn="কাস্টমার প্যানেলের My Bookings থেকে টিকিট ক্যানসেল অপশন চালু/বন্ধ করুন এবং যাত্রার কত ঘণ্টা আগে ক্যানসেল বন্ধ হবে তা সেট করুন।" data-en="Toggle customer My Bookings ticket cancellation ON/OFF and set how many hours before departure cancellation locks automatically.">কাস্টমার প্যানেলের My Bookings-এ টিকিট বাতিল চালু/বন্ধ ও সময়সীমা সেট করুন।</p>
+                                </div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer shrink-0 self-start sm:self-auto">
+                                <input type="checkbox" id="flagTicketCancellation" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
+                                <span class="ml-2 text-xs font-bold text-gray-700" data-bn="ক্যানসেল অপশন চালু" data-en="Cancel Option ON">ক্যানসেল অপশন চালু</span>
+                            </label>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-rose-50/50 p-3 rounded-xl border border-rose-100">
+                            <div>
+                                <label class="flex items-center gap-2 cursor-pointer mt-1">
+                                    <input type="checkbox" id="flagCancellationCutoffEnabled" class="w-4 h-4 text-rose-600 rounded">
+                                    <span class="text-[11px] font-black text-rose-950" data-bn="যাত্রা-পূর্ব অটো লক নিয়ম চালু" data-en="Auto-Hide Cancel Before Departure">যাত্রা-পূর্ব অটো লক নিয়ম চালু</span>
+                                </label>
+                                <p class="text-[10px] text-rose-700 mt-1 leading-tight" data-bn="বন্ধ রাখলে বাস ছাড়ার আগ পর্যন্ত বাতিল করা যাবে। চালু রাখলে নির্ধারিত ঘণ্টা বাকি থাকলেই বাতিল অপশন চলে যাবে।" data-en="When enabled, Cancel button disappears automatically once remaining time is less than configured hours.">চালু রাখলে নির্ধারিত ঘণ্টার কম সময় বাকি থাকলে ক্যানসেল বাটন বন্ধ হয়ে যাবে।</p>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-800 mb-1" data-bn="যাত্রার কত ঘণ্টা আগে ক্যানসেল বন্ধ হবে:" data-en="Lock cancellation hours before journey:">যাত্রার কত ঘণ্টা আগে ক্যানসেল বন্ধ হবে:</label>
+                                <div class="flex items-center gap-1.5">
+                                    <input type="number" step="1" min="0" max="168" id="cfgCancellationCutoffHours" placeholder="8" class="w-full p-2 border rounded-lg text-xs font-black bg-white focus:ring-2 focus:ring-rose-500 text-gray-900 shadow-xs">
+                                    <span class="text-xs font-bold text-gray-600" data-bn="ঘণ্টা" data-en="hrs">ঘণ্টা</span>
+                                </div>
+                                <p class="text-[10px] text-gray-500 mt-1" data-bn="যেমন: 8, 6, 12, 24 ঘণ্টা (ডিফল্ট: 8 ঘণ্টা)" data-en="e.g. 8, 6, 12, 24 hours (Default: 8 hrs)">যেমন: 8, 6, 12 ঘণ্টা (ডিফল্ট: 8 ঘণ্টা)</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- En-Route Running Bus Booking, Stoppage Fares & Segment Seats Control -->
+                    <div class="p-4 bg-white rounded-xl border-2 border-indigo-200 hover:border-indigo-400 transition space-y-2.5 sm:col-span-2 shadow-xs">
+                        <div class="flex items-center gap-2 border-b pb-2">
+                            <span class="text-xl">🛣️</span>
+                            <div>
+                                <div class="text-xs font-black text-gray-900" data-bn="রানিং বাস ও স্টপেজ-ভিত্তিক এন্টারপ্রাইজ রুলস" data-en="En-Route Running Bus, Stoppage Fares &amp; Segment Seats">রানিং বাস ও স্টপেজ-ভিত্তিক এন্টারপ্রাইজ রুলস</div>
+                                <p class="text-[11px] text-gray-500" data-bn="বড় কোম্পানির মতো মাঝের স্টপেজ থেকে রানিং বাস বুকিং, কম ভাড়া ও একই সিট সেগমেন্ট শেয়ারিং নিয়ন্ত্রণ করুন।" data-en="Control mid-route en-route booking while bus is running, stoppage-wise lower fares, and segment-based seat reuse.">মাঝের স্টপেজ থেকে রানিং বাস বুকিং, স্টপেজ ভিত্তিক কম ভাড়া ও সেগমেন্ট সিট নিয়ন্ত্রণ করুন।</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                            <label class="flex items-start gap-2 cursor-pointer p-2.5 bg-indigo-50/60 rounded-xl border border-indigo-100">
+                                <input type="checkbox" id="flagEnrouteRunningBooking" class="w-4 h-4 text-indigo-600 rounded mt-0.5">
+                                <div>
+                                    <span class="font-bold text-gray-900 block" data-bn="🚌 রানিং বাসে বুকিং চালু" data-en="🚌 En-Route Running Booking">🚌 En-Route Running Booking</span>
+                                    <span class="text-[10px] text-gray-500" data-bn="বাস শুরুর পরও পরের স্টপেজের আগে পর্যন্ত সিট বুক করা যাবে।" data-en="Allow passengers at ahead stops to book empty seats on running buses.">বাস ছাড়ার পরও পরের স্টপেজের আগে পর্যন্ত বুকিং নেবে।</span>
+                                </div>
+                            </label>
+                            <label class="flex items-start gap-2 cursor-pointer p-2.5 bg-amber-50/60 rounded-xl border border-amber-100">
+                                <input type="checkbox" id="flagStoppageWiseFares" class="w-4 h-4 text-amber-600 rounded mt-0.5">
+                                <div>
+                                    <span class="font-bold text-gray-900 block" data-bn="💰 স্টপেজ অনুযায়ী কম ভাড়া" data-en="💰 Stoppage-Wise Fares">💰 Stoppage-Wise Fares</span>
+                                    <span class="text-[10px] text-gray-500" data-bn="প্রতিটি From ➔ To স্টপেজ অনুযায়ী মালিকের সেট করা কম ভাড়া প্রযোজ্য হবে।" data-en="Apply owner-configured From ➔ To segment fares instead of full route fare.">মালিকের সেট করা From ➔ To কম ভাড়া প্রযোজ্য হবে।</span>
+                                </div>
+                            </label>
+                            <label class="flex items-start gap-2 cursor-pointer p-2.5 bg-emerald-50/60 rounded-xl border border-emerald-100">
+                                <input type="checkbox" id="flagSegmentSeatReuse" class="w-4 h-4 text-emerald-600 rounded mt-0.5">
+                                <div>
+                                    <span class="font-bold text-gray-900 block" data-bn="💺 সেগমেন্ট সিট রিইউজ" data-en="💺 Segment Seat Reuse">💺 Segment Seat Reuse</span>
+                                    <span class="text-[10px] text-gray-500" data-bn="আগের যাত্রী নামার স্টপেজ থেকে পরের যাত্রী একই সিট বুক করতে পারবেন।" data-en="Allow passengers downstream to book seats freed at intermediate stops.">আগের যাত্রী নেমে গেলে পরের স্টপেজ থেকে সেই সিট খালি দেখাবে।</span>
+                                </div>
+                            </label>
                         </div>
                     </div>
 
@@ -4022,8 +4103,8 @@
     <!-- Firebase App & Firestore Compat SDKs for Real-Time Live Bus Tracking -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="common.js?v=10.46"></script>
-    <script src="app-admin.js?v=10.46"></script>
+    <script src="common.js?v=10.47"></script>
+    <script src="app-admin.js?v=10.47"></script>
     <script>
         function toggleAdminSidebar() {
             const sb = document.getElementById('adminSidebar');
@@ -4039,7 +4120,7 @@
             initFestivalThemeSync('admin');
         }
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js?v=10.46', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+            navigator.serviceWorker.register('/sw.js?v=10.47', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
         }
     </script>
 </body>

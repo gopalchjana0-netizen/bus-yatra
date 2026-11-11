@@ -862,14 +862,36 @@ function loadCaptainSeatLayout() {
     if (!grid) return;
     grid.innerHTML = "";
 
-    const bookedSeats = new Set();
+    const seatSegmentsMap = new Map();
     Object.values(db.bookings || {}).forEach(b => {
         if (b.busId === bus.id && b.date === dt && b.status === 'Approved') {
             if (b.seats && Array.isArray(b.seats)) {
-                b.seats.forEach(s => bookedSeats.add(s));
+                const segLabel = `${b.boarding || '?'}➔${b.dropping || '?'} (${b.passengerName || 'Guest'})`;
+                b.seats.forEach(s => {
+                    const key = String(s);
+                    if (!seatSegmentsMap.has(key)) seatSegmentsMap.set(key, []);
+                    seatSegmentsMap.get(key).push(segLabel);
+                });
             }
         }
     });
+
+    const buildCaptainSeatCell = (seatNum) => {
+        const segs = seatSegmentsMap.get(seatNum) || [];
+        const isBooked = segs.length > 0;
+        const div = document.createElement('div');
+        div.className = `w-10 h-11 sm:w-11 sm:h-12 rounded-lg sm:rounded-xl border-2 flex flex-col items-center justify-center font-bold shrink-0 ${
+            segs.length > 1
+                ? 'bg-purple-100 border-purple-500 text-purple-800'
+                : (isBooked ? 'bg-red-100 border-red-500 text-red-700' : 'bg-green-50 border-green-500 text-green-700')
+        }`;
+        if (isBooked) {
+            div.title = `${seatNum}: ${segs.join(' | ')}`;
+        }
+        const badgeText = segs.length > 1 ? `${segs.length}x Seg` : (isBooked ? 'Sold' : 'Avail');
+        div.innerHTML = `<span class="leading-none text-[9px] sm:text-[10px]">${escapeHtml(seatNum)}</span><span class="text-[7px] sm:text-[8px] font-semibold mt-0.5 leading-none">${badgeText}</span>`;
+        return div;
+    };
 
     const layout = (typeof getBusEffectiveSeatLayout === 'function')
         ? getBusEffectiveSeatLayout(bus)
@@ -901,14 +923,7 @@ function loadCaptainSeatLayout() {
             benchGroup.className = "flex justify-center items-center gap-1 sm:gap-1.5 w-full";
             rowSeats.sort((a, b) => a.col - b.col).forEach(s => {
                 if (s.active && s.type !== 'empty') {
-                    const seatNum = String(s.number || s.id);
-                    const isBooked = bookedSeats.has(seatNum);
-                    const div = document.createElement('div');
-                    div.className = `w-10 h-11 sm:w-11 sm:h-12 rounded-lg sm:rounded-xl border-2 flex flex-col items-center justify-center font-bold shrink-0 ${
-                        isBooked ? 'bg-red-100 border-red-500 text-red-700' : 'bg-green-50 border-green-500 text-green-700'
-                    }`;
-                    div.innerHTML = `<span class="leading-none text-[9px] sm:text-[10px]">${escapeHtml(seatNum)}</span><span class="text-[7px] sm:text-[8px] font-semibold mt-0.5 leading-none">${isBooked ? 'Sold' : 'Avail'}</span>`;
-                    benchGroup.appendChild(div);
+                    benchGroup.appendChild(buildCaptainSeatCell(String(s.number || s.id)));
                 }
             });
             rowDiv.appendChild(benchGroup);
@@ -920,14 +935,7 @@ function loadCaptainSeatLayout() {
             for (let c = 1; c <= leftCols; c++) {
                 const s = leftSeats.find(item => item.col === c);
                 if (s && s.active && s.type !== 'empty') {
-                    const seatNum = String(s.number || s.id);
-                    const isBooked = bookedSeats.has(seatNum);
-                    const div = document.createElement('div');
-                    div.className = `w-10 h-11 sm:w-11 sm:h-12 rounded-lg sm:rounded-xl border-2 flex flex-col items-center justify-center font-bold shrink-0 ${
-                        isBooked ? 'bg-red-100 border-red-500 text-red-700' : 'bg-green-50 border-green-500 text-green-700'
-                    }`;
-                    div.innerHTML = `<span class="leading-none text-[9px] sm:text-[10px]">${escapeHtml(seatNum)}</span><span class="text-[7px] sm:text-[8px] font-semibold mt-0.5 leading-none">${isBooked ? 'Sold' : 'Avail'}</span>`;
-                    leftGroup.appendChild(div);
+                    leftGroup.appendChild(buildCaptainSeatCell(String(s.number || s.id)));
                 } else {
                     const emptyDiv = document.createElement('div');
                     emptyDiv.className = "w-10 h-11 sm:w-11 sm:h-12 shrink-0";
@@ -948,14 +956,7 @@ function loadCaptainSeatLayout() {
                 const targetCol = leftCols + c;
                 const s = rightSeats.find(item => item.col === targetCol);
                 if (s && s.active && s.type !== 'empty') {
-                    const seatNum = String(s.number || s.id);
-                    const isBooked = bookedSeats.has(seatNum);
-                    const div = document.createElement('div');
-                    div.className = `w-10 h-11 sm:w-11 sm:h-12 rounded-lg sm:rounded-xl border-2 flex flex-col items-center justify-center font-bold shrink-0 ${
-                        isBooked ? 'bg-red-100 border-red-500 text-red-700' : 'bg-green-50 border-green-500 text-green-700'
-                    }`;
-                    div.innerHTML = `<span class="leading-none text-[9px] sm:text-[10px]">${escapeHtml(seatNum)}</span><span class="text-[7px] sm:text-[8px] font-semibold mt-0.5 leading-none">${isBooked ? 'Sold' : 'Avail'}</span>`;
-                    rightGroup.appendChild(div);
+                    rightGroup.appendChild(buildCaptainSeatCell(String(s.number || s.id)));
                 } else {
                     const emptyDiv = document.createElement('div');
                     emptyDiv.className = "w-10 h-11 sm:w-11 sm:h-12 shrink-0";

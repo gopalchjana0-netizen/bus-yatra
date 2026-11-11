@@ -1507,6 +1507,9 @@ function reverseUpRouteForReturn() {
     const retRouteInput = document.getElementById('configReturnRoute');
     if (retRouteInput) retRouteInput.value = returnRouteTitle;
     renderStoppageScheduleEditor('ownerConfigReturnStoppagesContainer', reversed, {});
+    if (typeof renderStoppageFareMatrixEditor === 'function') {
+        renderStoppageFareMatrixEditor('ownerReturnFareMatrixContainer', 'ownerConfigReturnStoppagesContainer', {}, { fareInputId: 'configReturnFare', perStopInputId: 'configFarePerStop', isReturn: true });
+    }
     alert(`✅ ফিরতি রুট প্রস্তুত: ${returnRouteTitle}। এখন প্রতিটি স্টপেজের সময় লিখে সেভ করুন।`);
 }
 window.reverseUpRouteForReturn = reverseUpRouteForReturn;
@@ -1623,6 +1626,18 @@ function loadBusConfigDetails() {
     document.getElementById('configFare').value = bus.fare !== undefined ? bus.fare : 399;
     document.getElementById('configFarePerStop').value = bus.farePerStop !== undefined ? bus.farePerStop : 45;
     document.getElementById('configFarePerKm').value = bus.farePerKm !== undefined ? bus.farePerKm : 3.5;
+
+    if (typeof renderStoppageFareMatrixEditor === 'function') {
+        renderStoppageFareMatrixEditor('ownerConfigFareMatrixContainer', 'ownerConfigStoppagesContainer', bus.stoppageFares || bus.stoppage_fares || {}, {
+            fareInputId: 'configFare',
+            perStopInputId: 'configFarePerStop'
+        });
+        renderStoppageFareMatrixEditor('ownerReturnFareMatrixContainer', 'ownerConfigReturnStoppagesContainer', bus.returnStoppageFares || bus.return_stoppage_fares || {}, {
+            fareInputId: 'configReturnFare',
+            perStopInputId: 'configFarePerStop',
+            isReturn: true
+        });
+    }
 
     // Template & Details
     document.getElementById('configCompanyName').value = bus.companyName || "";
@@ -1783,6 +1798,8 @@ async function saveBusConfiguration() {
     const returnSchedule = collectStoppageSchedule('ownerConfigReturnStoppagesContainer');
     const returnStoppages = returnSchedule.stoppages;
     const returnStoppageTimings = returnSchedule.stoppageTimings;
+    const stoppageFares = typeof collectStoppageFareMatrix === 'function' ? collectStoppageFareMatrix('ownerConfigFareMatrixContainer') : {};
+    const returnStoppageFares = typeof collectStoppageFareMatrix === 'function' ? collectStoppageFareMatrix('ownerReturnFareMatrixContainer') : {};
 
     if (stoppages.length < 2) {
         alert("বাসের কমপক্ষে ২টি স্টপেজ (শুরু ও শেষ গন্তব্য) থাকতে হবে। (A bus must have at least 2 stoppages).");
@@ -1797,12 +1814,14 @@ async function saveBusConfiguration() {
                 time: time || undefined,
                 stoppages,
                 stoppageTimings,
+                stoppageFares,
                 returnRouteEnabled,
                 returnRoute: returnRoute || undefined,
                 returnTime: returnTime || undefined,
                 returnFare,
                 returnStoppages,
                 returnStoppageTimings,
+                returnStoppageFares,
                 fare,
                 farePerStop,
                 farePerKm,
@@ -2974,6 +2993,10 @@ function openAddBusModal() {
             'Pingla': '07:15 PM'
         }
     );
+    if (typeof renderStoppageFareMatrixEditor === 'function') {
+        renderStoppageFareMatrixEditor('ownerNewBusFareMatrixContainer', 'ownerNewBusStoppagesContainer', {}, { fareInputId: 'newBusFare' });
+        renderStoppageFareMatrixEditor('ownerNewBusReturnFareMatrixContainer', 'ownerNewBusReturnStoppagesContainer', {}, { fareInputId: 'newBusReturnFare', isReturn: true });
+    }
     document.getElementById('ownerAddBusModal')?.classList.remove('hidden');
 }
 window.openAddBusModal = openAddBusModal;
@@ -2986,6 +3009,9 @@ function reverseAddBusStoppages() {
     }
     const rev = stoppages.slice().reverse();
     renderStoppageScheduleEditor('ownerNewBusReturnStoppagesContainer', rev, {});
+    if (typeof renderStoppageFareMatrixEditor === 'function') {
+        renderStoppageFareMatrixEditor('ownerNewBusReturnFareMatrixContainer', 'ownerNewBusReturnStoppagesContainer', {}, { fareInputId: 'newBusReturnFare', isReturn: true });
+    }
     alert('✅ আপ রুটের স্টপেজ উল্টে ফিরতি রুটে বসানো হয়েছে।');
 }
 window.reverseAddBusStoppages = reverseAddBusStoppages;
@@ -3012,6 +3038,8 @@ async function submitOwnerNewBus() {
     const returnStoppages = returnSchedule.stoppages;
     const returnStoppageTimings = returnSchedule.stoppageTimings;
     const returnRoute = (returnStoppages && returnStoppages.length >= 2) ? `${returnStoppages[0]} - ${returnStoppages[returnStoppages.length - 1]}` : (stoppages.slice().reverse().join(' - '));
+    const stoppageFares = typeof collectStoppageFareMatrix === 'function' ? collectStoppageFareMatrix('ownerNewBusFareMatrixContainer') : {};
+    const returnStoppageFares = typeof collectStoppageFareMatrix === 'function' ? collectStoppageFareMatrix('ownerNewBusReturnFareMatrixContainer') : {};
 
     if (!name || name.length < 2) {
         alert((typeof window !== 'undefined' && typeof window.t === 'function') ? window.t('অনুগ্রহ করে বাসের নাম লিখুন।', 'Please enter bus name.') : 'Please enter bus name.');
@@ -3042,12 +3070,14 @@ async function submitOwnerNewBus() {
                 totalSeats,
                 stoppages,
                 stoppageTimings,
+                stoppageFares,
                 returnRouteEnabled,
                 returnTime: returnTime || undefined,
                 returnFare,
                 returnRoute,
                 returnStoppages,
-                returnStoppageTimings
+                returnStoppageTimings,
+                returnStoppageFares
             })
         });
         alert(res.message || 'বাসটি সফলভাবে যোগ করা হয়েছে এবং অ্যাডমিন অনুমোদনের জন্য জমা হয়েছে!');

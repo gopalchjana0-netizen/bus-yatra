@@ -1508,6 +1508,8 @@ async function searchBuses(isRestore = false) {
     if (searchButton) searchButton.disabled = true;
     try {
         const query = new URLSearchParams({ date });
+        if (from) query.set('from', from);
+        if (to) query.set('to', to);
         const result = await apiRequest(`/api/buses?${query}`);
         setAppData({ buses: result.buses });
     } catch (error) {
@@ -1519,9 +1521,9 @@ async function searchBuses(isRestore = false) {
 
     const db = getAppData();
     const availableBuses = (db.buses || []).filter(bus => {
-        const stops = (bus.stoppages || []).map(s => s.toLowerCase());
-        const fromIdx = stops.indexOf(from.toLowerCase());
-        const toIdx = stops.indexOf(to.toLowerCase());
+        const stops = (bus.stoppages || []).map(s => String(s || '').trim().toLowerCase());
+        const fromIdx = stops.indexOf(from.trim().toLowerCase());
+        const toIdx = stops.indexOf(to.trim().toLowerCase());
         return fromIdx !== -1 && toIdx !== -1 && fromIdx < toIdx;
     });
 
@@ -1548,10 +1550,16 @@ function renderAvailableBuses(availableBuses, from, to) {
         return;
     }
 
+    const flags = getAppData().featureFlags || {};
     availableBuses.forEach(bus => {
         const stopsStr = (bus.stoppages || []).join(' ➔ ');
         const selectSeatsText = currentLang === 'bn' ? 'আসন বাছুন' : 'Select Seats';
-        const displayFare = bus.fare || 399;
+        const isReturnTrip = bus.tripDirection === 'DOWN' || String(bus.id || '').endsWith('_RETURN');
+        const fullRouteFare = Number(isReturnTrip ? (bus.returnFare || bus.fare) : bus.fare) || 399;
+        const displayFare = (typeof bus.segmentFare === 'number' && bus.segmentFare > 0)
+            ? bus.segmentFare
+            : (typeof resolveSegmentFare === 'function' ? resolveSegmentFare(bus, from, to, isReturnTrip, flags) : fullRouteFare);
+        const hasStoppageDiscount = displayFare > 0 && displayFare < fullRouteFare;
         const busImages = (Array.isArray(bus.images) && bus.images.length > 0)
             ? bus.images
             : (typeof bus.image === 'string' && bus.image.startsWith('[')
@@ -1639,10 +1647,18 @@ function renderAvailableBuses(availableBuses, from, to) {
         const seatsAvailableLabel = currentLang === 'bn' ? `${escapeHtml(bus.remainingSeats)} টি আসন খালি আছে` : `${escapeHtml(bus.remainingSeats)} seats available`;
         const farePerTicketLabel = currentLang === 'bn' ? 'প্রতি টিকিটের ভাড়া' : 'Fare per ticket';
 
-        const isDeparted = isTripTimePassed(selectedJourneyDate, boardingTime);
+        const enrouteState = bus.enrouteState || null;
+        const originPassed = isTripTimePassed(selectedJourneyDate, bus.time || boardingTime);
+        const stopPassed = isTripTimePassed(selectedJourneyDate, boardingTime);
+        const enrouteEnabled = flags.enrouteRunningBooking !== false;
+        const canBoard = enrouteState ? (enrouteState.allowed !== false) : (!stopPassed && (!originPassed || enrouteEnabled));
+        const isDeparted = !canBoard;
+        const isRunningEnroute = enrouteState
+            ? Boolean(enrouteState.isRunningEnroute && canBoard)
+            : Boolean(canBoard && originPassed && enrouteEnabled);
 
         container.innerHTML += `
-            <div class="bg-white rounded-2xl shadow-sm border ${isDeparted ? 'border-gray-200 opacity-80' : 'border-gray-200 hover:border-red-300'} transition overflow-hidden">
+            <div class="bg-white rounded-2xl shadow-sm border ${isDeparted ? 'border-gray-200 opacity-80' : (isRunningEnroute ? 'border-emerald-300 ring-1 ring-emerald-200 hover:border-emerald-500' : 'border-gray-200 hover:border-red-300')} transition overflow-hidden">
                 ${mediaMarkup}
                 <div class="p-4 sm:p-5">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -1654,9 +1670,16 @@ function renderAvailableBuses(availableBuses, from, to) {
                                     🔥 Flash Deal
                                 </span>
                             ` : ''}
-                            ${isDeparted ? `
+                            ${isRunningEnroute ? `
+                                <span class="bg-emerald-100 text-emerald-800 text-xs font-black px-2.5 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1.5 shadow-2xs">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                                    <span>${currentLang === 'bn'
+                                        ? `রানিং বাস • সামনে ${escapeHtml(from)} আসছে${enrouteState?.currentStoppage ? ` (${escapeHtml(enrouteState.currentStoppage)})` : ''}`
+                                        : `Running • Approaching ${escapeHtml(from)}${enrouteState?.currentStoppage ? ` (${escapeHtml(enrouteState.currentStoppage)})` : ''}`}</span>
+                                </span>
+                            ` : isDeparted ? `
                                 <span class="bg-gray-100 text-gray-700 text-xs font-black px-2.5 py-0.5 rounded-full border border-gray-300 flex items-center gap-1">
-                                    <span>🚫</span> <span>${currentLang === 'bn' ? 'বাস ছেড়ে গেছে (সময় অতিক্রান্ত)' : 'Departed'}</span>
+                                    <span>🚫</span> <span>${currentLang === 'bn' ? `${escapeHtml(from)} স্টপেজ অতিক্রান্ত` : `Passed ${escapeHtml(from)}`}</span>
                                 </span>
                             ` : ''}
                             <span class="bg-emerald-50 text-emerald-700 text-xs font-black px-2 py-0.5 rounded-md border border-emerald-200 flex items-center gap-1"><span class="text-amber-500">★</span> ${busRatingFormatted}</span>
@@ -1694,22 +1717,26 @@ function renderAvailableBuses(availableBuses, from, to) {
                         <div class="text-xs text-gray-500">
                             <strong>${routeLabel}</strong> ${escapeHtml(stopsStr)}
                         </div>
-                        <div class="text-xs text-green-700 font-semibold">
-                            ${seatsAvailableLabel}
+                        <div class="text-xs text-green-700 font-semibold flex flex-wrap items-center gap-2">
+                            <span>${seatsAvailableLabel}</span>
+                            ${hasStoppageDiscount ? `<span class="bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-md text-[10px] font-bold">💰 ${currentLang === 'bn' ? 'স্টপেজ সাশ্রয়ী ভাড়া' : 'Stoppage Lower Fare'}</span>` : ''}
                         </div>
                     </div>
 
                     <div class="text-right flex flex-row md:flex-col justify-between items-center md:items-end w-full md:w-auto pt-3 md:pt-0 border-t md:border-t-0">
                         <div>
-                            <span class="text-xs text-gray-400">${farePerTicketLabel}</span>
-                            <div class="text-xl font-black text-red-600">₹${displayFare}</div>
+                            <span class="text-xs text-gray-400 block">${farePerTicketLabel}</span>
+                            <div class="flex items-baseline justify-end gap-1.5">
+                                ${hasStoppageDiscount ? `<span class="text-xs text-gray-400 line-through font-bold">₹${fullRouteFare}</span>` : ''}
+                                <div class="text-xl font-black text-red-600">₹${displayFare}</div>
+                            </div>
                         </div>
                         ${isDeparted ? `
                             <button disabled class="bg-gray-200 text-gray-500 cursor-not-allowed px-4 py-2.5 rounded-xl font-bold text-xs shadow-none">
                                 ${currentLang === 'bn' ? '🚫 সময় অতিক্রান্ত' : '🚫 Departed'}
                             </button>
                         ` : `
-                            <button onclick="openSeatSelection('${escapeHtml(bus.id)}', '${escapeHtml(bus.name)} (${escapeHtml(bus.busNumber)})', ${displayFare}, ${bus.farePerStop || 45}, ${bus.totalSeats || 65}, ${getAppData()?.featureFlags?.windowSeatPricing ? (bus.windowSeatExtra || 0) : 0})" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition">
+                            <button onclick="openSeatSelection('${escapeHtml(bus.id)}', '${escapeHtml(bus.name)} (${escapeHtml(bus.busNumber)})', ${displayFare}, ${bus.farePerStop || 45}, ${bus.totalSeats || 65}, ${getAppData()?.featureFlags?.windowSeatPricing ? (bus.windowSeatExtra || 0) : 0})" class="${isRunningEnroute ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'} text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition">
                                 ${selectSeatsText}
                             </button>
                         `}
@@ -1945,20 +1972,37 @@ function openSeatSelection(busId, busTitle, fare, farePerStop, totalSeats, winEx
 
     const fromVal = (document.getElementById('fromCityInput')?.value || '').trim();
     const toVal = (document.getElementById('toCityInput')?.value || '').trim();
+    const flags = db.featureFlags || {};
+    const stopsList = (bus.stoppages && bus.stoppages.length > 0) ? bus.stoppages : ['Pingla', 'Kolkata'];
 
-    // Check if bus departure time has already passed
-    let checkBoardingTime = bus.time || '07:00 AM';
-    if (bus.stoppageTimings && fromVal && bus.stoppageTimings[fromVal]) {
-        checkBoardingTime = bus.stoppageTimings[fromVal];
+    // Match boarding stoppage & departure time cleanly
+    let checkBoardingStop = stopsList[0];
+    if (fromVal) {
+        checkBoardingStop = stopsList.find(s => s.toLowerCase() === fromVal.toLowerCase())
+            || stopsList.find(s => s.toLowerCase().includes(fromVal.toLowerCase()) || fromVal.toLowerCase().includes(s.toLowerCase()))
+            || stopsList[0];
     }
-    if (isTripTimePassed(selectedJourneyDate, checkBoardingTime)) {
+    const checkBoardingIdx = stopsList.indexOf(checkBoardingStop);
+    const busTimings = bus.stoppageTimings || bus.stoppage_timings || {};
+    let checkBoardingTime = bus.time || '07:00 AM';
+    for (const [k, v] of Object.entries(busTimings)) {
+        if (String(k || '').trim().toLowerCase() === String(checkBoardingStop || '').trim().toLowerCase() && v) {
+            checkBoardingTime = v;
+            break;
+        }
+    }
+    const enrouteBlocked = bus.enrouteState && bus.enrouteState.allowed === false;
+    const enrouteFlagBlocked = checkBoardingIdx > 0 && flags.enrouteRunningBooking === false && isTripTimePassed(selectedJourneyDate, bus.time || '07:00 AM');
+    const stopPassedWithoutGps = (!bus.enrouteState || bus.enrouteState.allowed === false) && isTripTimePassed(selectedJourneyDate, checkBoardingTime);
+
+    if (enrouteBlocked || enrouteFlagBlocked || stopPassedWithoutGps) {
         showDropDownToast(
-            currentLang === 'bn' ? 'দুঃখিত! এই বাসের ছাড়ার সময় ইতিমধ্যে পার হয়ে গেছে।' : 'Sorry! This bus has already departed for today.',
+            currentLang === 'bn' ? 'দুঃখিত! এই বাসটি আপনার স্টপেজ অতিক্রম করে গেছে।' : 'Sorry! This bus has already passed your boarding stop for today.',
             'warning'
         );
         alert(currentLang === 'bn'
             ? 'দুঃখিত! এই বাসের ছাড়ার সময় ইতিমধ্যে পার হয়ে গেছে। অনুগ্রহ করে অন্য বাস বা ভবিষ্যতের তারিখ নির্বাচন করুন।'
-            : 'Sorry! This bus has already departed for today. Please select another bus or a future date.');
+            : 'Sorry! This bus has already departed from your boarding stop for today. Please select another bus or a future date.');
         return;
     }
 
@@ -2067,6 +2111,11 @@ function openSeatSelection(busId, busTitle, fare, farePerStop, totalSeats, winEx
 
             boardingSelect.value = matchedBoarding;
             droppingSelect.value = matchedDropping;
+            const segFare = calculatePerSeatFare();
+            currentBusFare = segFare;
+            const availLbl = document.getElementById('lblAvail');
+            if (availLbl) availLbl.innerText = `${currentLang === 'bn' ? 'উপলব্ধ' : 'Available'} (₹${segFare})`;
+            updateDynamicUpiQr(segFare);
         }
 
         loadBookedSeats(bus);
@@ -2078,6 +2127,8 @@ let seatPollBusRef = null;
 let isProceedingToPayment = false;
 let isConfirmingBooking = false;
 let currentBookingIdempotencyKey = null;
+let lastHoldBoarding = '';
+let lastHoldDropping = '';
 
 function stopSeatAvailabilityPolling() {
     if (seatAvailabilityPollTimer) {
@@ -2104,11 +2155,15 @@ function startSeatAvailabilityPolling(bus) {
 
 async function loadBookedSeats(bus, isSilentPoll = false) {
     try {
+        const boarding = document.getElementById('boardingPointSelect')?.value?.trim() || '';
+        const dropping = document.getElementById('droppingPointSelect')?.value?.trim() || '';
         const query = new URLSearchParams({
             busId: bus.id,
             date: selectedJourneyDate,
             sessionId: getClientSessionId()
         });
+        if (boarding) query.set('from', boarding);
+        if (dropping) query.set('to', dropping);
         const result = await apiRequest(`/api/seats?${query}`);
         bookedSeatsForSelection = new Set(result.seats || []);
         heldSeatsForSelection = new Set(result.heldSeats || []);
@@ -2165,10 +2220,14 @@ function isWindowSeat(seatNum, bus = null) {
 function calculatePerSeatFare() {
     const db = getAppData();
     const bus = (db.buses || []).find(b => b.id === selectedBusId);
-    if (bus && bus.fare) {
-        return Number(bus.fare);
+    if (!bus) return currentBusFare || 150;
+    const boarding = document.getElementById('boardingPointSelect')?.value?.trim() || '';
+    const dropping = document.getElementById('droppingPointSelect')?.value?.trim() || '';
+    const isReturn = bus.tripDirection === 'DOWN' || String(bus.id || '').endsWith('_RETURN');
+    if (typeof resolveSegmentFare === 'function') {
+        return resolveSegmentFare(bus, boarding, dropping, isReturn, db.featureFlags || {});
     }
-    return currentBusFare || 150;
+    return Number(bus.fare) || currentBusFare || 150;
 }
 
 function createSeatButton(seatInput, bus) {
@@ -2329,6 +2388,9 @@ function updateFareDisplay() {
     document.getElementById('lblSelectedSeats').innerText = count > 0 ? seatsArr.join(', ') : (currentLang === 'bn' ? 'কোনোটি না' : 'None');
 
     const perSeat = calculatePerSeatFare();
+    currentBusFare = perSeat;
+    const availLbl = document.getElementById('lblAvail');
+    if (availLbl) availLbl.innerText = `${currentLang === 'bn' ? 'উপলব্ধ' : 'Available'} (₹${perSeat})`;
     const totalBase = seatsArr.length * perSeat;
 
     const finalTotal = Math.max(0, totalBase - currentDiscount);
@@ -2337,14 +2399,36 @@ function updateFareDisplay() {
     if (payFare) payFare.innerText = finalTotal;
     const paySeats = document.getElementById('paySummarySeats');
     if (paySeats) paySeats.innerText = count > 0 ? seatsArr.join(', ') : '--';
-    updateDynamicUpiQr(finalTotal);
+    updateDynamicUpiQr(finalTotal || perSeat);
 }
 
-function recalculateDynamicFare() {
+async function recalculateDynamicFare() {
     const db = getAppData();
     const bus = (db.buses || []).find(b => b.id === selectedBusId);
-    if (bus) {
+    const bSelect = document.getElementById('boardingPointSelect');
+    const dSelect = document.getElementById('droppingPointSelect');
+
+    if (bus && bSelect && dSelect) {
+        const stops = (bus.stoppages && bus.stoppages.length > 0) ? bus.stoppages : ['Pingla', 'Kolkata'];
+        const fIdx = stops.findIndex(s => String(s || '').trim().toLowerCase() === bSelect.value.trim().toLowerCase());
+        let tIdx = stops.findIndex(s => String(s || '').trim().toLowerCase() === dSelect.value.trim().toLowerCase());
+        if (fIdx >= stops.length - 1) {
+            showDropDownToast(
+                currentLang === 'bn' ? 'শেষ স্টপেজ থেকে বোর্ডিং করা যাবে না।' : 'Cannot board from the final terminus stoppage.',
+                'warning'
+            );
+            bSelect.value = stops[0];
+        } else if (fIdx >= 0 && tIdx <= fIdx) {
+            dSelect.value = stops[stops.length - 1];
+            showDropDownToast(
+                currentLang === 'bn' ? 'গন্তব্য অবশ্যই বোর্ডিং স্টপেজের পরের স্টপ হতে হবে।' : 'Dropping point must come after boarding stoppage.',
+                'info'
+            );
+        }
         render65SeatsGrid(bus);
+        updateFareDisplay();
+        await loadBookedSeats(bus, true);
+        return;
     }
     updateFareDisplay();
 }
@@ -2402,9 +2486,20 @@ async function goToPaymentPage(isRestore = false) {
         if (!boarding) boarding = stoppages[0];
         if (!dropping) dropping = stoppages[stoppages.length - 1];
 
-        if (boarding === dropping) {
-            alert(currentLang === 'bn' ? "বোর্ডিং এবং ড্রপিং পয়েন্ট একই হতে পারে না!" : "Boarding and dropping points cannot be the same!");
+        const fIdx = stoppages.findIndex(s => String(s || '').trim().toLowerCase() === boarding.toLowerCase());
+        const tIdx = stoppages.findIndex(s => String(s || '').trim().toLowerCase() === dropping.toLowerCase());
+        if (boarding === dropping || (fIdx >= 0 && tIdx >= 0 && tIdx <= fIdx)) {
+            alert(currentLang === 'bn' ? "ড্রপিং স্টপেজ অবশ্যই বোর্ডিং স্টপেজের পরে হতে হবে!" : "Dropping stoppage must be after the boarding stoppage!");
             return;
+        }
+
+        const timings = bus.stoppageTimings || bus.stoppage_timings || {};
+        let boardingStopTime = bus.time || '07:00 AM';
+        for (const [k, v] of Object.entries(timings)) {
+            if (String(k || '').trim().toLowerCase() === boarding.toLowerCase() && v) {
+                boardingStopTime = v;
+                break;
+            }
         }
 
         const seatsArr = Array.from(selectedSeatsSet);
@@ -2427,7 +2522,7 @@ async function goToPaymentPage(isRestore = false) {
         if (payBus) payBus.innerText = `${bus.name || 'Bus Yatra'} (${bus.busNumber || bus.id || ''})`;
         if (payDate) payDate.innerText = `${selectedJourneyDate}`;
         if (payRoute) payRoute.innerText = `${boarding} ➔ ${dropping}`;
-        if (payTime) payTime.innerText = `${bus.time || '07:00 AM'}`;
+        if (payTime) payTime.innerText = `${boardingStopTime} (${boarding})`;
         if (paySeats) paySeats.innerText = `${seatsArr.join(', ')}`;
         if (payFare) payFare.innerText = `${totalFare}`;
         updateDynamicUpiQr(totalFare);
@@ -2444,7 +2539,6 @@ async function goToPaymentPage(isRestore = false) {
         if (payBoardingSelect && payDroppingSelect) {
             payBoardingSelect.innerHTML = "";
             payDroppingSelect.innerHTML = "";
-            const timings = bus.stoppageTimings || bus.stoppage_timings || {};
             stoppages.forEach((stop, idx) => {
                 const stopTime = (timings && timings[stop]) ? ` (${timings[stop]})` : (idx === 0 && bus.time ? ` (${bus.time})` : '');
                 payBoardingSelect.innerHTML += `<option value="${escapeHtml(stop)}">${escapeHtml(stop)}${escapeHtml(stopTime)}</option>`;
@@ -2454,7 +2548,7 @@ async function goToPaymentPage(isRestore = false) {
             payDroppingSelect.value = dropping;
         }
 
-        // Lock seats atomically for 15 minutes in database BEFORE allowing payment
+        // Lock seats atomically for the selected segment in database BEFORE allowing payment
         let holdRes = null;
         try {
             holdRes = await apiRequest('/api/seats/hold', {
@@ -2464,12 +2558,16 @@ async function goToPaymentPage(isRestore = false) {
                     journeyDate: selectedJourneyDate,
                     seats: seatsArr,
                     sessionId: getClientSessionId(),
-                    customerPhone: customer.phone || ''
+                    customerPhone: customer.phone || '',
+                    boarding,
+                    dropping
                 })
             });
             if (!holdRes || !holdRes.ok) {
                 throw new Error(holdRes?.error || 'Could not hold seats.');
             }
+            lastHoldBoarding = boarding;
+            lastHoldDropping = dropping;
         } catch (holdErr) {
             showDropDownToast(holdErr.message || 'সিট সাময়িকভাবে লক করা সম্ভব হয়নি। অনুগ্রহ করে অন্য সিট বাছুন।', 'error');
             alert(holdErr.message);
@@ -2564,7 +2662,7 @@ async function backToSeatSelection(silentReleaseMsg = false) {
     });
 }
 
-function syncPaymentStoppages(changedField) {
+async function syncPaymentStoppages(changedField) {
     const payBoarding = document.getElementById('payBoardingSelect');
     const payDropping = document.getElementById('payDroppingSelect');
     const bSelect = document.getElementById('boardingPointSelect');
@@ -2578,13 +2676,60 @@ function syncPaymentStoppages(changedField) {
 
     const curBoarding = bSelect?.value || payBoarding?.value;
     const curDropping = dSelect?.value || payDropping?.value;
+    const db = getAppData();
+    const bus = (db.buses || []).find(b => b.id === selectedBusId);
+    const stops = (bus && Array.isArray(bus.stoppages)) ? bus.stoppages : [];
+    const fIdx = stops.findIndex(s => String(s || '').trim().toLowerCase() === String(curBoarding || '').trim().toLowerCase());
+    const tIdx = stops.findIndex(s => String(s || '').trim().toLowerCase() === String(curDropping || '').trim().toLowerCase());
 
-    if (curBoarding && curDropping && curBoarding === curDropping) {
-        alert(currentLang === 'bn' ? "বোর্ডিং এবং ড্রপিং পয়েন্ট একই হতে পারে না!" : "Boarding and dropping points cannot be the same!");
+    const revertStoppages = () => {
+        if (lastHoldBoarding) {
+            if (bSelect) bSelect.value = lastHoldBoarding;
+            if (payBoarding) payBoarding.value = lastHoldBoarding;
+        }
+        if (lastHoldDropping) {
+            if (dSelect) dSelect.value = lastHoldDropping;
+            if (payDropping) payDropping.value = lastHoldDropping;
+        }
+    };
+
+    if ((curBoarding && curDropping && curBoarding === curDropping) || (fIdx >= 0 && tIdx >= 0 && tIdx <= fIdx)) {
+        alert(currentLang === 'bn' ? "ড্রপিং স্টপেজ অবশ্যই বোর্ডিং স্টপেজের পরে হতে হবে!" : "Dropping stoppage must be after the boarding stoppage!");
+        revertStoppages();
         return;
     }
 
     const seatsArr = Array.from(selectedSeatsSet);
+    if (seatsArr.length > 0 && selectedBusId && selectedJourneyDate) {
+        try {
+            const customer = getLoggedInCustomer();
+            const holdRes = await apiRequest('/api/seats/hold', {
+                method: 'POST',
+                body: JSON.stringify({
+                    busId: selectedBusId,
+                    journeyDate: selectedJourneyDate,
+                    seats: seatsArr,
+                    sessionId: getClientSessionId(),
+                    customerPhone: customer?.phone || '',
+                    boarding: curBoarding,
+                    dropping: curDropping
+                })
+            });
+            if (!holdRes || !holdRes.ok) {
+                throw new Error(holdRes?.error || 'Could not update segment lock.');
+            }
+            lastHoldBoarding = curBoarding;
+            lastHoldDropping = curDropping;
+        } catch (err) {
+            alert(err.message || (currentLang === 'bn' ? 'এই স্টপেজ রুটে নির্বাচিত সিটটি উপলব্ধ নয়।' : 'Selected seats are not available for this updated stoppage segment.'));
+            revertStoppages();
+            return;
+        }
+    } else {
+        lastHoldBoarding = curBoarding;
+        lastHoldDropping = curDropping;
+    }
+
     const perSeat = calculatePerSeatFare();
     const totalBase = seatsArr.reduce((sum, seatNum) => {
         const extra = isWindowSeat(seatNum) ? windowSeatExtra : 0;
@@ -2592,10 +2737,21 @@ function syncPaymentStoppages(changedField) {
     }, 0);
     const totalFare = Math.max(0, totalBase - currentDiscount);
 
+    const timings = bus?.stoppageTimings || bus?.stoppage_timings || {};
+    let boardingStopTime = bus?.time || '07:00 AM';
+    for (const [k, v] of Object.entries(timings)) {
+        if (String(k || '').trim().toLowerCase() === String(curBoarding || '').trim().toLowerCase() && v) {
+            boardingStopTime = v;
+            break;
+        }
+    }
+
     const payRoute = document.getElementById('paySummaryRoute');
     const payFare = document.getElementById('paySummaryFare');
+    const payTime = document.getElementById('paySummaryTime');
     if (payRoute) payRoute.innerText = `${curBoarding} ➔ ${curDropping}`;
     if (payFare) payFare.innerText = `${totalFare}`;
+    if (payTime) payTime.innerText = `${boardingStopTime} (${curBoarding})`;
     updateDynamicUpiQr(totalFare);
 }
 window.syncPaymentStoppages = syncPaymentStoppages;
@@ -3151,7 +3307,19 @@ function openTicketModalFromBooking(b) {
     document.getElementById('tktPassengerName').innerText = b.passengerName;
     document.getElementById('tktPassengerPhone').innerText = b.passengerPhone;
     document.getElementById('tktBusInfo').innerText = `${b.busName} (${b.busNumber})`;
-    document.getElementById('tktDateTime').innerText = `${b.date} • ${b.departureTime || '07:00 AM'}`;
+
+    const cleanBusIdForTkt = String(b.busId || '').replace('_RETURN', '');
+    const isRetForTkt = String(b.busId || '').endsWith('_RETURN');
+    const matchedBusForTkt = (getAppData().buses || []).find(x => x.id === b.busId || x.id === cleanBusIdForTkt) || null;
+    let displayDepTime = b.departureTime || (isRetForTkt ? (matchedBusForTkt?.returnTime || matchedBusForTkt?.time) : matchedBusForTkt?.time) || '07:00 AM';
+    const timingsForTkt = isRetForTkt
+        ? (matchedBusForTkt?.returnStoppageTimings || matchedBusForTkt?.return_stoppage_timings || matchedBusForTkt?.stoppageTimings || {})
+        : (matchedBusForTkt?.stoppageTimings || matchedBusForTkt?.stoppage_timings || {});
+    if (timingsForTkt && b.boarding) {
+        const tMatchKey = Object.keys(timingsForTkt).find(k => k.trim().toLowerCase() === String(b.boarding).trim().toLowerCase());
+        if (tMatchKey && timingsForTkt[tMatchKey]) displayDepTime = timingsForTkt[tMatchKey];
+    }
+    document.getElementById('tktDateTime').innerText = `${b.date} • ${displayDepTime}`;
     document.getElementById('tktBoarding').innerText = b.boarding;
     document.getElementById('tktDropping').innerText = b.dropping;
     document.getElementById('tktSeats').innerText = (b.seats || []).join(', ');
@@ -3362,6 +3530,51 @@ async function searchCustomerBookings() {
         container.appendChild(topBar);
     }
 
+function getBookingCancellationStatus(b, bus, flags) {
+    const f = flags || (typeof getAppData === 'function' && getAppData()?.featureFlags) || {};
+    const expCancel = (f.expansionConfig && f.expansionConfig.ticketCancellation) || {};
+    const masterEnabled = f.ticketCancellation !== false && expCancel.enabled !== false;
+    const cutoffEnabled = f.cancellationCutoffEnabled !== false && expCancel.cutoffEnabled !== false;
+    const cutoffHours = Number(f.cancellationCutoffHours ?? expCancel.cutoffHours ?? 8);
+
+    if (!masterEnabled) {
+        return { allowed: false, hiddenByAdmin: true, lockedByCutoff: false, cutoffHours };
+    }
+    if (!b || b.status !== 'Approved' || b.boarded) {
+        return { allowed: false, hiddenByAdmin: false, lockedByCutoff: false, cutoffHours };
+    }
+
+    const isRet = String(b.busId || '').endsWith('_RETURN');
+    let depTime = (isRet ? (bus?.returnTime || bus?.time) : bus?.time) || b.departureTime || '07:00 AM';
+    const timings = isRet
+        ? (bus?.returnStoppageTimings || bus?.return_stoppage_timings || bus?.stoppageTimings || {})
+        : (bus?.stoppageTimings || bus?.stoppage_timings || {});
+    if (timings && b.boarding) {
+        const tKey = Object.keys(timings).find(k => k.trim().toLowerCase() === String(b.boarding).trim().toLowerCase());
+        if (tKey && timings[tKey]) depTime = timings[tKey];
+    }
+
+    const parsed = (typeof parseTripDateTimeIST === 'function') ? parseTripDateTimeIST(b.date, depTime) : null;
+    if (!parsed) {
+        return { allowed: !isTripTimePassed(b.date, depTime), hiddenByAdmin: false, lockedByCutoff: false, cutoffHours };
+    }
+    if (parsed.isPassed) {
+        return { allowed: false, hiddenByAdmin: false, lockedByCutoff: true, departed: true, cutoffHours };
+    }
+    if (cutoffEnabled && cutoffHours > 0 && parsed.hoursUntil < cutoffHours) {
+        return {
+            allowed: false,
+            hiddenByAdmin: false,
+            lockedByCutoff: true,
+            departed: false,
+            cutoffHours,
+            hoursUntil: Number(parsed.hoursUntil.toFixed(1))
+        };
+    }
+    return { allowed: true, hiddenByAdmin: false, lockedByCutoff: false, cutoffHours, hoursUntil: parsed.hoursUntil };
+}
+
+    const activeFlags = getAppData().featureFlags || {};
     bookings.forEach(b => {
         const isApproved = b.status === "Approved";
         const isRejected = b.status === "Rejected";
@@ -3372,8 +3585,9 @@ async function searchCustomerBookings() {
         const bus = (getAppData().buses || []).find(x => x.id === cleanBusId || x.id === b.busId || x.id == b.busId) || null;
         const trackingWin = typeof getJourneyTrackingWindow === 'function' ? getJourneyTrackingWindow(b, bus) : { status: 'LIVE_ACTIVE' };
         const isJourneyCompleted = isApproved && trackingWin.status === 'COMPLETED';
-        const isTrackingLive = isApproved && trackingWin.status === 'LIVE_ACTIVE' && getAppData().featureFlags.liveTracking !== false;
-        const isTrackingUpcoming = isApproved && trackingWin.status === 'UPCOMING' && getAppData().featureFlags.liveTracking !== false;
+        const isTrackingLive = isApproved && trackingWin.status === 'LIVE_ACTIVE' && activeFlags.liveTracking !== false;
+        const isTrackingUpcoming = isApproved && trackingWin.status === 'UPCOMING' && activeFlags.liveTracking !== false;
+        const cancelStatus = getBookingCancellationStatus(b, bus, activeFlags);
 
         let statusBadgeHtml = '';
         if (isCancelled) {
@@ -3449,10 +3663,14 @@ async function searchCustomerBookings() {
                         ${isApproved ? (isJourneyCompleted ? (currentLang === 'bn' ? '📄 টিকিট দেখুন (পুরোনো)' : '📄 View Past Ticket') : '📄 View / Download Ticket') : '⏳ Ticket after approval'}
                     </button>
                 `}
-                ${(isApproved && !isJourneyCompleted) ? `
+                ${(isApproved && !isJourneyCompleted && cancelStatus.allowed) ? `
                     <button type="button" class="cancel-request-btn bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-700 border border-amber-300 py-1.5 px-3 rounded-lg font-bold text-xs shadow-xs transition flex items-center gap-1" title="Request Cancellation">
                         <span>❌</span> <span>${currentLang === 'bn' ? 'টিকিট বাতিল অনুরোধ' : 'Cancel Ticket'}</span>
                     </button>
+                ` : (isApproved && !isJourneyCompleted && !cancelStatus.hiddenByAdmin && cancelStatus.lockedByCutoff && !cancelStatus.departed) ? `
+                    <span class="cancel-locked-badge inline-flex items-center gap-1 bg-gray-100 text-gray-500 border border-gray-200 py-1.5 px-2.5 rounded-lg font-bold text-[11px] select-none" title="${currentLang === 'bn' ? `যাত্রার ${cancelStatus.cutoffHours} ঘণ্টার মধ্যে অনলাইন ক্যানসেল বন্ধ` : `Cancellation closes ${cancelStatus.cutoffHours}h before departure`}">
+                        <span>🔒</span> <span>${currentLang === 'bn' ? `বাতিল বন্ধ (<${cancelStatus.cutoffHours} ঘণ্টা)` : `Cancel Closed (<${cancelStatus.cutoffHours}h)`}</span>
+                    </span>
                 ` : ''}
                 ${isTrackingLive ? `
                     <button type="button" class="track-btn bg-emerald-600 hover:bg-emerald-700 text-white py-1.5 px-3 rounded-lg font-bold text-xs shadow-sm transition flex items-center gap-1.5 animate-pulse">

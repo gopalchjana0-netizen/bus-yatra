@@ -1116,6 +1116,13 @@ function reindexStoppageRows(containerId) {
         const seqEl = row.querySelector('.stoppage-seq');
         if (seqEl) seqEl.innerText = `#${i + 1}`;
     });
+    if (typeof _fareMatrixMeta === 'object') {
+        Object.entries(_fareMatrixMeta).forEach(([matrixId, meta]) => {
+            if (meta && meta.stopContainerId === containerId) {
+                refreshStoppageFareMatrix(matrixId);
+            }
+        });
+    }
 }
 window.reindexStoppageRows = reindexStoppageRows;
 
@@ -1139,6 +1146,213 @@ function collectStoppageSchedule(containerId) {
     return { stoppages, stoppageTimings };
 }
 window.collectStoppageSchedule = collectStoppageSchedule;
+
+// --- Shared Enterprise Trip Time, Segment Fare Resolver & From->To Matrix UI ---
+function parseTripDateTimeIST(journeyDate, timeStr) {
+    if (!journeyDate || !/^\d{4}-\d{2}-\d{2}$/.test(String(journeyDate))) return null;
+    const clean = String(timeStr || '07:00 AM').trim();
+    const match = clean.match(/^(\d{1,2})[:.](\d{2})\s*(AM|PM)?$/i);
+    if (!match) return null;
+    let h = parseInt(match[1], 10);
+    const m = parseInt(match[2], 10);
+    const meridiem = (match[3] || '').toUpperCase();
+    if (meridiem === 'PM' && h < 12) h += 12;
+    if (meridiem === 'AM' && h === 12) h = 0;
+    const dt = new Date(`${journeyDate}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00+05:30`);
+    if (Number.isNaN(dt.getTime())) return null;
+    const diffMs = dt.getTime() - Date.now();
+    return {
+        departureMs: dt.getTime(),
+        departureDate: dt,
+        hoursUntil: diffMs / 3600000,
+        isPassed: diffMs <= 0
+    };
+}
+window.parseTripDateTimeIST = parseTripDateTimeIST;
+
+function getHoursUntilTripIST(journeyDate, timeStr) {
+    const parsed = parseTripDateTimeIST(journeyDate, timeStr);
+    return parsed ? parsed.hoursUntil : null;
+}
+window.getHoursUntilTripIST = getHoursUntilTripIST;
+
+function resolveSegmentFare(bus, boarding, dropping, isReturnTrip = false, flags = null) {
+    if (!bus) return 150;
+    const fullFare = Number(isReturnTrip ? (bus.returnFare || bus.return_fare || bus.fare) : bus.fare) || 150;
+    if (flags && flags.stoppageWiseFares === false) return Math.round(fullFare);
+
+    let stops = isReturnTrip
+        ? (Array.isArray(bus.returnStoppages) && bus.returnStoppages.length >= 2 ? bus.returnStoppages : (Array.isArray(bus.stoppages) ? [...bus.stoppages].reverse() : []))
+        : (Array.isArray(bus.stoppages) ? bus.stoppages : []);
+    if (stops.length < 2) return Math.round(fullFare);
+
+    const bClean = String(boarding || '').trim().toLowerCase();
+    const dClean = String(dropping || '').trim().toLowerCase();
+    const fromIdx = stops.findIndex(s => String(s || '').trim().toLowerCase() === bClean);
+    const toIdx = stops.findIndex(s => String(s || '').trim().toLowerCase() === dClean);
+    if (fromIdx < 0 || toIdx <= fromIdx) return Math.round(fullFare);
+
+    const fromStop = stops[fromIdx];
+    const toStop = stops[toIdx];
+    const fareMap = isReturnTrip
+        ? (bus.returnStoppageFares || bus.return_stoppage_fares || bus.stoppageFares || bus.stoppage_fares || {})
+        : (bus.stoppageFares || bus.stoppage_fares || {});
+
+    if (fareMap && typeof fareMap === 'object') {
+        const directKey = `${fromStop}->${toStop}`;
+        if (Number(fareMap[directKey]) > 0) return Math.round(Number(fareMap[directKey]));
+        const lcTarget = directKey.toLowerCase();
+        for (const [k, v] of Object.entries(fareMap)) {
+            if (String(k || '').trim().toLowerCase() === lcTarget && Number(v) > 0) {
+                return Math.round(Number(v));
+            }
+        }
+    }
+
+    if (fromIdx === 0 && toIdx === stops.length - 1) return Math.round(fullFare);
+
+    const totalHops = Math.max(1, stops.length - 1);
+    const hops = toIdx - fromIdx;
+    const propFare = Math.round((fullFare * (hops / totalHops)) / 5) * 5;
+    return Math.max(20, Math.min(Math.round(fullFare), propFare));
+}
+window.resolveSegmentFare = resolveSegmentFare;
+
+const _fareMatrixMeta = {};
+
+function renderStoppageFareMatrixEditor(matrixContainerId, stopContainerId, existingFares = {}, options = {}) {
+    const container = document.getElementById(matrixContainerId);
+    if (!container) return;
+
+    const currentTyped = collectStoppageFareMatrix(matrixContainerId);
+    const mergedFares = { ...(existingFares && typeof existingFares === 'object' ? existingFares : {}), ...currentTyped };
+    _fareMatrixMeta[matrixContainerId] = { stopContainerId, ...options };
+
+    const stops = (collectStoppageSchedule(stopContainerId).stoppages || []).filter(Boolean);
+    if (stops.length < 2) {
+        container.innerHTML = `<div class="text-xs text-gray-400 italic p-2">${t('অন্তত ২টি স্টপেজ যোগ করলে From ➔ To ভাড়া তালিকা দেখা যাবে।', 'Add at least 2 stoppages above to configure From ➔ To fares.')}</div>`;
+        return;
+    }
+
+    const fareEl = options.fareInputId ? document.getElementById(options.fareInputId) : null;
+    const perStopEl = options.perStopInputId ? document.getElementById(options.perStopInputId) : null;
+    const baseFare = Math.max(50, Number(fareEl?.value) || Number(options.defaultFare) || 180);
+    const perStop = Math.max(10, Number(perStopEl?.value) || Number(options.defaultPerStop) || Math.round(baseFare / Math.max(1, stops.length - 1)));
+    const totalHops = Math.max(1, stops.length - 1);
+
+    let rowsHtml = '';
+    for (let i = 0; i < stops.length - 1; i++) {
+        const fromStop = stops[i];
+        let pairsHtml = '';
+        for (let j = i + 1; j < stops.length; j++) {
+            const toStop = stops[j];
+            const pairKey = `${fromStop}->${toStop}`;
+            let savedVal = mergedFares[pairKey];
+            if (savedVal === undefined) {
+                const lcKey = pairKey.toLowerCase();
+                for (const [k, v] of Object.entries(mergedFares)) {
+                    if (String(k).toLowerCase() === lcKey) { savedVal = v; break; }
+                }
+            }
+            const hops = j - i;
+            const autoSuggested = (i === 0 && j === stops.length - 1)
+                ? Math.round(baseFare)
+                : Math.max(20, Math.min(Math.round(baseFare), Math.round((baseFare * (hops / totalHops)) / 5) * 5));
+            const valAttr = (savedVal !== undefined && Number(savedVal) > 0) ? Math.round(Number(savedVal)) : '';
+
+            pairsHtml += `
+                <div class="flex items-center justify-between gap-2 bg-white px-2.5 py-1.5 rounded-lg border border-gray-200 min-w-0">
+                    <span class="text-[11px] font-semibold text-gray-700 truncate min-w-0">➔ ${escapeHtml(toStop)}</span>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <span class="text-[10px] font-bold text-gray-400">₹</span>
+                        <input type="number" min="1" max="50000" data-pair="${escapeHtml(pairKey)}" data-auto="${autoSuggested}" value="${valAttr}" placeholder="${autoSuggested}" class="fare-matrix-input w-16 sm:w-20 p-1 border rounded-md text-xs font-bold text-gray-900 bg-gray-50 focus:bg-white focus:ring-1 focus:ring-amber-500 text-right">
+                    </div>
+                </div>
+            `;
+        }
+        rowsHtml += `
+            <div class="bg-amber-50/50 border border-amber-200/80 rounded-xl p-2.5 space-y-1.5 min-w-0">
+                <div class="text-[11px] font-black text-amber-900 flex items-center gap-1.5">
+                    <span>📍</span>
+                    <span class="truncate">${t('বোর্ডিং:', 'From:')} ${escapeHtml(fromStop)}</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    ${pairsHtml}
+                </div>
+            </div>
+        `;
+    }
+
+    container.innerHTML = `
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+            <span class="text-[11px] text-gray-600 font-medium">${t('প্রতিটি স্টপেজ From ➔ To কাস্টম ভাড়া সেট করুন (খালি রাখলে দূরত্ব অনুযায়ী কম ভাড়া অটো-হিসেব হবে)।', 'Set exact From ➔ To stoppage fares (blank pairs auto-compute lower proportional fares).')}</span>
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <button type="button" onclick="autoFillStoppageFareMatrix('${matrixContainerId}')" class="bg-amber-500 hover:bg-amber-600 text-gray-950 px-2.5 py-1 rounded-lg text-[11px] font-bold shadow-2xs transition cursor-pointer">
+                    ⚡ ${t('অটো কম ভাড়া বসান', 'Auto-Fill Fares')}
+                </button>
+                <button type="button" onclick="refreshStoppageFareMatrix('${matrixContainerId}')" class="bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer">
+                    🔄 ${t('স্টপেজ সিঙ্ক', 'Sync Stops')}
+                </button>
+            </div>
+        </div>
+        <div class="space-y-2 max-h-72 overflow-y-auto pr-0.5">${rowsHtml}</div>
+    `;
+}
+window.renderStoppageFareMatrixEditor = renderStoppageFareMatrixEditor;
+
+function refreshStoppageFareMatrix(matrixContainerId) {
+    const meta = _fareMatrixMeta[matrixContainerId];
+    if (!meta) return;
+    const current = collectStoppageFareMatrix(matrixContainerId);
+    renderStoppageFareMatrixEditor(matrixContainerId, meta.stopContainerId, current, meta);
+}
+window.refreshStoppageFareMatrix = refreshStoppageFareMatrix;
+
+function autoFillStoppageFareMatrix(matrixContainerId) {
+    const container = document.getElementById(matrixContainerId);
+    const meta = _fareMatrixMeta[matrixContainerId];
+    if (!container || !meta) return;
+    const stops = (collectStoppageSchedule(meta.stopContainerId).stoppages || []).filter(Boolean);
+    if (stops.length < 2) return;
+
+    const fareEl = meta.fareInputId ? document.getElementById(meta.fareInputId) : null;
+    const perStopEl = meta.perStopInputId ? document.getElementById(meta.perStopInputId) : null;
+    const baseFare = Math.max(40, Number(fareEl?.value) || Number(meta.defaultFare) || 180);
+    const perStop = Number(perStopEl?.value) || 0;
+    const totalHops = Math.max(1, stops.length - 1);
+
+    container.querySelectorAll('.fare-matrix-input').forEach(inp => {
+        const pair = inp.getAttribute('data-pair') || '';
+        const parts = pair.split('->');
+        const i = stops.indexOf(parts[0]);
+        const j = stops.indexOf(parts[1]);
+        if (i < 0 || j <= i) return;
+        const hops = j - i;
+        if (i === 0 && j === stops.length - 1) {
+            inp.value = Math.round(baseFare);
+        } else if (perStop > 0 && (hops * perStop) < baseFare) {
+            inp.value = Math.max(20, Math.round(hops * perStop));
+        } else {
+            inp.value = Math.max(20, Math.min(Math.round(baseFare), Math.round((baseFare * (hops / totalHops)) / 5) * 5));
+        }
+    });
+}
+window.autoFillStoppageFareMatrix = autoFillStoppageFareMatrix;
+
+function collectStoppageFareMatrix(matrixContainerId) {
+    const container = document.getElementById(matrixContainerId);
+    const map = {};
+    if (!container) return map;
+    container.querySelectorAll('.fare-matrix-input').forEach(inp => {
+        const pair = inp.getAttribute('data-pair');
+        const val = parseFloat(inp.value);
+        if (pair && Number.isFinite(val) && val > 0 && val <= 50000) {
+            map[pair] = Math.round(val);
+        }
+    });
+    return map;
+}
+window.collectStoppageFareMatrix = collectStoppageFareMatrix;
 
 // ==========================================
 // --- Dynamic Bus Seat Layout & Map Engine ---

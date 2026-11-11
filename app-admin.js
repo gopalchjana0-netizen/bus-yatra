@@ -972,6 +972,9 @@ async function addNewBus() {
     const busRating = parseFloat(document.getElementById('newBusRating')?.value || 4.8);
     const route = (document.getElementById('newBusRoute')?.value || '').trim() || 'Pingla to Kolkata';
     const { stoppages, stoppageTimings } = collectStoppageSchedule('adminStoppagesContainer');
+    const stoppageFares = (typeof collectStoppageFareMatrix === 'function')
+        ? collectStoppageFareMatrix('adminFareMatrixContainer')
+        : {};
     const ticketTerms = document.getElementById('newBusTicketTerms').value.trim();
     const editingId = document.getElementById('editingBusId').value;
 
@@ -1001,6 +1004,9 @@ async function addNewBus() {
     const returnSchedule = collectStoppageSchedule('adminReturnStoppagesContainer');
     const returnStoppages = returnSchedule.stoppages;
     const returnStoppageTimings = returnSchedule.stoppageTimings;
+    const returnStoppageFares = (typeof collectStoppageFareMatrix === 'function')
+        ? collectStoppageFareMatrix('adminReturnFareMatrixContainer')
+        : {};
 
     const busPayload = {
         id: editingId || ('bus_' + Date.now()),
@@ -1018,12 +1024,14 @@ async function addNewBus() {
         windowSeatExtra: 30,
         stoppages,
         stoppageTimings,
+        stoppageFares,
         returnRouteEnabled,
         returnRoute: returnRoute || (returnStoppages.length >= 2 ? `${returnStoppages[0]} to ${returnStoppages[returnStoppages.length - 1]}` : (stoppages.slice().reverse().join(' to '))),
         returnTime,
         returnFare,
         returnStoppages,
         returnStoppageTimings,
+        returnStoppageFares,
         approvalStatus: 'approved',
         activeRoutes: [route],
         route,
@@ -1075,8 +1083,23 @@ function reverseAdminUpRouteForReturn() {
     const retRoute = `${rev[0]} to ${rev[rev.length - 1]}`;
     const routeInput = document.getElementById('adminReturnRoute');
     if (routeInput) routeInput.value = retRoute;
+    const retToggle = document.getElementById('adminReturnRouteEnabled');
+    if (retToggle && !retToggle.checked) {
+        retToggle.checked = true;
+        toggleAdminReturnRouteFields();
+    }
+    const existingRetFares = (typeof collectStoppageFareMatrix === 'function')
+        ? collectStoppageFareMatrix('adminReturnFareMatrixContainer')
+        : {};
     renderStoppageScheduleEditor('adminReturnStoppagesContainer', rev, {});
-    alert(`✅ ফিরতি রুট প্রস্তুত: ${retRoute}। এখন ফিরতি সময়সূচি নির্ধারণ করুন।`);
+    if (typeof renderStoppageFareMatrixEditor === 'function') {
+        renderStoppageFareMatrixEditor('adminReturnFareMatrixContainer', 'adminReturnStoppagesContainer', existingRetFares, {
+            fareInputId: 'adminReturnFare',
+            perStopInputId: 'newBusFarePerStop',
+            defaultFare: Number(document.getElementById('adminReturnFare')?.value) || Number(document.getElementById('newBusFare')?.value) || 399
+        });
+    }
+    alert(`✅ ফিরতি রুট প্রস্তুত: ${retRoute}। এখন ফিরতি সময়সূচি ও ভাড়া নির্ধারণ করুন।`);
 }
 window.reverseAdminUpRouteForReturn = reverseAdminUpRouteForReturn;
 
@@ -1112,6 +1135,19 @@ function editBus(id) {
     const routeInput = document.getElementById('newBusRoute');
     if (routeInput) routeInput.value = bus.route || (bus.activeRoutes && bus.activeRoutes[0]) || 'Pingla to Kolkata';
     renderStoppageScheduleEditor('adminStoppagesContainer', bus.stoppages || [], bus.stoppageTimings || bus.stoppage_timings || {});
+    if (typeof renderStoppageFareMatrixEditor === 'function') {
+        renderStoppageFareMatrixEditor(
+            'adminFareMatrixContainer',
+            'adminStoppagesContainer',
+            bus.stoppageFares || bus.stoppage_fares || {},
+            {
+                fareInputId: 'newBusFare',
+                perStopInputId: 'newBusFarePerStop',
+                defaultFare: bus.fare || 399,
+                defaultPerStop: bus.farePerStop || 45
+            }
+        );
+    }
 
     // Return Route Details
     const returnToggle = document.getElementById('adminReturnRouteEnabled');
@@ -1123,6 +1159,19 @@ function editBus(id) {
     const returnFareInput = document.getElementById('adminReturnFare');
     if (returnFareInput) returnFareInput.value = bus.returnFare !== undefined ? bus.returnFare : (bus.fare || 399);
     renderStoppageScheduleEditor('adminReturnStoppagesContainer', bus.returnStoppages || [], bus.returnStoppageTimings || bus.return_stoppage_timings || {});
+    if (typeof renderStoppageFareMatrixEditor === 'function') {
+        renderStoppageFareMatrixEditor(
+            'adminReturnFareMatrixContainer',
+            'adminReturnStoppagesContainer',
+            bus.returnStoppageFares || bus.return_stoppage_fares || {},
+            {
+                fareInputId: 'adminReturnFare',
+                perStopInputId: 'newBusFarePerStop',
+                defaultFare: bus.returnFare || bus.fare || 399,
+                defaultPerStop: bus.farePerStop || 45
+            }
+        );
+    }
     toggleAdminReturnRouteFields();
 
     document.getElementById('newBusTicketTerms').value = bus.ticketTerms || "";
@@ -1201,6 +1250,14 @@ function resetAdminForm() {
             'Kolkata': '08:45 AM'
         }
     );
+    if (typeof renderStoppageFareMatrixEditor === 'function') {
+        renderStoppageFareMatrixEditor('adminFareMatrixContainer', 'adminStoppagesContainer', {}, {
+            fareInputId: 'newBusFare',
+            perStopInputId: 'newBusFarePerStop',
+            defaultFare: 399,
+            defaultPerStop: 45
+        });
+    }
 
     // Reset Return Route fields
     const returnToggle = document.getElementById('adminReturnRouteEnabled');
@@ -1212,6 +1269,14 @@ function resetAdminForm() {
     const returnFareInput = document.getElementById('adminReturnFare');
     if (returnFareInput) returnFareInput.value = '';
     renderStoppageScheduleEditor('adminReturnStoppagesContainer', [], {});
+    if (typeof renderStoppageFareMatrixEditor === 'function') {
+        renderStoppageFareMatrixEditor('adminReturnFareMatrixContainer', 'adminReturnStoppagesContainer', {}, {
+            fareInputId: 'adminReturnFare',
+            perStopInputId: 'newBusFarePerStop',
+            defaultFare: 399,
+            defaultPerStop: 45
+        });
+    }
     toggleAdminReturnRouteFields();
 
     document.getElementById('newBusTicketTerms').value = "";
@@ -2668,6 +2733,22 @@ function renderAdminFeatureFlags() {
     const holdMins = (flags.seatHoldMinutes !== undefined) ? flags.seatHoldMinutes : (seatHoldCfg.holdMinutes !== undefined ? seatHoldCfg.holdMinutes : 15);
     setValue('cfgSeatHoldMinutes', holdMins, 15);
 
+    // Ticket Cancellation & Cutoff Hours controls
+    const cancelCfg = expConfig.ticketCancellation || {};
+    const isCancelEnabled = flags.ticketCancellation !== false && cancelCfg.enabled !== false;
+    setChecked('flagTicketCancellation', isCancelEnabled);
+    const isCancelCutoffEnabled = flags.cancellationCutoffEnabled !== false && cancelCfg.cutoffEnabled !== false;
+    setChecked('flagCancellationCutoffEnabled', isCancelCutoffEnabled);
+    const cancelCutoffHours = (flags.cancellationCutoffHours !== undefined)
+        ? flags.cancellationCutoffHours
+        : (cancelCfg.cutoffHours !== undefined ? cancelCfg.cutoffHours : 8);
+    setValue('cfgCancellationCutoffHours', cancelCutoffHours, 8);
+
+    // En-Route Running Booking, Stoppage-Wise Fares & Segment Seat Reuse controls
+    setChecked('flagEnrouteRunningBooking', flags.enrouteRunningBooking !== false);
+    setChecked('flagStoppageWiseFares', flags.stoppageWiseFares !== false);
+    setChecked('flagSegmentSeatReuse', flags.segmentSeatReuse !== false);
+
     // Festival & Seasonal Theme Controller
     loadAdminFestivalTheme();
 }
@@ -2919,6 +3000,15 @@ async function saveAdminFeatureFlags() {
     const seatHoldTimerVal = document.getElementById('flagSeatHoldTimer')?.checked ?? true;
     const seatHoldMinsVal = parseInt(document.getElementById('cfgSeatHoldMinutes')?.value, 10) || 15;
 
+    const ticketCancelVal = document.getElementById('flagTicketCancellation')?.checked ?? true;
+    const cancelCutoffEnabledVal = document.getElementById('flagCancellationCutoffEnabled')?.checked ?? true;
+    const rawCancelCutoffHours = parseFloat(document.getElementById('cfgCancellationCutoffHours')?.value);
+    const cancelCutoffHoursVal = (Number.isFinite(rawCancelCutoffHours) && rawCancelCutoffHours >= 0) ? rawCancelCutoffHours : 8;
+
+    const enrouteRunningVal = document.getElementById('flagEnrouteRunningBooking')?.checked ?? true;
+    const stoppageWiseFaresVal = document.getElementById('flagStoppageWiseFares')?.checked ?? true;
+    const segmentSeatReuseVal = document.getElementById('flagSegmentSeatReuse')?.checked ?? true;
+
     const featureFlags = {
         onlinePayment: document.getElementById('flagOnlinePay')?.checked ?? true,
         cashPayment: document.getElementById('flagCashPay')?.checked ?? true,
@@ -2933,6 +3023,12 @@ async function saveAdminFeatureFlags() {
         trackingGraceMinutes: graceMinsVal,
         seatHoldTimer: seatHoldTimerVal,
         seatHoldMinutes: seatHoldMinsVal,
+        ticketCancellation: ticketCancelVal,
+        cancellationCutoffEnabled: cancelCutoffEnabledVal,
+        cancellationCutoffHours: cancelCutoffHoursVal,
+        enrouteRunningBooking: enrouteRunningVal,
+        stoppageWiseFares: stoppageWiseFaresVal,
+        segmentSeatReuse: segmentSeatReuseVal,
         expansionConfig: {
             liveTracking: {
                 leadWindowEnabled: leadWindowEnabledVal,
@@ -2942,6 +3038,11 @@ async function saveAdminFeatureFlags() {
             seatHold: {
                 enabled: seatHoldTimerVal,
                 holdMinutes: seatHoldMinsVal
+            },
+            ticketCancellation: {
+                enabled: ticketCancelVal,
+                cutoffEnabled: cancelCutoffEnabledVal,
+                cutoffHours: cancelCutoffHoursVal
             }
         }
     };
